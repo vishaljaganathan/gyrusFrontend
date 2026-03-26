@@ -1,0 +1,11 @@
+
+.env
+.env.*
+*.env
+
+node_modules/
+.expo/
+android/
+.idea/
+.vscode/
+*.log

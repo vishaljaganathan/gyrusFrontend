@@ -1,0 +1,73 @@
+{
+  "expo": {
+    "name": "Gyrus NEET",
+    "newArchEnabled": true,
+    "slug": "gyus-neet",
+    "version": "1.0.7",
+    "orientation": "portrait",
+    "icon": "./assets/appLogo.png",
+    
+    "jsEngine": "hermes",
+        "splash": {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#004541"
+        },
+    "androidStatusBar": {},
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.gyrus.neet",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "permissions": [
+        "INTERNET"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/appLogo.png",
+        "backgroundColor": "#004541"
+      },
+      "package": "com.gyrus.neet",
+      "versionCode": 38
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "47c94689-344a-44bc-893b-2d8765c1d361"
+      }
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-font",
+      "expo-secure-store",
+      "expo-video",
+      "expo-asset",
+      "expo-router",
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#004541",
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "imageWidth": 220,
+          "dark": {
+            "backgroundColor": "#004541",
+            "image": "./assets/splash.png"
+          }
+        }
+      ]
+    ],
+    "owner": "rajeshselvaraj"
+  }
+}
