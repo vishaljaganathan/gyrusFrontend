@@ -1,7 +1,6 @@
 import {
   CommonActions,
-  NavigationContainerRef,
-} from "@react-navigation/native";
+  NavigationContainerRef} from "@react-navigation/native";
 
 type RootStackParamList = {
   // Define your screen names and their params here

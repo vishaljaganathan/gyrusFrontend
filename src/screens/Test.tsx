@@ -1,3 +1,8 @@
+import { View,  Image, StyleSheet, ScrollView, Dimensions, ActivityIndicator, TouchableOpacity, Pressable, BackHandler, Alert, Animated} from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput, CustomAnimatedText, CustomBoldText } from '../components/CustomText';
+import { Modal } from "@gluestack-ui/themed-native-base";
+import RadioButton from "../components/RadioButton";
+import { LinearGradient as Lin } from "expo-linear-gradient";
 // Simple linear progress bar
 const SimpleProgressBar = ({ progress = 0, height = 16, style = {} }) => {
   const barHeight = height;
@@ -6,35 +11,26 @@ const SimpleProgressBar = ({ progress = 0, height = 16, style = {} }) => {
   return (
     <View style={[{ height: barHeight, backgroundColor: bgColor, borderRadius: barHeight / 2, overflow: 'hidden', justifyContent: 'center', width: '100%' }, style]}>
       <View style={{ width: `${Math.max(0, Math.min(progress, 100))}%`, height: barHeight, backgroundColor: fillColor, borderRadius: barHeight / 2 }} />
-      <Text style={{ position: 'absolute', width: '100%', textAlign: 'center', color: '#333', fontWeight: 'bold', fontSize: barHeight * 0.7 }}>{`${Math.round(progress)}%`}</Text>
+      <Text style={{ position: 'absolute', width: '100%', textAlign: 'center', color: '#333',  fontFamily: 'AppFont-Bold', fontSize: barHeight * 0.7 }}>{`${Math.round(progress)}%`}</Text>
     </View>
   );
 };
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  ScrollView,
-  Image,
-  TouchableOpacity,
-  BackHandler,
-  Alert,
-  Animated,
-  Dimensions,
-} from "react-native";
+
+
+
+
 import ConfettiCannon from 'react-native-confetti-cannon';
-import RadioButton from "../components/RadioButton";
+
+
 // import { faBookmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { Ionicons } from '@expo/vector-icons';
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
+  heightPercentageToDP as hp} from "react-native-responsive-screen";
 import { COLORS } from "../styles/themes";
 import { SplitStringValues } from "../service/DataShow";
 import { ThemeContext } from "../service/authContext";
@@ -43,11 +39,13 @@ import { TestStrategy } from "../services/testStrategies/types";
 import { axiosInstance } from "../config/indeceptor";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import CheckButton from "../components/CheckButton";
-import { LinearGradient as Lin } from "expo-linear-gradient";
+
+
 
 
 import { Defs, LinearGradient, Path, Rect, Stop, Svg } from "react-native-svg";
-import { Modal } from "@gluestack-ui/themed-native-base";
+
+
 
 const Test = (props: any) => {
   const reviewMcqIdRaw = props?.route?.params?.params?.reviewMcqId;
@@ -69,6 +67,7 @@ const Test = (props: any) => {
   const [showPopup, setShowPopup] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const context = React.useContext(ThemeContext);
   const {
     userData,
@@ -76,8 +75,7 @@ const Test = (props: any) => {
     signUpData,
     setSignUpData,
     appState,
-    setAppState,
-  } = context;
+    setAppState} = context;
   const isTesterBuildUser = String(userData?.accType || '').trim().toLowerCase() === 'tester';
   const showTestMeta = isReviewMode || isTesterBuildUser;
 
@@ -87,8 +85,7 @@ const Test = (props: any) => {
     scores: 0,
     subject: props.route.params?.params?.subject || 'chemistry',
     correctQtsId: [],
-    wrongQtsId: [],
-  });
+    wrongQtsId: []});
   const [score, setScore] = useState(0);
   const [correctQtsIds, setCorrectQtsIds] = useState<any[]>([]);
   const [wrongQtsIds, setWrongQtsIds] = useState<any[]>([]);
@@ -101,12 +98,40 @@ const Test = (props: any) => {
   const [testStarted, setTestStarted] = useState(false);
   const [resultShown, setResultShown] = useState(false);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
-  const [strategy, setStrategy] = useState<TestStrategy | null>(null);
   const [showAnimated, setshowAnimated] = useState(false);
+  const [showOptionsCard, setShowOptionsCard] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [selectedReportType, setSelectedReportType] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [issueDescription, setIssueDescription] = useState("");
+
+  const reportTypes = [
+    "Equation Issue",
+    "Spelling Mistake",
+    "Wrong Answer",
+    "Images Missing/Unclear",
+    "Other",
+  ];
+
+  const strategy = useMemo(() => {
+    if (isReviewMode) return null;
+    const std = props.route.params?.params?.std || userData?.std;
+    const isPaid = userData?.planValid || false;
+    const subject = props.route.params?.params?.subject || 'neet';
+    
+    if (std && userData) {
+      return getTestStrategy({ std, planValid: isPaid }, subject);
+    }
+    return null;
+  }, [userData?.std, userData?.planValid, props.route.params?.params?.subject, isReviewMode]);
 
   const [arrNum, setArrNum] = useState(0); // Define state for `arrNum`
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Sanitize test size for display and logic
+  const rawTestType = Number(props.route.params?.params?.type) || 20;
+  const testType = (!userData?.planValid && rawTestType > 40) ? 40 : rawTestType;
 
   const answeredQuestionKeysRef = useRef<Set<string>>(new Set());
 
@@ -173,51 +198,25 @@ const Test = (props: any) => {
     return isTrueLike(question?.approved) && !isTrueLike(question?.isDelete);
   }, [isTrueLike, isTesterBuildUser]);
 
-  // Initialize strategy
+  // Initialize indices once or when subject changes
   useEffect(() => {
-    if (isReviewMode) {
-      return;
-    }
+    if (isReviewMode || !userData) return;
+    
     try {
-      const std = props.route.params?.params?.std;
-      const isPaid = userData?.planValid || false;
       const subject = props.route.params?.params?.subject || 'neet';
-
-      console.log('[Test.tsx] STRATEGY INITIALIZATION:', {
-        std,
-        isPaid,
-        subject,
-        userDataStd: userData?.std,
-        userDataPlanValid: userData?.planValid,
-        subjectDataExists: !!(userData && userData[subject]),
-        subjectData: userData?.[subject] ? {
-          cycle: userData[subject].cycle,
-          setIndex: userData[subject].setIndex,
-          testId: userData[subject].testId
-        } : null
-      });
-
-      if (std && userData) {
-        const selectedStrategy = getTestStrategy({ std: userData.std, planValid: userData.planValid }, subject);
-        console.log('[Test.tsx] Strategy selected:', selectedStrategy ? 'SUCCESS' : 'FAILED');
-        setStrategy(selectedStrategy);
-      }
-
-      if (userData && userData[subject]) {
+      
+      if (userData[subject]) {
         const c = userData[subject].cycle || 0;
         const s = userData[subject].setIndex || 0;
-        console.log(`[Test.tsx] RESTORING indices from userData: cycle=${c}, setIndex=${s}`);
+        console.log(`[Test.tsx] INITIAL INDICES RESTORED: cycle=${c}, setIndex=${s}`);
         setCycleIndex(c);
         setSetIndexInCycle(s);
-      } else {
-        console.warn('[Test.tsx] NO subject data in userData, defaulting to cycle=0, setIndex=0');
-        setCycleIndex(0);
-        setSetIndexInCycle(0);
       }
     } catch (error) {
-      console.error('[Test.tsx] Error in strategy initialization:', error);
+      console.error('[Test.tsx] Error in indices initialization:', error);
     }
-  }, [props.route.params?.params?.std, userData?.planValid, props.route.params?.params?.subject, userData]);
+    // Only respond to subject changes or initial mount, not every userData update
+  }, [props.route.params?.params?.subject]);
 
   const [submitTest, setSubmitTest] = useState(false);
   const navigation: any = useNavigation();
@@ -250,6 +249,69 @@ const Test = (props: any) => {
     }
   }, []);
 
+  // Warn user before leaving the test screen (hardware back or navigation)
+  const navigationActionRef = useRef<any>(null);
+  const isExitingRef = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (isExitingRef.current) return false;
+        // Only show warning if test is active (started but not completed)
+        if (testStarted && !resultShown && !showSuccess && !showRetry) {
+          navigationActionRef.current = null;
+          setShowExitConfirm(true);
+          return true; // prevent default back behavior
+        }
+        return false; // allow normal back navigation
+      };
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => {
+        backHandler.remove();
+      };
+    }, [testStarted, resultShown, showSuccess, showRetry])
+  );
+
+  // Warn user before navigating away via UI
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      if (isExitingRef.current) return;
+      // Only show warning if test is active (started but not completed)
+      if (testStarted && !resultShown && !showSuccess && !showRetry) {
+        e.preventDefault();
+        navigationActionRef.current = e.data.action;
+        setShowExitConfirm(true);
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, testStarted, resultShown, showSuccess, showRetry]);
+
+  const handleExitConfirm = () => {
+    isExitingRef.current = true;
+    setShowExitConfirm(false);
+    if (navigationActionRef.current) {
+      navigation.dispatch(navigationActionRef.current);
+    } else {
+      // Use goBack to pop the Test screen from stack. 
+      // If we can't go back, reset the stack to BottomBar to avoid loops.
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'BottomBar' }]});
+      }
+    }
+  };
+
+  const handleStayInTest = () => {
+    navigationActionRef.current = null;
+    setShowExitConfirm(false);
+  };
+
   // Review mode: fetch a single MCQ by mcqId and show answer + explanation
   useEffect(() => {
     if (!isReviewMode) return;
@@ -261,8 +323,7 @@ const Test = (props: any) => {
         setLoadingQuestions(true);
 
         const res = await axiosInstance.get("authentication/questions/batch", {
-          params: { mcqIds: reviewMcqId },
-        });
+          params: { mcqIds: reviewMcqId }});
 
         const list = res?.data;
         const q = Array.isArray(list) ? (list.find((item: any) => isVisibleQuestion(item)) || null) : null;
@@ -317,7 +378,14 @@ const Test = (props: any) => {
       const effectiveUsedIds = Array.isArray(usedIdsArr) ? usedIdsArr : usedIds;
       const std = props.route.params?.params?.std;
       const subject = props.route.params?.params?.subject;
-      const type = forcedType || props.route.params?.params?.type;
+      let type = forcedType || props.route.params?.params?.type;
+
+      // SAFETY: If a user's subscription expires while they are in a test 
+      // or if they deep-link into a large test as a free user, cap the size to 40.
+      if (userData && !userData.planValid && Number(type) > 40) {
+        console.warn('[Test.tsx] Capping test size to 40 for free user.');
+        type = 40;
+      }
 
       if (!std || !subject || !type) {
         console.error('[Test.tsx] Missing required parameters for fetchQuestions');
@@ -372,8 +440,7 @@ const Test = (props: any) => {
           if (!isVisibleQuestion(q)) {
             console.warn('[Test.tsx] Hidden question filtered out:', q.mcqId || q._id, {
               approved: q?.approved,
-              isDelete: q?.isDelete,
-            });
+              isDelete: q?.isDelete});
             return false;
           }
           
@@ -395,8 +462,7 @@ const Test = (props: any) => {
               has1: !!q["1"],
               has2: !!q["2"],
               has3: !!q["3"],
-              has4: !!q["4"],
-            });
+              has4: !!q["4"]});
             return false;
           }
 
@@ -445,36 +511,33 @@ const Test = (props: any) => {
     }
   };
 
-  // Reset progress only once after algorithm update
+  // Reset progress only once after algorithm update, and fetch initial questions
   useEffect(() => {
-    const resetProgressIfNeeded = async () => {
+    const initializeTest = async () => {
+      // Avoid re-fetching if we already have questions and the test is in progress
+      if (MCQs.length > 0 || loadingQuestions) return;
+
       try {
         const resetKey = await AsyncStorage.getItem('progressResetV2');
         if (!resetKey) {
-          // Call your progress reset logic here (e.g., API call to reset user progress)
-          // await axiosInstance.post('/user/reset-progress');
-          // Set the key so it only happens once
           await AsyncStorage.setItem('progressResetV2', 'true');
-          console.log('User progress reset for new algorithm.');
-        } else {
-          console.log('Progress already reset, skipping.');
+          console.log('User progress reset marker set.');
         }
       } catch (e) {
         console.log('Error checking or setting progress reset key:', e);
       }
-      const sub = props.route.params?.params?.subject || 'neet';
-      const c = (userData && userData[sub]) ? (userData[sub].cycle || 0) : 0;
-      const s = (userData && userData[sub]) ? (userData[sub].setIndex || 0) : 0;
 
-      console.log(`[Test.tsx] Initial load: using indices cycle=${c}, set=${s}`);
-      fetchQuestions(0, usedIds, 0, c, s);
+      const sub = props.route.params?.params?.subject || 'neet';
+      // Use the current state indices, which are initialized by the indices useEffect
+      console.log(`[Test.tsx] Initial fetch: using indices cycle=${cycleIndex}, set=${setIndexInCycle}`);
+      fetchQuestions(0, usedIds, 0, cycleIndex, setIndexInCycle);
       setOffset(0);
-      // Keep usedIds to avoid repeats
     };
-    if (!isReviewMode) {
-      resetProgressIfNeeded();
+
+    if (!isReviewMode && strategy) {
+      initializeTest();
     }
-  }, [props.route.params?.params?.std, props.route.params?.params?.subject, strategy]);
+  }, [props.route.params?.params?.subject, strategy]); // strategy is memoized, so this is stable
 
   useEffect(() => {
     if (MCQ && Object.keys(MCQ).length > 0) {
@@ -498,35 +561,32 @@ const Test = (props: any) => {
         <Text
           style={{
             color: "#0AB8AD",
-            fontSize: hp(1.68),
+            fontFamily: 'AppFont-Regular', fontSize: hp(1.68),
             textAlign: "center",
             lineHeight: hp(2.4),
-            width: "100%",
-          }}
+            width: "100%"}}
         >
           This exercise contains {Number(testType)}-MCQs
         </Text>
         <Text
           style={{
             color: "#0AB8AD",
-            fontSize: hp(1.68),
+            fontFamily: 'AppFont-Regular', fontSize: hp(1.68),
             textAlign: "center",
             lineHeight: hp(2.4),
             width: "100%",
-            marginBottom: hp(1),
-          }}
+            marginBottom: hp(1)}}
         >
           Would you like to continue?
         </Text>
         <Text
           style={{
             color: "#0AB8AD",
-            fontSize: hp(1.68),
+            fontFamily: 'AppFont-Regular', fontSize: hp(1.68),
             textAlign: "center",
             lineHeight: hp(2.4),
             width: "100%",
-            marginTop: hp(1.5),
-          }}
+            marginTop: hp(1.5)}}
         >
           Note: you need to correctly answer at least {Math.ceil(Number(testType) / 2)} questions to pass this test
         </Text>
@@ -535,24 +595,22 @@ const Test = (props: any) => {
             style={{
               color: "#0AB8AD",
               marginTop: hp(1.5),
-              fontSize: hp(1.68),
+              fontFamily: 'AppFont-Regular', fontSize: hp(1.68),
               textAlign: "center",
               lineHeight: hp(2.4),
-              width: "100%",
-            }}
+              width: "100%"}}
           >
             This exercise time limit is 3 hours 20 minutes
           </Text>
         )}
         <Text style={{
           color: '#0AB8AD',
-          fontSize: hp(1.5),
+          fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
           textAlign: 'center',
           lineHeight: hp(2.2),
           width: '100%',
-          marginTop: hp(1.5),
-        }}>
-          Some questions may be wider than your screen — look for the ➡️ symbol and scroll sideways to view them.
+          marginTop: hp(1.5)}}>
+          Some questions may be wider than your screen ➡️ look for the ⬅️ symbol and scroll sideways to view them.
         </Text>
         <View
           style={{
@@ -563,8 +621,7 @@ const Test = (props: any) => {
             marginTop: hp(3),
             columnGap: wp(2),
             width: "100%",
-            rowGap: hp(1),
-          }}
+            rowGap: hp(1)}}
         >
           <View style={{ flex: 1, minWidth: wp(35), maxWidth: wp(40) }}>
             <TestButton
@@ -580,7 +637,7 @@ const Test = (props: any) => {
                 setShowPopup(false);
               }}
               colors={loadingQuestions ? ["#CCCCCC", "#E0E0E0"] : ["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-              text={<Text style={{ fontWeight: 'bold' }}>{loadingQuestions ? "Loading..." : "Continue"}</Text>}
+              text={<Text style={{ fontFamily: 'AppFont-Bold' }}>{loadingQuestions ? "Loading..." : "Continue"}</Text>}
               disable={loadingQuestions}
             />
           </View>
@@ -603,7 +660,7 @@ const Test = (props: any) => {
                 }
               }}
               colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-              text={<Text style={{ fontWeight: 'bold' }}>Go Back</Text>}
+              text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Go Back</Text>}
             />
           </View>
         </View>
@@ -623,8 +680,7 @@ const Test = (props: any) => {
         toValue: 1,
         tension: 50,
         friction: 7,
-        useNativeDriver: true,
-      }).start();
+        useNativeDriver: true}).start();
 
       // Shake animation
       Animated.sequence([
@@ -653,11 +709,9 @@ const Test = (props: any) => {
         <Text
           style={{
             color: "#0AB8AD",
-            fontSize: hp(3.5),
+            fontFamily: 'AppFont-Bold', fontSize: hp(3.5),
             textAlign: "center",
-            fontWeight: "bold",
-            marginBottom: hp(1),
-          }}
+            marginBottom: hp(1)}}
         >
           Oops!
         </Text>
@@ -665,10 +719,9 @@ const Test = (props: any) => {
         <Text
           style={{
             color: "#0AB8AD",
-            fontSize: hp(2),
+            fontFamily: 'AppFont-Regular', fontSize: hp(2),
             textAlign: "center",
-            marginBottom: hp(3),
-          }}
+            marginBottom: hp(3)}}
         >
           It's alright! Every mistake is a step closer to success!
         </Text>
@@ -685,10 +738,10 @@ const Test = (props: any) => {
         }}>
           <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
             <View style={{ width: hp(0.8), height: hp(0.8), borderRadius: hp(0.4), backgroundColor: '#0AB8AD', marginRight: wp(2) }} />
-            <Text style={{ color: '#0AB8AD', fontWeight: 'bold', fontSize: hp(2) }}>Keep Trying!</Text>
+            <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Bold', fontSize: hp(2) }}>Keep Trying!</Text>
             <View style={{ width: hp(0.8), height: hp(0.8), borderRadius: hp(0.4), backgroundColor: '#0AB8AD', marginLeft: wp(2) }} />
           </View>
-          <Text style={{ color: '#0AB8AD', textAlign: 'center', marginTop: hp(1), fontSize: hp(1.5), fontWeight: 'bold' }}>You've got {displayScore}/{displayTotal}</Text>
+          <Text style={{ color: '#0AB8AD', textAlign: 'center', marginTop: hp(1), fontFamily: 'AppFont-Regular', fontSize: hp(1.5)}}>You've got {displayScore}/{displayTotal}</Text>
 
         </View>
 
@@ -696,10 +749,9 @@ const Test = (props: any) => {
           <Text
             style={{
               color: "#0AB8AD",
-              fontSize: hp(1.5),
+              fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
               textAlign: "center",
-              lineHeight: hp(2.2),
-            }}
+              lineHeight: hp(2.2)}}
           >
             Note: You need to correctly answer at least {Math.ceil(Number(result) / 2)} questions to pass this test.
           </Text>
@@ -715,8 +767,7 @@ const Test = (props: any) => {
             marginTop: hp(2),
             columnGap: wp(2),
             width: "100%",
-            rowGap: hp(1),
-          }}
+            rowGap: hp(1)}}
         >
           <View style={{ flex: 1, minWidth: wp(35), maxWidth: wp(40) }}>
             <TestButton
@@ -748,7 +799,7 @@ const Test = (props: any) => {
                 setTestStarted(true);
               }}
               colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-              text={<Text style={{ fontWeight: 'bold' }}>Try Again</Text>}
+              text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Try Again</Text>}
             />
           </View>
           <View style={{ flex: 1, minWidth: wp(35), maxWidth: wp(40) }}>
@@ -768,12 +819,14 @@ const Test = (props: any) => {
                 answeredQuestionKeysRef.current = new Set();
                 if (navigation && typeof navigation.canGoBack === 'function' && navigation.canGoBack()) {
                   navigation.goBack();
-                } else if (navigation && typeof navigation.navigate === 'function') {
-                  navigation.navigate("BottomBar", { screen: "Home" });
+                } else {
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'BottomBar' }]});
                 }
               }}
               colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-              text={<Text style={{ fontWeight: 'bold' }}>Go Back</Text>}
+              text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Go Back</Text>}
             />
           </View>
         </View>
@@ -814,13 +867,11 @@ const Test = (props: any) => {
               Animated.timing(particle.anim, {
                 toValue: 1,
                 duration: particle.duration * 1000,
-                useNativeDriver: true,
-              }),
+                useNativeDriver: true}),
               Animated.timing(particle.anim, {
                 toValue: 0,
                 duration: 0,
-                useNativeDriver: true,
-              }),
+                useNativeDriver: true}),
             ])
           )
         ]).start();
@@ -830,8 +881,7 @@ const Test = (props: any) => {
         toValue: 1,
         tension: 50,
         friction: 7,
-        useNativeDriver: true,
-      }).start();
+        useNativeDriver: true}).start();
 
       Animated.loop(
         Animated.sequence([
@@ -847,8 +897,7 @@ const Test = (props: any) => {
         width: wp(90),
         paddingTop: hp(15),
         maxWidth: 500,
-        paddingHorizontal: wp(2),
-      }}>
+        paddingHorizontal: wp(2)}}>
         {confetti.map(particle => (
           <Animated.View
             key={particle.id}
@@ -901,11 +950,9 @@ const Test = (props: any) => {
         <Text
           style={{
             color: "#0AB8AD",
-            fontSize: hp(3),
+            fontFamily: 'AppFont-Bold', fontSize: hp(3),
             textAlign: "center",
-            fontWeight: "bold",
-            marginBottom: hp(1),
-          }}
+            marginBottom: hp(1)}}
         >
           Congratulations
         </Text>
@@ -913,11 +960,9 @@ const Test = (props: any) => {
         <Text
           style={{
             color: "#0AB8AD",
-            fontSize: hp(2),
+            fontFamily: 'AppFont-Bold', fontSize: hp(2),
             textAlign: "center",
-            fontWeight: "600",
-            marginBottom: hp(1),
-          }}
+            marginBottom: hp(1)}}
         >
           You Did It!
         </Text>
@@ -932,7 +977,7 @@ const Test = (props: any) => {
         }}>
           <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
             <View style={{ width: hp(0.8), height: hp(0.8), borderRadius: hp(0.4), backgroundColor: '#10B981', marginRight: wp(2) }} />
-            <Text style={{ color: '#0AB8AD', fontWeight: 'bold', fontSize: hp(2) }}>Perfect Score!</Text>
+            <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Regular', fontSize: hp(2) }}>Perfect Score!</Text>
             <View style={{ width: hp(0.8), height: hp(0.8), borderRadius: hp(0.4), backgroundColor: '#10B981', marginLeft: wp(2) }} />
           </View>
         </View>
@@ -941,10 +986,8 @@ const Test = (props: any) => {
           style={{
             color: "#0AB8AD",
             marginBottom: hp(3),
-            fontSize: hp(1.8),
-            textAlign: "center",
-            fontWeight: "600",
-          }}
+            fontFamily: 'AppFont-Regular', fontSize: hp(1.8),
+            textAlign: "center"}}
         >
           You have scored {displayScore} out of {displayTotal}-MCQs
         </Text>
@@ -956,12 +999,14 @@ const Test = (props: any) => {
             setSubmittedTotal(null);
             if (navigation && typeof navigation.canGoBack === 'function' && navigation.canGoBack()) {
               navigation.goBack();
-            } else if (navigation && typeof navigation.navigate === 'function') {
-              navigation.navigate("BottomBar", { screen: "Home" });
+            } else {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'BottomBar' }]});
             }
           }}
           colors={["#0AB8AD", "#0ab8acb3"]}
-          text={<Text style={{ fontWeight: 'bold' }}>CONTINUE</Text>}
+          text={<Text style={{ fontFamily: 'AppFont-Bold' }}>CONTINUE</Text>}
         />
       </View>
     );
@@ -972,7 +1017,7 @@ const Test = (props: any) => {
       if (resultShown) {
         return;
       }
-      const setSize = Number(props.route.params?.params?.type);
+      const setSize = testType;
       if (!setSize || isNaN(setSize)) {
         console.error('[Test.tsx] Invalid setSize:', setSize);
         Alert.alert('Error', 'Invalid test configuration. Please try again.');
@@ -1034,8 +1079,7 @@ const Test = (props: any) => {
         nextSetSize, // calculated next set size
         std: props.route.params?.params?.std,
         type: setSize,
-        questionIds: questionIdsForSubmit,
-      };
+        questionIds: questionIdsForSubmit};
 
       console.log('[Test.tsx] SubmitTest - SENDING PAYLOAD:', submitPayload);
 
@@ -1103,6 +1147,36 @@ const Test = (props: any) => {
     }
   };
 
+  const handleReportIssue = async () => {
+    if (!selectedReportType) {
+      Alert.alert("Error", "Please select an issue type.");
+      return;
+    }
+
+    setReportSubmitting(true);
+    try {
+      const currentMCQ = MCQs[MCQIdx];
+      const payload = {
+        userName: userData?.name || userData?.firstName || "Unknown User",
+        userId: userData?._id || userData?.id || "Unknown ID",
+        issueType: selectedReportType,
+        description: selectedReportType === "Other" ? issueDescription : undefined,
+        mcqId: currentMCQ?.mcqId || "N/A",
+        questionId: getQuestionIdForPayload(currentMCQ) || "N/A"};
+
+      await axiosInstance.post("/issue-reports", payload);
+      Alert.alert("Success", "Issue reported successfully. Thank you for your feedback!");
+      setShowReportModal(false);
+      setSelectedReportType("");
+      setIssueDescription("");
+    } catch (error: any) {
+      console.error("Error reporting issue:", error);
+      Alert.alert("Error", "Failed to report issue. Please try again later.");
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
+
   const NumbericValues = () => {
     if (!MCQ || typeof MCQ !== 'object' || Object.keys(MCQ).length === 0) {
       console.warn('[Test.tsx] NumbericValues: MCQ is invalid or empty', MCQ);
@@ -1157,9 +1231,14 @@ const Test = (props: any) => {
           paddingBottom: hp(1.5),
           paddingHorizontal: wp(2),
           borderBottomColor: "#0AB8AD",
-          borderBottomWidth: wp(0.5),
-        }}
+          borderBottomWidth: wp(0.5)}}
       >
+        <TouchableOpacity 
+          onPress={() => setShowOptionsCard(!showOptionsCard)}
+          style={{ padding: wp(2) }}
+        >
+          <Ionicons name="ellipsis-vertical" size={24} color="#0AB8AD" />
+        </TouchableOpacity>
         <View style={{ flex: 1, marginRight: wp(2), justifyContent: 'center' }}>
           {/* Simple linear progress bar stretched to cup image */}
           <SimpleProgressBar
@@ -1172,40 +1251,89 @@ const Test = (props: any) => {
             source={VectorWin}
             style={{
               width: wp(12),
-              height: wp(12),
-            }}
+              height: wp(12)}}
           />
         </View>
       </View>
+
+      {/* Floating Card for Options */}
+      {showOptionsCard && (
+        <Pressable 
+          style={[StyleSheet.absoluteFill, { zIndex: 999 }]} 
+          onPress={() => setShowOptionsCard(false)} 
+        />
+      )}
+      {showOptionsCard && (
+        <View style={{
+          position: 'absolute',
+          top: 110,
+          left: wp(4),
+          backgroundColor: '#2C4B48',
+          borderRadius: wp(2),
+          padding: wp(1.5),
+          zIndex: 1000,
+          borderWidth: 1,
+          borderColor: '#0AB8AD',
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 3.84,
+          elevation: 5}}>
+          <TouchableOpacity
+            onPress={() => setShowOptionsCard(false)}
+            style={{
+              position: 'absolute',
+              top: -5,
+              right: 2,
+              padding: 5,
+              zIndex: 1001}}
+          >
+            <CustomBoldText style={{ color: '#0AB8AD', fontSize: 18}}>×</CustomBoldText>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => {
+              setShowOptionsCard(false);
+              setShowReportModal(true);
+            }}
+            style={{
+              paddingVertical: hp(1),
+              paddingHorizontal: wp(4),
+              marginTop: hp(0.5),
+              flexDirection: 'row',
+              alignItems: 'center'}}
+          >
+            <Ionicons name="flag-outline" size={18} color="#0AB8AD" />
+            <CustomBoldText style={{ color: '#0AB8AD', marginLeft: wp(2)}}>Report Issue</CustomBoldText>
+          </TouchableOpacity>
+        </View>
+      )}
       <ScrollView style={styles.scrollView}>
         <View
           style={{
             flex: 1,
-            alignItems: "center",
-          }}
+            alignItems: "center"}}
         >
           <View
             style={{
-              marginTop: hp(1),
-            }}
+              marginTop: hp(1)}}
           ></View>
           {/* {bookmarkData?.map((data, index) => {
               return ( */}
-          {testStarted && MCQs.length > 0 && MCQIdx < Number(props.route.params?.params?.type) ? (
+          {testStarted && MCQs.length > 0 && MCQIdx < testType ? (
             <View style={styles.qusContainer}>
               {/* Question progress text */}
-              <Text style={{ color: '#0AB8AD', fontWeight: 'bold', fontSize: hp(2), marginBottom: hp(1) }}>
-                Question {MCQIdx + 1} of {Number(props.route.params?.params?.type)}
+              <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Bold', fontSize: hp(2), marginBottom: hp(1) }}>
+                Question {MCQIdx + 1} of {testType}
               </Text>
               {showTestMeta && String(MCQs?.[MCQIdx % MCQs.length]?.mcqId || props?.route?.params?.params?.reviewMcqId || '').trim() ? (
-                <Text style={{ color: '#0AB8AD', fontWeight: '700', fontSize: hp(1.9), marginBottom: hp(1) }}>
+                <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Bold', fontSize: hp(1.9), marginBottom: hp(1) }}>
                   MCQ ID: {String(MCQs?.[MCQIdx % MCQs.length]?.mcqId || props?.route?.params?.params?.reviewMcqId || '').trim()}
                 </Text>
               ) : null}
               {MCQs && MCQs.length > 0 && <SplitStringValues centerTable={true} MCQ={MCQs[MCQIdx % MCQs.length]} keyName={"question"} />}
               {showTestMeta && String(MCQs?.[MCQIdx % MCQs.length]?.answer ?? '').trim() ? (
                 <View style={{ width: '100%', alignItems: 'flex-end', marginTop: hp(0.5), marginBottom: hp(1) }}>
-                  <Text style={{ color: '#C6CDD0', fontStyle: 'italic', fontSize: hp(1.9), textAlign: 'right' }}>
+                  <Text style={{ color: '#C6CDD0', fontFamily: 'AppFont-Regular', fontSize: hp(1.9), textAlign: 'right' }}>
                     The correct option is {String(MCQs?.[MCQIdx % MCQs.length]?.answer).trim()}
                   </Text>
                 </View>
@@ -1228,12 +1356,11 @@ const Test = (props: any) => {
 
               {showAnswer && (
                 <View style={styles.checkAnswerCon}>
-                  <Text style={[styles.answerText, { fontWeight: "bold" }]}>Answer:</Text>
-                  <Text
+                  <Text style={[styles.answerText, { fontFamily: 'AppFont-Bold' }]}>Answer:</Text>
+                  <CustomBoldText
                     style={[
                       styles.showAnswerText,
                       {
-                        fontWeight: "bold", // Make Correct/Wrong bold
                         color:
                           Number(MCQ.answer) == selectedIndex
                             ? COLORS.primary08
@@ -1242,7 +1369,7 @@ const Test = (props: any) => {
                     ]}
                   >
                     {Number(MCQ.answer) == selectedIndex ? "Correct" : "Incorrect"}
-                  </Text>
+                  </CustomBoldText>
                 </View>
               )}
 
@@ -1255,10 +1382,9 @@ const Test = (props: any) => {
                     paddingHorizontal: hp(2),
                     borderRadius: hp(1.5),
                     width: "100%",
-                    alignSelf: "stretch",
-                  }}
+                    alignSelf: "stretch"}}
                 >
-                  <Text style={{ color: "#FFF", fontFamily: "Manrope-VariableFont_wght", fontSize: hp(2), textDecorationLine: "underline", textAlign: "justify", fontWeight: "bold", marginBottom: hp(1) }}>Explanation:</Text>
+                  <Text style={{ color: "#FFF", fontFamily: 'AppFont-Bold', fontSize: hp(2), textDecorationLine: "underline", textAlign: "justify",  marginBottom: hp(1) }}>Explanation:</Text>
                   <SplitStringValues MCQ={MCQ} keyName={"explanation"} />
                 </View>
               )}
@@ -1271,22 +1397,21 @@ const Test = (props: any) => {
                     paddingHorizontal: hp(2),
                     borderRadius: hp(1.5),
                     width: "100%",
-                    alignSelf: "stretch",
-                  }}
+                    alignSelf: "stretch"}}
                 >
-                  <Text style={{color: "#FFF", fontFamily: "Manrope-VariableFont_wght", fontSize: hp(2), textDecorationLine: "underline", textAlign: "justify", fontWeight: "bold", marginBottom: hp(1)}}>Note:</Text>
+                  <Text style={{color: "#FFF", fontFamily: 'AppFont-Bold', fontSize: hp(2), textDecorationLine: "underline", textAlign: "justify",  marginBottom: hp(1)}}>Note:</Text>
                   <SplitStringValues MCQ={MCQ} keyName={"note"} />
                 </View>
               )}
             </View>
           ) : loadingQuestions ? (
             <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-              <Text style={{ color: '#0AB8AD', fontSize: hp(2) }}>Questions are loading, please wait...</Text>
+              <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Bold', fontSize: hp(2) }}>Questions are loading, please wait...</Text>
             </View>
           ) : isSubmitting ? (
             <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, paddingTop: hp(20) }}>
-              <Text style={{ color: '#0AB8AD', fontSize: hp(2), fontWeight: 'bold' }}>Submitting your test…</Text>
-              <Text style={{ color: '#0AB8AD', fontSize: hp(1.6), marginTop: hp(1) }}>Please wait a moment.</Text>
+              <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Regular', fontSize: hp(2)}}>Submitting your test!!</Text>
+              <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Regular', fontSize: hp(1.6), marginTop: hp(1) }}>Please wait a moment.</Text>
             </View>
           ) : (
             <></>
@@ -1299,15 +1424,15 @@ const Test = (props: any) => {
         style={{
           display: "flex",
           flexDirection: "row",
-          justifyContent: "space-evenly",
-        }}
+          justifyContent: "space-evenly"}}
       >
+        {(!isSubmitting && !submitTest) && (
         <View>
           <CheckButton
             onPress={() => {
               if (isReviewMode) return;
               if (!testStarted) return;
-              const setSize = Number(props.route.params?.params?.type);
+              const setSize = testType;
               if (selectedIndex != undefined && showAnswer == true) {
                 // Prevent double-tap / stale-state duplicates (can cause 41/40, etc.)
                 const dedupKey = getDedupKey(MCQ, MCQIdx);
@@ -1352,6 +1477,7 @@ const Test = (props: any) => {
             disable={selectedIndex == undefined}
           />
         </View>
+        )}
       </View>
       <Modal isOpen={showPopup}>
         <Modal.Content
@@ -1367,18 +1493,16 @@ const Test = (props: any) => {
             marginVertical: hp(2),
             paddingHorizontal: wp(3),
             paddingVertical: wp(3),
-            backgroundColor: "rgba(47, 47, 47, 0.9)",
-          }}
+            backgroundColor: "rgba(47, 47, 47, 0.9)"}}
         >
           <Modal.Body style={{ width: "100%", paddingHorizontal: 0 }}>
             <View
               style={{
                 justifyContent: "center",
                 alignItems: "center",
-                width: "100%",
-              }}
+                width: "100%"}}
             >
-              {returnContent(props.route.params.params.type)}
+              {returnContent(testType)}
             </View>
           </Modal.Body>
         </Modal.Content>
@@ -1393,27 +1517,34 @@ const Test = (props: any) => {
             alignItems: "center",
             width: wp(100),
             height: hp(100),
-            backgroundColor: "rgba(47, 47, 47, 0.9)",
-          }}
+            backgroundColor: "rgba(47, 47, 47, 0.9)"}}
         >
           <Pressable
-            onPress={() => setShowRetry(false)}
+            onPress={() => {
+              setShowRetry(false);
+              setSubmittedScore(null);
+              setSubmittedTotal(null);
+              if (navigation && typeof navigation.canGoBack === 'function' && navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'BottomBar' }]});
+              }
+            }}
             style={{
               position: "absolute",
               top: 10,
               right: 10,
-              zIndex: 2,
-            }}
+              zIndex: 2}}
           >
-            <Text
+            <CustomBoldText
               style={{
                 color: "gray",
-                fontSize: 18,
-                fontWeight: "bold",
-              }}
+                fontSize: 18}}
             >
               ×
-            </Text>
+            </CustomBoldText>
           </Pressable>
           <Modal.Body style={{}}>
             <View
@@ -1422,10 +1553,9 @@ const Test = (props: any) => {
                 alignItems: "center",
                 marginVertical: hp(4),
                 width: wp(80),
-                backgroundColor: "rgba(47, 47, 47, 0.4)",
-              }}
+                backgroundColor: "rgba(47, 47, 47, 0.4)"}}
             >
-              {returnTestContent(props.route.params.params.type)}
+              {returnTestContent(testType)}
             </View>
           </Modal.Body>
         </Modal.Content>
@@ -1440,27 +1570,34 @@ const Test = (props: any) => {
             alignItems: "center",
             width: wp(100),
             height: hp(100),
-            backgroundColor: "#ffffffff",
-          }}
+            backgroundColor: "#ffffffff"}}
         >
           <Pressable
-            onPress={() => setShowSuccess(false)}
+            onPress={() => {
+              setShowSuccess(false);
+              setSubmittedScore(null);
+              setSubmittedTotal(null);
+              if (navigation && typeof navigation.canGoBack === 'function' && navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'BottomBar' }]});
+              }
+            }}
             style={{
               position: "absolute",
               top: 10,
               right: 10,
-              zIndex: 2,
-            }}
+              zIndex: 2}}
           >
-            <Text
+            <CustomBoldText
               style={{
                 color: "#ffffffff" === "#ffffffff" ? "#000" : "#fff",
-                fontSize: 18,
-                fontWeight: "bold",
-              }}
+                fontSize: 18}}
             >
               ×
-            </Text>
+            </CustomBoldText>
           </Pressable>
           <Modal.Body style={{}}>
             <View
@@ -1469,8 +1606,7 @@ const Test = (props: any) => {
                 alignItems: "center",
                 marginVertical: hp(4),
                 width: wp(80),
-                backgroundColor: "#ffffffff",
-              }}
+                backgroundColor: "#ffffffff"}}
             >
               {showSuccessContent(props.route.params.params.type)}
             </View>
@@ -1479,6 +1615,203 @@ const Test = (props: any) => {
       </Modal>
       {/* Report issue modal removed */}
       {/* <FreshStartPopup visible={showFreshStart} onClose={() => setShowFreshStart(false)} /> */}
+      <Modal isOpen={showExitConfirm}>
+        <Modal.Content
+          maxWidth={wp(95)}
+          maxH={hp(85)}
+          style={{
+            borderWidth: wp(0.3),
+            borderRadius: wp(2),
+            borderColor: "#0AB8AD",
+            display: "flex",
+            alignItems: "center",
+            width: wp(90),
+            marginVertical: hp(2),
+            paddingHorizontal: wp(3),
+            paddingVertical: wp(3),
+            backgroundColor: "rgba(47, 47, 47, 0.9)"}}
+        >
+          <Modal.Body style={{ width: "100%", paddingHorizontal: 0 }}>
+            <View
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%"}}
+            >
+              <View style={{ alignItems: "center", width: "100%" }}>
+                <Text
+                  style={{
+                    color: "#0AB8AD",
+                    fontFamily: 'AppFont-Bold', fontSize: hp(2.2),
+                    textAlign: "center",
+                    lineHeight: hp(2.8),
+                    width: "100%",
+                                        marginBottom: hp(1)}}
+                >
+                  Leave test?
+                </Text>
+                <Text
+                  style={{
+                    color: "#0AB8AD",
+                    fontFamily: 'AppFont-Regular', fontSize: hp(1.68),
+                    textAlign: "center",
+                    lineHeight: hp(2.4),
+                    width: "100%",
+                    marginBottom: hp(2)}}
+                >
+                  It looks like your test is still incomplete. Do you want to exit?
+                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginTop: hp(2),
+                    columnGap: wp(2),
+                    width: "100%",
+                    rowGap: hp(1)}}
+                >
+                  <View style={{ flex: 1, minWidth: wp(35), maxWidth: wp(40) }}>
+                    <TestButton
+                      onPress={handleStayInTest}
+                      colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
+                      text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Stay</Text>}
+                    />
+                  </View>
+                    <View style={{ flex: 1, minWidth: wp(35), maxWidth: wp(40) }}>
+                      <TestButton
+                        onPress={handleExitConfirm}
+                        colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
+                        text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Exit</Text>}
+                      />
+                    </View>
+                </View>
+              </View>
+            </View>
+          </Modal.Body>
+        </Modal.Content>
+      </Modal>
+      <Modal isOpen={showReportModal} onClose={() => { setShowReportModal(false); setSelectedReportType(""); setIssueDescription(""); }}>
+        <Modal.Content
+          maxWidth={wp(90)}
+          style={{
+            borderWidth: 1,
+            borderRadius: wp(3),
+            borderColor: "#0AB8AD",
+            backgroundColor: "#242424", // More solid background
+            padding: wp(4)}}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              setShowReportModal(false);
+              setIssueDescription("");
+              setSelectedReportType("");
+            }}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            style={{
+              position: "absolute",
+              top: 10,
+              right: 15,
+              zIndex: 9999}}
+          >
+            <CustomBoldText
+              style={{
+                color: "#0AB8AD",
+                fontSize: 28}}
+            >
+              ×
+            </CustomBoldText>
+          </TouchableOpacity>
+          <Modal.Header style={{ backgroundColor: 'transparent', borderBottomWidth: 0, paddingRight: wp(10) }}>
+            <Text style={{ color: "#0AB8AD", fontFamily: 'AppFont-Regular', fontSize: hp(2.2)}}>Report an Issue</Text>
+          </Modal.Header>
+          <Modal.Body>
+            <Text style={{ color: "#E0E0E0", fontFamily: 'AppFont-Regular', fontSize: hp(1.8), marginBottom: hp(2) }}>
+              What's wrong with this question?
+            </Text>
+            {reportTypes.map((type) => (
+              <TouchableOpacity
+                key={type}
+                onPress={() => setSelectedReportType(type)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: hp(1.2),
+                  borderBottomWidth: 0.5,
+                  borderBottomColor: 'rgba(10, 184, 173, 0.3)'}}
+              >
+                <View style={{
+                  height: 20,
+                  width: 20,
+                  borderRadius: 10,
+                  borderWidth: 2,
+                  borderColor: '#0AB8AD',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: wp(3)}}>
+                  {selectedReportType === type && (
+                    <View style={{
+                      height: 10,
+                      width: 10,
+                      borderRadius: 5,
+                      backgroundColor: '#0AB8AD'}} />
+                  )}
+                </View>
+                <CustomBoldText style={{ color: selectedReportType === type ? '#0AB8AD' : '#E0E0E0', fontSize: hp(1.9) }}>
+                  {type}
+                </CustomBoldText>
+              </TouchableOpacity>
+            ))}
+            {selectedReportType === "Other" && (
+              <View style={{ marginTop: hp(2) }}>
+                <TextInput
+                  placeholder="Tell us what's wrong..."
+                  placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                  value={issueDescription}
+                  onChangeText={setIssueDescription}
+                  multiline
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: wp(2),
+                    padding: wp(3),
+                    color: '#FFF',
+                    height: hp(12),
+                    textAlignVertical: 'top',
+                    borderWidth: 1,
+                    borderColor: 'rgba(10, 184, 173, 0.5)'}}
+                />
+              </View>
+            )}
+          </Modal.Body>
+          <Modal.Footer style={{ backgroundColor: 'transparent', borderTopWidth: 0, justifyContent: 'space-between', flexDirection: 'row' }}>
+            <TouchableOpacity
+              onPress={() => {
+                setShowReportModal(false);
+                setIssueDescription("");
+                setSelectedReportType("");
+              }}
+              style={{ paddingVertical: hp(1), paddingHorizontal: wp(4) }}
+            >
+              <CustomBoldText style={{ color: '#FFF'}}>Cancel</CustomBoldText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleReportIssue}
+              disabled={reportSubmitting || !selectedReportType || (selectedReportType === "Other" && !issueDescription.trim())}
+              style={{
+                backgroundColor: '#0AB8AD',
+                paddingVertical: hp(1),
+                paddingHorizontal: hp(6),
+                borderRadius: wp(1),
+                opacity: reportSubmitting || !selectedReportType || (selectedReportType === "Other" && !issueDescription.trim()) ? 0.5 : 1}}
+            >
+              <CustomBoldText style={{ color: '#FFF'}}>
+                {reportSubmitting ? "Submitting..." : "Submit"}
+              </CustomBoldText>
+            </TouchableOpacity>
+          </Modal.Footer>
+        </Modal.Content>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1494,8 +1827,7 @@ const TestButton = ({
   colors,
   text,
   renderIcon,
-  disable,
-}: any) => {
+  disable}: any) => {
   return (
     <TouchableOpacity onPress={onPress} disabled={disable}>
       {/* <LinearGradient style={[styles.card, styles.elevation]} colors={colors}  start={{ x: 0.6, y: 0.9}}
@@ -1507,7 +1839,7 @@ const TestButton = ({
         start={{ x: 0.6, y: 0.3 }}
         end={{ x: 0.6, y: 0 }}
       >
-        <Text style={styles.buttonTxt}>{text}</Text>
+        <CustomBoldText style={styles.buttonTxt}>{text}</CustomBoldText>
       </Lin>
     </TouchableOpacity>
   );
@@ -1517,23 +1849,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   scrollView: {
-    height: hp(90),
-  },
+    height: hp(90)},
   Img: {
     width: "100%",
     height: "100%",
     resizeMode: "contain",
-    zIndex: 1000,
-  },
+    zIndex: 1000},
   note: {
+    
     color: COLORS.light,
-    fontSize: hp(3),
-    // fontWeight: "bold",
-    fontFamily: "Manrope-VariableFont_wght",
-    textAlign: "justify",
+    fontFamily: 'AppFont-Regular', fontSize: hp(3),
   },
   searchContainer: {
     display: "flex",
@@ -1542,50 +1869,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: wp(4),
-    width: wp(90),
-  },
+    width: wp(90)},
   qusContainer: {
     width: wp(97),
     paddingHorizontal: wp(4),
     paddingVertical: hp(2.8),
     paddingBottom: hp(4),
     borderRadius: hp(4),
-    height: "auto",
-  },
+    height: "auto"},
   qus: {
-    fontSize: hp(1.9),
+    
+    fontFamily: 'AppFont-Regular', fontSize: hp(1.9),
     alignItems: "center",
     justifyContent: "center",
     color: COLORS.light,
-    fontFamily: "Manrope-VariableFont_wght",
     textAlign: "justify",
-  },
+    lineHeight: hp(3)},
   androidLarge57: {
     flex: 1,
     overflow: "hidden",
     backgroundColor: "transparent",
     height: 800,
-    width: "100%",
-  },
+    width: "100%"},
   answerText: {
-    fontSize: hp(2),
+    
+    fontFamily: 'AppFont-Regular', fontSize: hp(2),
     color: COLORS.light,
-    fontFamily: "Manrope-VariableFont_wght",
     textDecorationLine: "underline",
     textAlign: "justify",
-  },
+    lineHeight: hp(3)},
   showAnswerText: {
-    fontSize: hp(2),
-    fontFamily: "Manrope-VariableFont_wght",
+    
+    fontFamily: 'AppFont-Regular', fontSize: hp(2),
     marginLeft: hp(1),
-    fontWeight: "500",
-    textAlign: "justify",
-  },
+        textAlign: "justify"},
   checkAnswerCon: {
     display: "flex",
     flexDirection: "row",
-    marginTop: hp(2),
-  },
+    marginTop: hp(2)},
   // BookmarkCon: {
   //   display: "flex",
   //   flexDirection: "row",
@@ -1600,8 +1921,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingLeft: 29,
     paddingTop: 0,
-    marginTop: 0,
-  },
+    marginTop: 0},
   rectangle: {
     width: wp(50),
     backgroundColor: "yellow",
@@ -1611,8 +1931,7 @@ const styles = StyleSheet.create({
     height: wp(8),
     borderColor: "black",
     borderTopWidth: 8,
-    borderBottomWidth: 8,
-  },
+    borderBottomWidth: 8},
   triangle: {
     width: 0,
     height: 0,
@@ -1624,11 +1943,9 @@ const styles = StyleSheet.create({
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
     transform: [{ rotate: "90deg" }],
-    borderBottomColor: "red",
-  },
+    borderBottomColor: "red"},
   elevation: {
-    elevation: 10,
-  },
+    elevation: 10},
   card: {
     backgroundColor: "white",
     borderRadius: 22,
@@ -1636,42 +1953,34 @@ const styles = StyleSheet.create({
     // padding:15,
     width: wp(35),
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   shadow: {
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
+    shadowRadius: 3.84},
   buttonTxt: {
-    fontSize: wp(4),
+    
+    fontFamily: 'AppFont-Bold', fontSize: wp(4), fontWeight: '700',
     textTransform: "uppercase",
-    fontWeight: "600",
-    color: COLORS.light,
+        color: COLORS.light,
     letterSpacing: wp(0.3),
-    fontFamily: "Manrope-VariableFont_wght",
-    textAlign: "center",
-  },
+    textAlign: "center"},
   radioContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
-  },
+    padding: 20},
   radioLabel: {
-    fontSize: 18,
-    marginBottom: 10,
-  },
+    fontFamily: 'AppFont-Regular', fontSize: 18,
+    marginBottom: 10},
   radioGroup: {
-    marginBottom: 20,
-  },
+    marginBottom: 20},
   radioButton: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
-  },
+    marginBottom: 10},
   radioOuterCircle: {
     width: 20,
     height: 20,
@@ -1681,8 +1990,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff", // Outer circle white when not selected
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
-  },
+    marginRight: 10},
   radioSelectedOuterCircle: {
     borderColor: "#333", // Same border when selected
   },
@@ -1693,22 +2001,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#000", // Black inner circle when selected
   },
   radioOptionText: {
-    fontSize: 16,
+    fontFamily: 'AppFont-Regular', fontSize: 16,
     color: "#0AB8AD",
-    fontFamily: "Manrope-VariableFont_wght",
-    textAlign: "left",
-  },
+    textAlign: "left"},
   radioSelectedText: {
     marginTop: 20,
-    fontSize: 16,
+    fontFamily: 'AppFont-Regular', fontSize: 16,
     color: "#0AB8AD",
-    fontFamily: "Manrope-VariableFont_wght",
-    textAlign: "left",
-  },
+    textAlign: "left"},
   closeButtonStyle: {
     color: '#808080', // Gray color
-    fontWeight: 'bold',
-    fontSize: 18,
+        fontFamily: 'AppFont-Regular', fontSize: 18,
     textAlign: 'center',
   },
 });

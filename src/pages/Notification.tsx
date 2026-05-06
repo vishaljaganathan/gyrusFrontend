@@ -1,16 +1,16 @@
-import React, { useEffect, useState, useContext, useRef } from "react";
 import * as Notifications from 'expo-notifications';
+import { Svg, Circle } from 'react-native-svg';
+
 // Configure notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
+    shouldPlaySound: true,
     shouldSetBadge: false,
-  }),
-});
-import { View, Text, StyleSheet, Platform, TouchableOpacity, ScrollView, Modal } from "react-native";
+    shouldShowBanner: true,
+    shouldShowList: true})});
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert , Platform} from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../styles/themes";
 import { moderateScale } from "../styles/Responsive";
@@ -21,8 +21,10 @@ import { getSecureStorage } from "../config/SecureStore";
 import { getRequest, postRequest } from "../config/Requests";
 import HeaderBar from "../navigation/Headerbar";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
-import { Circle, Svg } from "react-native-svg";
-import Net from "@react-native-community/netinfo";
+
+
+
+
 
 const NotificationDot = ({ color }: { color: string }) => (
   <Svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -34,7 +36,8 @@ const Notification = ({ navigation }: { navigation: any }) => {
   // Notification screen temporarily disabled for Play Store build
   return (
     <SafeAreaView style={styles.safeContainer} edges={["top"]}>
-      <LinearGradient style={styles.androidLarge57} colors={["#028464", "#0AB7AD", "#0B7960"]}>
+      <LinearGradient style={styles.androidLarge57}
+            colors={["#028464", "#0AB7AD", "#0B7960"]}>
         <HeaderBar />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={styles.emptyText}>No notification</Text>
@@ -47,26 +50,18 @@ const Notification = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: "#014b51ff",
-  },
-  androidLarge57: {
+    backgroundColor: "#014b51ff" }, androidLarge57: {
     flex: 1,
     overflow: "hidden",
     backgroundColor: "transparent",
     height: 800,
-    width: "100%",
-  },
-  scrollContent: {
+    width: "100%" }, scrollContent: {
     alignItems: "center",
     paddingTop: hp(3),
     paddingBottom: hp(4),
-    gap: hp(2.2),
-  },
-  emptyText: {
-    color: COLORS.light80,
-    fontSize: wp(4),
-    fontWeight: "600",
-  },
+    gap: hp(2.2) }, emptyText: {
+     color: COLORS.light80,
+    fontFamily: 'AppFont-Bold', fontSize: wp(5)},
   card: {
     width: wp(92),
     backgroundColor: COLORS.light08,
@@ -81,73 +76,53 @@ const styles = StyleSheet.create({
         shadowColor: COLORS.dark,
         shadowOpacity: 0.15,
         shadowRadius: 20,
-        shadowOffset: { width: 0, height: 8 },
+        shadowOffset: { width: 0, height: 8 }
       },
       android: {
-        elevation: 8,
-      },
-    }),
+        elevation: 8
+      }
+    })
   },
   cardUnread: {
     backgroundColor: COLORS.light20,
     borderWidth: 2,
-    borderColor: COLORS.success02,
-  },
-  cardHeader: {
+    borderColor: COLORS.success02 }, cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: moderateScale(6),
-  },
-  statusIndicator: {
+    marginBottom: moderateScale(6) }, statusIndicator: {
     width: moderateScale(12),
     height: moderateScale(12),
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardContent: {
+    alignItems: 'center' }, cardContent: {
     flex: 1,
-    gap: moderateScale(8),
-  },
-  cardFooter: {
+    gap: moderateScale(8) }, cardFooter: {
     marginTop: moderateScale(8),
-    alignItems: 'center',
-  },
-  accentLine: {
+    alignItems: 'center' }, accentLine: {
     width: wp(20),
     height: 3,
     backgroundColor: COLORS.primary03,
     borderRadius: 2,
-    opacity: 0.7,
-  },
-  timestampText: {
-    fontSize: wp(3.1),
+    opacity: 0.7 }, timestampText: {
+     fontFamily: 'AppFont-Regular', fontSize: wp(3.1),
     color: COLORS.light80,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-  },
+        letterSpacing: 0.5 },
   titleText: {
-    fontSize: wp(4.5),
+     fontFamily: 'AppFont-Regular', fontSize: wp(4.5),
     color: COLORS.light,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-    lineHeight: moderateScale(22),
-  },
+        letterSpacing: 0.3,
+    lineHeight: moderateScale(22) },
   bodyText: {
-    fontSize: wp(3.8),
+     fontFamily: 'AppFont-Regular', fontSize: wp(3.8),
     color: COLORS.light80,
     lineHeight: moderateScale(19),
-    fontWeight: "500",
-    letterSpacing: 0.2,
-  },
+        letterSpacing: 0.2 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: wp(5),
-  },
-  modalContainer: {
+    paddingHorizontal: wp(5) }, modalContainer: {
     width: wp(90),
     maxHeight: hp(80),
     backgroundColor: COLORS.light,
@@ -160,12 +135,12 @@ const styles = StyleSheet.create({
         shadowColor: COLORS.dark,
         shadowOpacity: 0.3,
         shadowRadius: 20,
-        shadowOffset: { width: 0, height: 10 },
+        shadowOffset: { width: 0, height: 10 }
       },
       android: {
-        elevation: 10,
-      },
-    }),
+        elevation: 10
+      }
+    })
   },
   modalCloseButton: {
     position: 'absolute',
@@ -177,46 +152,29 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(16),
     backgroundColor: COLORS.grey02,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalCloseButtonText: {
-    color: COLORS.dark,
-    fontSize: wp(5.5),
-    fontWeight: '800',
-    lineHeight: wp(6),
-  },
+    alignItems: 'center' }, modalCloseButtonText: {
+     color: COLORS.dark,
+    fontFamily: 'AppFont-Regular', fontSize: wp(5.5),
+        lineHeight: wp(6) },
   modalContent: {
     flex: 1,
-    paddingTop: moderateScale(16),
-  },
-  modalHeader: {
-    marginBottom: moderateScale(20),
-  },
-  modalStatusRow: {
+    paddingTop: moderateScale(16) }, modalHeader: {
+    marginBottom: moderateScale(20) }, modalStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: moderateScale(8),
-    marginBottom: moderateScale(12),
-  },
-  modalTimestamp: {
-    fontSize: wp(3.2),
-    color: COLORS.grey01,
-    fontWeight: '600',
-  },
+    marginBottom: moderateScale(12) }, modalTimestamp: {
+     fontFamily: 'AppFont-Regular', fontSize: wp(3.2),
+    color: COLORS.grey01},
   modalTitle: {
-    fontSize: wp(5.2),
+     fontFamily: 'AppFont-Regular', fontSize: wp(5.2),
     color: COLORS.dark,
-    fontWeight: '800',
-    lineHeight: moderateScale(26),
-    letterSpacing: 0.3,
-  },
+        lineHeight: moderateScale(26),
+    letterSpacing: 0.3 },
   modalBody: {
-    fontSize: wp(4.1),
+     fontFamily: 'AppFont-Regular', fontSize: wp(4.1),
     color: COLORS.dark80,
     lineHeight: moderateScale(22),
-    fontWeight: '500',
-    letterSpacing: 0.2,
-  },
-});
+        letterSpacing: 0.2 } });
 
 export default Notification;

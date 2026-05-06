@@ -1,20 +1,34 @@
+import { COLORS } from '../styles/themes';
 import React, { useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput, CustomBoldText } from './CustomText';
+
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
-import { COLORS } from "../styles/themes";
+  heightPercentageToDP as hp} from "react-native-responsive-screen";
 
-const StartButton = ({ onPress, style, disable, text, colors, loading, questionCount }: { onPress: () => void; style?: any; disable?: boolean; text?: string; colors?: [string, string]; loading?: boolean; questionCount?: number }) => {
-  const label = text || `Start${questionCount ? ` - ${questionCount}` : ""}`;
-  const gradientColors: [string, string] = colors && colors.length >= 2 ? colors : ["#00B712", "#5AFF15"];
+
+
+const StartButton = ({
+  onPress,
+  style,
+  disable,
+  Text: textProp,
+  colors,
+  loading,
+  questionCount}: {
+  onPress: () => void;
+  style?: any;
+  disable?: boolean;
+  Text?: string;
+  colors?: [string, string];
+  loading?: boolean;
+  questionCount?: number;
+}) => {
+  const label = textProp || `Start${questionCount ? ` - ${questionCount}` : ""}`;
+  const gradientColors: [string, string] =
+    colors && colors.length >= 2 ? colors : ["#00B712", "#5AFF15"];
   return (
     <TouchableOpacity onPress={onPress} disabled={disable || loading}>
       <LinearGradient
@@ -26,7 +40,7 @@ const StartButton = ({ onPress, style, disable, text, colors, loading, questionC
         {loading ? (
           <ActivityIndicator size="small" color="#FFFFFF" />
         ) : (
-          <Text style={styles.buttonTxt}>{label}</Text>
+          <CustomBoldText style={styles.buttonTxt}>{label}</CustomBoldText>
         )}
       </LinearGradient>
     </TouchableOpacity>
@@ -37,10 +51,9 @@ export default StartButton;
 
 const styles = StyleSheet.create({
   heading: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 13,
-  },
+    
+    fontFamily: 'AppFont-Bold', fontSize: 18, 
+        marginBottom: 13},
   card: {
     backgroundColor: "#06B002",
     borderRadius: 22,
@@ -48,40 +61,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     // padding:15,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   shadowProp: {
     shadowColor: "#171717",
     shadowOffset: { width: -1, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
+    shadowRadius: 2},
   elevation: {
-    elevation: 10,
-  },
+    elevation: 10},
   buttonTxt: {
-    fontSize: wp(4),
-    fontWeight: "800",
-    color: COLORS.light,
-    letterSpacing: wp(0.5),
-  },
-});
-//  <GradientButton
-//  onPress={() => alert('Button Pressed')}
-//  style={{
-//    padding: 15,
-//    alignItems: 'center',
-//    borderRadius: 5,
-//    flexDirection: 'row',
-//  }}
-//  colors={['#874f00', '#f5ba57']}
-//  text="Press"
-//  renderIcon={() => (
-//    <Ionicons
-//      name="md-checkmark-circle"
-//      size={20}
-//      color="green"
-//      style={{ marginHorizontal: 20 }}
-//    />
-//  )}
-// />
+    fontFamily: 'AppFont-Bold', fontSize: wp(4.2), fontWeight: '700',
+        color: COLORS.light,
+    letterSpacing: wp(0.5)}});
+

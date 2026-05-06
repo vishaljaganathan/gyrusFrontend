@@ -6,7 +6,10 @@
       "dom"
     ],
     "jsx": "react-native",
-    "types": ["react", "react-native"],
+    "types": [
+      "react",
+      "react-native"
+    ],
     "strict": true,
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -17,11 +20,11 @@
   "exclude": [
     "node_modules"
   ],
-  "extends": "expo/tsconfig.base",
   "baseUrl": "./",
   "paths": {
     "@service/*": [
       "src/service/*"
     ]
-  }
+  },
+  "extends": "expo/tsconfig.base"
 }

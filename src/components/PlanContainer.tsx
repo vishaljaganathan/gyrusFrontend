@@ -1,12 +1,17 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
+
 import { LinearGradient } from "expo-linear-gradient";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
-import { moderateScale } from "../styles/Responsive";
+  heightPercentageToDP as hp} from "react-native-responsive-screen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { moderateScale } from "../styles/Responsive";
+
+
+
+
 
 type PlanContainerProps = {
   title: string;
@@ -21,11 +26,12 @@ const PlanContainer = ({
   image,
   plan = false,
   expiryDate,
-  onUpgradeClick,
-}: PlanContainerProps) => {
+  onUpgradeClick}: PlanContainerProps) => {
   const insets = useSafeAreaInsets();
 
-  const formatExpiryDate = (date: string | number | Date | undefined): string => {
+  const formatExpiryDate = (
+    date: string | number | Date | undefined,
+  ): string => {
     if (!date) return "N/A";
     try {
       const parsedDate = new Date(date);
@@ -45,27 +51,27 @@ const PlanContainer = ({
               typeof image === "string"
                 ? { uri: image }
                 : typeof image === "number"
-                ? image
-                : image
+                  ? image
+                  : image
             }
             style={styles.avatar}
             accessibilityLabel={`${title} avatar`}
           />
         )}
       </View>
-      
+
       <View style={styles.contentContainer}>
-        <Text 
-          style={styles.title} 
+        <Text
+          style={styles.title}
           accessibilityLabel={`${title} membership status`}
         >
           {title} Member
         </Text>
-        
+
         {plan && expiryDate && (
           <View style={styles.expiryContainer}>
-            <Text 
-              style={styles.expiryText} 
+            <Text
+              style={styles.expiryText}
               accessibilityLabel="Validity expiry label"
             >
               Validity expires
@@ -78,7 +84,7 @@ const PlanContainer = ({
             </Text>
           </View>
         )}
-        
+
         {!plan && onUpgradeClick && (
           <TouchableOpacity
             style={styles.buttonContainer}
@@ -120,8 +126,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 4,
-    alignSelf: "center",
-  },
+    alignSelf: "center"},
   imageContainer: {
     width: wp(16),
     height: wp(16),
@@ -134,45 +139,38 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 2,
-  },
+    elevation: 2},
   avatar: {
     width: wp(14),
     height: wp(14),
     borderRadius: wp(7),
-    resizeMode: "cover",
-  },
+    resizeMode: "cover"},
   contentContainer: {
     flex: 1,
     flexDirection: "column",
-    justifyContent: "center",
-  },
+    justifyContent: "center"},
   title: {
-    fontSize: moderateScale(18),
+    
+    fontFamily: 'AppFont-Regular', fontSize: moderateScale(18),
     color: "#333",
-    fontWeight: "700",
-    lineHeight: moderateScale(22),
+        lineHeight: moderateScale(22),
     letterSpacing: 0.3,
-    marginBottom: hp(0.8),
-  },
+    marginBottom: hp(0.8)},
   expiryContainer: {
-    flexDirection: "column",
-  },
+    flexDirection: "column"},
   expiryText: {
-    fontSize: moderateScale(13),
+    
+    fontFamily: 'AppFont-Regular', fontSize: moderateScale(13),
     color: "#666",
     lineHeight: moderateScale(18),
-    marginBottom: hp(0.3),
-  },
+    marginBottom: hp(0.3)},
   expiryDateText: {
-    fontSize: moderateScale(13),
+    
+    fontFamily: 'AppFont-Regular', fontSize: moderateScale(13),
     color: "#666",
-    lineHeight: moderateScale(18),
-    fontWeight: "600",
-  },
+    lineHeight: moderateScale(18)},
   buttonContainer: {
-    marginTop: hp(0.5),
-  },
+    marginTop: hp(0.5)},
   button: {
     borderRadius: wp(2.5),
     paddingVertical: hp(1),
@@ -184,13 +182,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 4,
-    elevation: 4,
-  },
+    elevation: 4},
   buttonText: {
-    fontSize: moderateScale(13),
+    
+    fontFamily: 'AppFont-Regular', fontSize: moderateScale(13),
     color: "white",
-    fontWeight: "700",
-    textTransform: "none",
-    letterSpacing: 0.5,
-  },
-});
+        textTransform: "none",
+    letterSpacing: 0.5}});

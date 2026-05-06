@@ -1,26 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  Image,
-  ScrollView,
-  Modal,
-  Pressable,
-  Dimensions,
-  LayoutChangeEvent,
-} from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert , Dimensions, ScrollView, LayoutChangeEvent} from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
+
 import { COLORS } from "../styles/themes";
 import MathJaxSvg from "react-native-mathjax-svg";
 import { widthPercentageToDP } from "react-native-responsive-screen";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { GestureHandlerRootView, Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Ionicons as Icon } from '@expo/vector-icons';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
-import Icon from "react-native-vector-icons/Feather";
+  withTiming } from "react-native-reanimated";
+
+
 
 const clamp = (value: number, min: number, max: number) => {
   "worklet";
@@ -50,15 +42,12 @@ const ZoomablePreviewImage = ({ uri }: { uri: string }) => {
       if (nextScale <= 1) {
         translateX.value = withTiming(0);
         translateY.value = withTiming(0);
-      }
-    })
+      } })
     .onEnd(() => {
       if (scale.value <= 1) {
         scale.value = withTiming(1);
         translateX.value = withTiming(0);
-        translateY.value = withTiming(0);
-      }
-    });
+        translateY.value = withTiming(0); } });
 
   const pan = Gesture.Pan()
     .onBegin(() => {
@@ -94,9 +83,7 @@ const ZoomablePreviewImage = ({ uri }: { uri: string }) => {
       scale.value = withTiming(next);
       if (next === 1) {
         translateX.value = withTiming(0);
-        translateY.value = withTiming(0);
-      }
-    });
+        translateY.value = withTiming(0); } });
 
   const composed = Gesture.Simultaneous(pinch, pan, doubleTap);
 
@@ -105,9 +92,7 @@ const ZoomablePreviewImage = ({ uri }: { uri: string }) => {
       transform: [
         { translateX: translateX.value },
         { translateY: translateY.value },
-        { scale: scale.value },
-      ],
-    };
+        { scale: scale.value } ] };
   });
 
   return (
@@ -121,7 +106,7 @@ const ZoomablePreviewImage = ({ uri }: { uri: string }) => {
       <GestureDetector gesture={composed}>
         <Animated.Image
           source={{ uri }}
-          style={[styles.previewImage, animatedStyle]}
+            style={[styles.previewImage, animatedStyle]}
         />
       </GestureDetector>
     </Pressable>
@@ -131,10 +116,9 @@ const ZoomablePreviewImage = ({ uri }: { uri: string }) => {
 const ScrollableEquationCell = ({
   content,
   fontSize,
-  onMeasure,
-}: {
+  onMeasure } : {
   content: string;
-  fontSize: number;
+  fontFamily: 'AppFont-Regular', fontSize: number;
   onMeasure?: (w: number) => void;
 }) => {
   // Render the equation without an inner horizontal ScrollView so the
@@ -148,8 +132,10 @@ const ScrollableEquationCell = ({
 
   return (
     <View style={styles.cellEquationWrap}>
-      <View onLayout={handleInnerLayout} style={styles.cellEquationInnerMeasure}>
-        <MathJaxSvg color="#FFFFFF" fontSize={fontSize} style={styles.mathSvg}>
+      <View onLayout={handleInnerLayout}
+            style={styles.cellEquationInnerMeasure}>
+        <MathJaxSvg color="#FFFFFF" fontSize={fontSize}
+            style={styles.mathSvg}>
           {String.raw`${content}`}
         </MathJaxSvg>
       </View>
@@ -165,6 +151,7 @@ const Table = (props: any) => {
   const [contentWidth, setContentWidth] = useState(0);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  
   const screenWidth = Dimensions.get("window").width;
   const scrollRef = useRef<ScrollView | null>(null);
   const [scrollOffsetX, setScrollOffsetX] = useState(0);
@@ -184,8 +171,7 @@ const Table = (props: any) => {
       const parsedData = JSON.parse(props.data.slice(8));
       return {
         tableHead: parsedData.th || [],
-        tableRow: parsedData.tr || [],
-      };
+        tableRow: parsedData.tr || [] };
     } catch (error) {
       console.error('[Table] Error parsing table data:', error);
       return null;
@@ -216,7 +202,7 @@ const Table = (props: any) => {
         }
 
         const obj: any = input;
-        const preferredKeys = ['value', 'key', 'text', 'content', 'label', 'title', 'name', 'uri', 'url', 'src'];
+        const preferredKeys = ['value', 'key', 'Text', 'content', 'label', 'title', 'name', 'uri', 'url', 'src'];
         for (const k of preferredKeys) {
           if (Object.prototype.hasOwnProperty.call(obj, k)) {
             const found = extractFirstDisplayStringLocal(obj[k], depth - 1, localSeen);
@@ -264,8 +250,7 @@ const Table = (props: any) => {
           return hasContent ? rawTableHead : [];
         } catch (e) {
           return rawTableHead;
-        }
-      })()
+        } })()
     : [];
   const tableRow = parsed.tableRow;
 
@@ -295,7 +280,7 @@ const Table = (props: any) => {
       }
 
       const obj: any = input;
-      const preferredKeys = ['value', 'key', 'text', 'content', 'label', 'title', 'name', 'uri', 'url', 'src'];
+      const preferredKeys = ['value', 'key', 'Text', 'content', 'label', 'title', 'name', 'uri', 'url', 'src'];
       for (const k of preferredKeys) {
         if (Object.prototype.hasOwnProperty.call(obj, k)) {
           const found = extractFirstDisplayString(obj[k], depth - 1, localSeen);
@@ -347,7 +332,7 @@ const Table = (props: any) => {
   // using those exact column widths.
   const CELL_PADDING = 7;
   const CELL_BORDER = 1;
-  // Ensure there is always some room to render text inside a cell.
+  // Ensure there is always some room to render Text inside a cell.
   // If MIN_COL_WIDTH is too small, padding+border can consume all inner space
   // and the table looks like "only structure".
   const MIN_CONTENT_WIDTH = 10;
@@ -355,8 +340,7 @@ const Table = (props: any) => {
   const [measuredColumnWidths, setMeasuredColumnWidths] = useState<number[] | null>(null);
   const measurementRef = useRef<{ maxByCol: number[]; seen: Set<string> }>({
     maxByCol: [],
-    seen: new Set<string>(),
-  });
+    seen: new Set<string>() } );
 
   const expectedMeasurements = useMemo(() => {
     const headerCount = Array.isArray(tableHead) ? tableHead.length : 0;
@@ -375,7 +359,7 @@ const Table = (props: any) => {
     if (measuredColumnWidths !== null) return;
 
     // Safety net: if some cells never report a measurable width (e.g. empty
-    // text, MathJax not laying out offscreen), finalize with whatever we have
+    // Text, MathJax not laying out offscreen), finalize with whatever we have
     // so the table still displays.
     if (expectedMeasurements <= 0) {
       setMeasuredColumnWidths(new Array(columnCount).fill(MIN_COL_WIDTH));
@@ -391,7 +375,7 @@ const Table = (props: any) => {
       ).map((w) => Math.max(MIN_COL_WIDTH, w || 0));
 
       // If some columns never measured (common when RN doesn't fire onLayout for
-      // the hidden measurement pass), estimate widths from text content so the
+      // the hidden measurement pass), estimate widths from Text content so the
       // table doesn't degrade into an empty grid.
       const estimatedWidths = baseWidths.map((w, colIndex) => {
         if (w > MIN_COL_WIDTH) return w;
@@ -405,15 +389,15 @@ const Table = (props: any) => {
             const rowValues = normalizeRow(row);
             if (colIndex >= rowValues.length) continue;
             const parsed = parseCell(rowValues[colIndex]);
-            if (parsed.type !== 'txt') continue;
+            if (parsed.type === 'img') continue;
             const s = String(parsed.content ?? '').trim();
             if (s.length > maxLen) maxLen = s.length;
           }
         }
 
         // Estimate width from the longest single word so words don't wrap mid-word.
-        // Use 11px per char (bold headers are wider than regular text at fontSize 18).
-        const CHAR_PX = 11; // px per character approximation for bold/regular text
+        // Use responsive width per char (bold headers are wider than regular Text).
+        const CHAR_PX = widthPercentageToDP(3); // responsive char width approximation
         // find longest word in head + cells for this column
         let maxWordLen = 0;
         const headWords = headText.split(/\s+/).filter(Boolean);
@@ -423,7 +407,7 @@ const Table = (props: any) => {
             const rowValues = normalizeRow(row);
             if (colIndex >= rowValues.length) continue;
             const parsed = parseCell(rowValues[colIndex]);
-            if (parsed.type !== 'txt') continue;
+            if (parsed.type === 'img') continue;
             const s = String(parsed.content ?? '').trim();
             const words = s.split(/\s+/).filter(Boolean);
             words.forEach(w => { if (w.length > maxWordLen) maxWordLen = w.length; });
@@ -452,8 +436,7 @@ const Table = (props: any) => {
           (Array.isArray(tableHead) ? tableHead : []).forEach((h: any, c: number) => {
             try {
               if (parseCell(h).type === 'img') imgCols.add(c);
-            } catch {}
-          });
+            } catch { } });
 
           // check body rows
           (Array.isArray(tableRow) ? tableRow : []).forEach((row: any) => {
@@ -461,8 +444,7 @@ const Table = (props: any) => {
             vals.forEach((v: any, c: number) => {
               try {
                 if (parseCell(v).type === 'img') imgCols.add(c);
-              } catch {}
-            });
+              } catch { } });
           });
 
           if (imgCols.size > 0) {
@@ -478,7 +460,7 @@ const Table = (props: any) => {
 
             const adjusted = new Array(columnCount).fill(otherWidth);
             // Preserve estimated widths for non-image columns where possible so
-            // long text doesn't get forced into extremely narrow columns.
+            // long Text doesn't get forced into extremely narrow columns.
             for (let ci = 0; ci < columnCount; ci++) {
               if (imgCols.has(ci)) {
                 adjusted[ci] = imgWidth;
@@ -523,7 +505,7 @@ const Table = (props: any) => {
 
   const columnWidths = measuredColumnWidths;
   // Compute the exact content width from measured column widths.
-  // Do NOT force a minimum of availableWidth here — if the table is
+  // Do NOT force a minimum of availableWidth here â€” if the table is
   // naturally smaller than the screen, keep it small so the ScrollView
   // doesn't get treated as overflowing due to parent paddings.
   const tableContentWidth = columnWidths
@@ -578,7 +560,7 @@ const Table = (props: any) => {
   const scrollLeft = () => scrollBy(-Math.round(availableWidth * 0.6));
   const scrollRight = () => scrollBy(Math.round(availableWidth * 0.6));
 
-  // No custom pan gesture — rely on ScrollView's nestedScrollEnabled and
+  // No custom pan gesture â€” rely on ScrollView's nestedScrollEnabled and
   // directionalLockEnabled to allow horizontal scrolling inside vertical parent.
 
   if (DEBUG_TABLE) {
@@ -606,7 +588,7 @@ const Table = (props: any) => {
                 key={`mh-${c}`}
                 numberOfLines={1}
                 onLayout={(e) => reportMeasurement(`h-${c}`, c, e.nativeEvent.layout.width)}
-                style={styles.measureHeadText}
+            style={styles.measureHeadText}
               >
                 {String(parseCell(res).content ?? '').trim()}
               </Text>
@@ -614,7 +596,8 @@ const Table = (props: any) => {
           </View>
 
           {(Array.isArray(tableRow) ? tableRow : []).map((row: any, r: number) => (
-            <View key={`mr-${r}`} style={styles.measureRow}>
+            <View key={`mr-${r}`}
+            style={styles.measureRow}>
               {normalizeRow(row).map((value: any, c: number) => {
                 const { type: cellType, content: cellContentRaw } = parseCell(value);
                 const cellContent = String(cellContentRaw ?? '').trim();
@@ -622,8 +605,10 @@ const Table = (props: any) => {
 
                 if (cellType === 'eq') {
                   return (
-                    <View key={key} onLayout={(e) => reportMeasurement(key, c, e.nativeEvent.layout.width)} style={styles.measureCell}>
-                      <MathJaxSvg color="#FFFFFF" fontSize={widthPercentageToDP(widestRow <= 2 ? 6.2 : 5.3)} style={styles.measureMathSvg}>
+                    <View key={key} onLayout={(e) => reportMeasurement(key, c, e.nativeEvent.layout.width)}
+            style={styles.measureCell}>
+                      <MathJaxSvg color="#FFFFFF" fontSize={widthPercentageToDP(4.3)}
+            style={styles.measureMathSvg}>
                         {String.raw`${cellContent}`}
                       </MathJaxSvg>
                     </View>
@@ -640,7 +625,7 @@ const Table = (props: any) => {
                   return (
                     <View
                       key={key}
-                      style={[styles.measureCell, { width: imgWidth }]}
+            style={[styles.measureCell, { width: imgWidth }]}
                       onLayout={(e) => reportMeasurement(key, c, e.nativeEvent.layout.width)}
                     />
                   );
@@ -651,7 +636,7 @@ const Table = (props: any) => {
                     key={key}
                     numberOfLines={1}
                     onLayout={(e) => reportMeasurement(key, c, e.nativeEvent.layout.width)}
-                    style={styles.measureCellText}
+            style={styles.measureCellText}
                   >
                     {cellContent}
                   </Text>
@@ -691,8 +676,7 @@ const Table = (props: any) => {
               scrollEventThrottle={16}
               contentContainerStyle={[
                 styles.scrollContent,
-                { justifyContent: isHorizontallyScrollable ? 'flex-start' : 'center' },
-              ]}
+                { justifyContent: isHorizontallyScrollable ? 'flex-start' : 'center' } ]}
       >
         {/* Table Container */}
         <View
@@ -706,14 +690,13 @@ const Table = (props: any) => {
               return (
                 <View
                   key={index}
-                  style={{
+            style={{
                     width: columnWidths[index] ?? MIN_COL_WIDTH,
                     borderWidth: CELL_BORDER,
                     borderColor: "#ddd",
                     padding: CELL_PADDING,
                     alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+                    justifyContent: 'center' } }
                 >
                   <Text style={styles.table_head_captions}>{headText}</Text>
                 </View>
@@ -725,7 +708,8 @@ const Table = (props: any) => {
           {(Array.isArray(tableRow) ? tableRow : []).map((res: any, index: any) => {
             const rowValues = normalizeRow(res);
             return (
-              <View key={index} style={styles.table_body_single_row}>
+              <View key={index}
+            style={styles.table_body_single_row}>
                 {rowValues.map((value: any, k: any) => {
                 try {
                   const { type: cellType, content: cellContent } = parseCell(value);
@@ -734,21 +718,29 @@ const Table = (props: any) => {
                   return (
                     <View
                       key={k}
-                      style={{
+            style={{
                         width: cellWidth,
                         borderWidth: CELL_BORDER,
                         borderColor: "#ddd",
                         padding: CELL_PADDING,
                         alignItems: 'flex-start',
                         justifyContent: 'center',
-                      }}
+                        overflow: 'visible'
+                      } }
+                    // ensure cell is at least as tall as the row measurement
+                    // so MathJaxSvg isn't visually clipped by sibling cells
+                    // (React Native sometimes requires explicit minHeight)
+                    // apply measuredRowHeights[index] when available
                     >
                       {cellType === "eq" ? (
+                        <View style={{ overflow: 'visible', width: '100%' }}>
                         <ScrollableEquationCell
                           content={cellContent}
-                          fontSize={widthPercentageToDP(widestRow <= 2 ? 6.2 : 5.3)}
+                          fontFamily="AppFont-Regular"
+                          fontSize={widthPercentageToDP(4.3)}
                           onMeasure={() => {}}
                         />
+                        </View>
                       ) : cellType === "img" ? (
                         <View style={{ width: "100%", position: 'relative' }}>
                           <Pressable
@@ -762,11 +754,10 @@ const Table = (props: any) => {
                           >
                               <Image
                                 source={{ uri: cellContent }}
-                                style={{
+            style={{
                                   width: cellWidth - (CELL_PADDING * 2) - (CELL_BORDER * 2),
                                   height: (cellWidth - (CELL_PADDING * 2) - (CELL_BORDER * 2)) * 0.6,
-                                  resizeMode: "contain",
-                                }}
+                                  resizeMode: "contain" } }
                               />
                           </Pressable>
 
@@ -792,20 +783,19 @@ const Table = (props: any) => {
                   return (
                     <View
                       key={k}
-                      style={{
+            style={{
                         width: columnWidths[k] ?? MIN_COL_WIDTH,
                         borderWidth: CELL_BORDER,
                         borderColor: "#ddd",
                         padding: CELL_PADDING,
                         alignItems: 'flex-start',
                         justifyContent: 'center',
-                      }}
+                        overflow: 'visible' } }
                     >
                       <Text style={styles.table_data}>Error</Text>
                     </View>
                   );
-                }
-                })}
+                } })}
               </View>
             );
           })}
@@ -829,10 +819,7 @@ const Table = (props: any) => {
                   transform: [{
                     translateX:
                       (scrollOffsetX / Math.max(1, maxScrollX)) *
-                      Math.max(0, effectiveContainerWidth - Math.max(30, (effectiveContainerWidth / Math.max(1, effectiveContentWidth)) * effectiveContainerWidth)),
-                  }],
-                },
-              ]}
+                      Math.max(0, effectiveContainerWidth - Math.max(30, (effectiveContainerWidth / Math.max(1, effectiveContentWidth)) * effectiveContainerWidth)) } ] } ]}
             />
           </View>
         ) : null}
@@ -852,7 +839,7 @@ const Table = (props: any) => {
           >
             <Pressable
               style={styles.previewCard}
-              onPress={() => {
+            onPress={() => {
                 // prevent overlay close
               }}
             >
@@ -865,7 +852,7 @@ const Table = (props: any) => {
                 <Text
                   style={styles.previewCloseText}
                 >
-                  ✕
+                  ✖
                 </Text>
               </Pressable>
 
@@ -882,42 +869,38 @@ export default Table;
 
 const styles = StyleSheet.create({
   wrapper: {
-    width: "100%",
-    alignSelf: "stretch",
+    width: '100%',
+    alignSelf: 'stretch',
   },
   scrollContent: {
-    // remove forced minWidth to avoid ScrollView reporting a larger content
-    // width than the container when the table actually fits.
     paddingLeft: widthPercentageToDP(1),
     paddingRight: widthPercentageToDP(4),
     alignItems: 'center',
   },
   table_head: {
-    flexDirection: "row",
-    backgroundColor: "#2C4B48",
+    flexDirection: 'row',
+    backgroundColor: '#2C4B48',
   },
   table_head_captions: {
-    fontSize: 18,
-    color: "white",
-    fontFamily: "Manrope-VariableFont_wght",
-    fontWeight: 'bold',
+    fontFamily: 'AppFont-Bold',
+    fontSize: widthPercentageToDP(4.3),
+    color: 'white',
     textAlign: 'center',
     width: '100%',
     textAlignVertical: 'center',
     includeFontPadding: false,
   },
-
   table_body_single_row: {
-    backgroundColor: "#2C4B48",
-    flexDirection: "row",
-    color: "#FFF",
+    backgroundColor: '#2C4B48',
+    flexDirection: 'row',
+    color: '#FFF',
   },
   table_data: {
-    fontSize: 17,
-    color: "#FFF",
-    flexWrap: "wrap",
-    lineHeight: 22,
-    fontFamily: "Manrope-VariableFont_wght",
+    fontFamily: 'AppFont-Regular',
+    fontSize: widthPercentageToDP(4.3),
+    color: '#FFF',
+    flexWrap: 'wrap',
+    lineHeight: Math.round(widthPercentageToDP(4.3) * 1.6),
     textAlign: 'left',
     alignSelf: 'stretch',
     textAlignVertical: 'center',
@@ -929,21 +912,27 @@ const styles = StyleSheet.create({
     elevation: 1,
     alignSelf: 'center',
   },
- 
   mathSvg: {
     marginBottom: 0,
-    alignSelf: "flex-start",
-    minHeight: 28,
+    alignSelf: 'center',
+    paddingVertical: 6,
+    height: undefined,
+    overflow: 'visible',
   },
   cellEquationWrap: {
-    width: "100%",
+    width: '100%',
+    overflow: 'visible',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cellEquationInnerMeasure: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
+    overflow: 'visible',
   },
   measureWrap: {
     position: 'absolute',
     opacity: 0,
+    width: 10000,
     transform: [{ translateX: -10000 }],
   },
   measureRow: {
@@ -956,23 +945,24 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   measureHeadText: {
-    fontSize: 18,
+    fontFamily: 'AppFont-Bold',
+    fontSize: widthPercentageToDP(4.3),
     color: 'white',
-    fontFamily: 'Manrope-VariableFont_wght',
-    fontWeight: 'bold',
     alignSelf: 'flex-start',
     flexShrink: 0,
   },
   measureCellText: {
-    fontSize: 17,
+    fontFamily: 'AppFont-Regular',
+    fontSize: widthPercentageToDP(4.3),
     color: '#FFF',
     lineHeight: 22,
-    fontFamily: 'Manrope-VariableFont_wght',
     alignSelf: 'flex-start',
     flexShrink: 0,
   },
   measureMathSvg: {
     alignSelf: 'flex-start',
+    paddingVertical: 8,
+    minHeight: 56,
     flexShrink: 0,
   },
   scrollTrack: {
@@ -985,30 +975,30 @@ const styles = StyleSheet.create({
   },
   scrollThumb: {
     height: 4,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: 'rgba(255,255,255,0.7)',
     borderRadius: 2,
   },
   previewOverlay: {
     flex: 1,
     backgroundColor: COLORS.dark80,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: widthPercentageToDP(4),
   },
   previewCard: {
-    width: "100%",
-    height: "75%",
+    width: '100%',
+    height: '75%',
     borderRadius: 12,
     backgroundColor: COLORS.dark,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   previewImageWrap: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
     backgroundColor: COLORS.dark,
   },
   previewClose: {
-    position: "absolute",
+    position: 'absolute',
     top: 8,
     right: 10,
     zIndex: 2,
@@ -1016,25 +1006,25 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   previewCloseText: {
-    color: '#808080', // Gray color
-    fontWeight: 'bold',
+    color: '#808080',
+    fontFamily: 'AppFont-Regular',
     fontSize: 18,
     textAlign: 'center',
   },
   previewImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "contain",
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
     backgroundColor: COLORS.dark,
   },
   magnifyIconWrap: {
-    position: "absolute",
+    position: 'absolute',
     right: widthPercentageToDP(2),
     bottom: widthPercentageToDP(2),
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: 'rgba(0,0,0,0.6)',
     borderRadius: widthPercentageToDP(4),
     padding: widthPercentageToDP(1.2),
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -3,6 +3,8 @@ import React from "react";
 import { StyleSheet } from "react-native";
 import { ButtonProps } from "../interface/Interface";
 
+
+
 const Buttons = (buttonProps: ButtonProps) => {
   // console.log(buttonProps, "buttonProps");
 
@@ -14,7 +16,7 @@ const Buttons = (buttonProps: ButtonProps) => {
       fontSize={buttonProps.textSize}
       color={buttonProps.color}
       background={buttonProps.backgroundColor}
-      onPress={buttonProps.onSubmit && buttonProps.onSubmit}
+            onPress={buttonProps.onSubmit && buttonProps.onSubmit}
       disabled={buttonProps?.disabled}
     >
       {buttonProps.text}
@@ -24,14 +26,13 @@ const Buttons = (buttonProps: ButtonProps) => {
 };
 const styles = StyleSheet.create({
   container: {
-    marginTop: 12,
+     marginTop: 12,
     // width: "80%",
     // height: 50,
     // backgroundColor: "",
     color: "red",
-    fontWeight: "bold",
-    // fontSize: "80%",
-  },
+        // fontFamily: 'AppFont-Regular', fontSize: "80%"
+  }
 });
 
 export default Buttons;

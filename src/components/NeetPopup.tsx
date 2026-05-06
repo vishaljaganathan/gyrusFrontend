@@ -1,11 +1,16 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
+
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
-import { moderateScale } from "../styles/Responsive";
+  heightPercentageToDP as hp } from "react-native-responsive-screen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { moderateScale } from "../styles/Responsive";
+
+
+
+
 
 type NeetPopupProps = {
   date?: string | number | Date;
@@ -36,9 +41,7 @@ const NeetPopup = ({ date }: NeetPopupProps) => {
         {
           marginTop: hp(2) + insets.top,
           paddingHorizontal: insets.left + wp(4),
-          paddingBottom: insets.bottom + hp(2),
-        },
-      ]}
+          paddingBottom: insets.bottom + hp(2) } ]}
     >
       <Text
         style={styles.bodyText}
@@ -70,23 +73,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 1, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 3,
-  },
-  bodyText: {
-    fontSize: moderateScale(16),
+    elevation: 3 }, bodyText: {
+     fontFamily: 'AppFont-Regular', fontSize: moderateScale(16),
     color: "#666",
     marginBottom: hp(1),
-    textAlign: "center",
-  },
+    textAlign: "center" },
   dateText: {
-    fontSize: moderateScale(24),
+    fontFamily: 'AppFont-Regular', fontSize: moderateScale(24),
     color: "#1976d2",
-    fontWeight: "bold",
-    textAlign: "center",
+        textAlign: "center",
     shadowColor: "#000",
     shadowOffset: { width: 1, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2, // Adds slight elevation for Android
-  },
+  }
 });

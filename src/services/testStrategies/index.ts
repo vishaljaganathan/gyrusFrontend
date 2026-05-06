@@ -22,34 +22,30 @@ export type TestStrategy = {
 export const getTestStrategy = (userProfile: UserProfile, subject: string): any => {
     const subjectLower = (subject || '').toLowerCase().trim();
     const isPaidIndividual = userProfile.planValid && subjectLower !== 'neet';
-
-    // console.log('[TestStrategy] Selection:', { 
-    //     subject, 
-    //     subjectLower, 
-    //     planValid: userProfile.planValid, 
-    //     isPaidIndividual, 
-    //     selectedStrategy: isPaidIndividual ? 'PaidIndividual (20↔40 repeating)' : 'Base (20/40/100 repeats →180)' 
-    // });
+    const isPaid = userProfile.planValid;
 
     if (isPaidIndividual) {
         return {
-            getTestConfig: () => PaidIndividualStrategy.getTestConfig(userProfile.planValid),
+            getTestConfig: () => PaidIndividualStrategy.getTestConfig(isPaid),
             fetchQuestions: PaidIndividualStrategy.fetchQuestions,
             filterQuestions: PaidIndividualStrategy.filterQuestions,
-            getProgressionLogic: PaidIndividualStrategy.getProgressionLogic,
+            // Wrap to ensure correct argument mapping
+            getProgressionLogic: (c: number, t: number, cy: number, si: number, s: string, std: string) => 
+                PaidIndividualStrategy.getProgressionLogic(c, t, cy, si, s, std),
             getSetLabel: PaidIndividualStrategy.getSetLabel,
-            getCyclePattern: PaidIndividualStrategy.getCyclePattern,
-        };
+            getCyclePattern: (std: string) => PaidIndividualStrategy.getCyclePattern(std) };
     }
 
     return {
-        getTestConfig: () => BaseStrategy.getTestConfig(userProfile.planValid),
+        getTestConfig: () => BaseStrategy.getTestConfig(isPaid),
         fetchQuestions: BaseStrategy.fetchQuestions,
         filterQuestions: BaseStrategy.filterQuestions,
-        getProgressionLogic: BaseStrategy.getProgressionLogic,
+        // Bind isPaid to BaseStrategy functions
+        getProgressionLogic: (c: number, t: number, cy: number, si: number, s: string, std: string) => 
+            BaseStrategy.getProgressionLogic(c, t, cy, si, s, std, isPaid),
         getSetLabel: BaseStrategy.getSetLabel,
-        getCyclePattern: BaseStrategy.getCyclePattern,
-    };
+        getCyclePattern: (std: string, s: string) => 
+            BaseStrategy.getCyclePattern(std, s, isPaid) };
 };
 
 export const getStrategyDescription = (userProfile: UserProfile): string => {

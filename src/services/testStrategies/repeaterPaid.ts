@@ -32,8 +32,7 @@ export const getTestConfig = (): TestConfig => {
         canSkipQuestions: true,
         showExplanations: true,
         allowRetry: true,
-        focusOnWeakAreas: true,
-    };
+        focusOnWeakAreas: true };
 };
 
 export const fetchQuestions = async (params: {
@@ -59,8 +58,7 @@ export const fetchQuestions = async (params: {
             isRepeater: true,
             mixBothYears: true,
             cycle,
-            set,
-        });
+            set } );
 
         return response.data;
     } catch (error) {
@@ -107,8 +105,7 @@ export const getProgressionLogic = (
             nextSetIndexInCycle: nextSetIndex,
             message: percentage >= 60 ? 'Good improvement. Focus on weak topics.' : 'Review fundamentals. Check personalized plan.',
             canProgress: true,
-            isNewCycle,
-        };
+            isNewCycle };
     } else {
         // Individual subject pattern: 4 sets
         const basePattern = [20, 40];
@@ -130,8 +127,7 @@ export const getProgressionLogic = (
             nextSetIndexInCycle: nextSetIndex,
             message: percentage >= 60 ? 'Good improvement. Focus on weak topics.' : 'Review fundamentals. Check personalized plan.',
             canProgress: true,
-            isNewCycle,
-        };
+            isNewCycle };
     }
 };
 

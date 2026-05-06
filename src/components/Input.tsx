@@ -3,32 +3,32 @@ import {
   CheckIcon,
   Icon,
   Input,
-  Pressable,
-  Select,
-  View,
-} from "@gluestack-ui/themed-native-base";
+  Select} from "@gluestack-ui/themed-native-base";
 import { LoginProps } from "../interface/Interface";
-import { StyleSheet, Text } from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
+
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons/faUser";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import {
   horizontalScale,
   moderateScale,
-  verticalScale,
-} from "../styles/Responsive";
+  verticalScale} from "../styles/Responsive";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
+  heightPercentageToDP as hp} from "react-native-responsive-screen";
 import { COLORS } from "../styles/themes";
 import { ThemeContext } from "../service/authContext";
-import { Formik, Form, Field } from "formik";
-import * as Yup from "yup";
+
+
+
+
 
 const InputBox: React.FC<LoginProps> = (props) => {
   const [service, setService] = React.useState("");
   const [show, setShow] = React.useState(false);
+  const [focused, setFocused] = React.useState(false);
   const { userData, setUserData, signUpData, setSignUpData } =
     React.useContext(ThemeContext);
   const [errors, setErrors] = useState<any>({});
@@ -47,7 +47,7 @@ const InputBox: React.FC<LoginProps> = (props) => {
   //   console.log(value, code);
   //   let email = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
   //   let password =
-  //     /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  //     /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8 },$/;
   //   if (code == "email") {
   //     return email.test(value);
   //   } else {
@@ -193,31 +193,47 @@ const InputBox: React.FC<LoginProps> = (props) => {
   // };
 
   return (
-    <>
+    <View>
       {props.data.fieldType === "input" && (
-        <>
+        <View>
           <View style={styles.container}>
-            <Input
+            {/* explicit label above input to force app font on placeholder-like text */}
+            <Text style={{ fontSize: moderateScale(12), color: '#C6CDD0', marginBottom: 6 }}>
+              {props.data.label || props.data.placeholderName}
+            </Text>
+            <View style={{ width: '100%' }}>
+              <Input
               maxLength={props.data.id === "phoneNo" ? 10 : undefined}
               key={props.keys}
               isDisabled={props.disable}
               value={signUpData[props.data.id]}
-              type={
-                props.data.inputType == "password"
-                  ? !show
-                    ? "password"
-                    : "text"
-                  : "text"
-              }
-              // keyboardType={"phone-pad"}
+              type={props.data.inputType == "password" ? (!show ? "password" : "Text") : "Text"}
               outlineColor={"transparent"}
               underlineColorAndroid="transparent"
-              borderColor="transprent"
+              borderColor="transparent"
               borderWidth={0}
-              placeholder={props?.data.placeholderName}
               defaultValue={""}
-              onFocus={(e: any) => console.log("eeee")}
+              onFocus={(e: any) => {
+                setFocused(true);
+                setShow(true);
+              }}
+              onBlur={() => {
+                setFocused(false);
+                setShow(false);
+              }}
+              _input={{
+                style: {
+                  fontFamily: 'AppFont-Regular',
+                  fontSize: moderateScale(15),
+                  includeFontPadding: false,
+                  fontWeight: '400',
+                  fontStyle: 'normal',
+                  textAlignVertical: 'center'
+                }
+              }}
               style={{
+  
+                fontFamily: 'AppFont-Regular',
                 fontSize: moderateScale(15),
                 width: wp(80),
                 height: wp(13),
@@ -225,12 +241,12 @@ const InputBox: React.FC<LoginProps> = (props) => {
                 zIndex: 0,
                 borderWidth: 0,
                 borderColor: "transparent",
-                backgroundColor:
-                  props.data.placeholderName == "search"
-                    ? COLORS.grey
-                    : "transparent",
+                backgroundColor: props.data.placeholderName == "search" ? COLORS.grey : "transparent"
               }}
-              // onChangeText={(e) => validateField(e)}
+              onChangeText={(val: string) => {
+                // keep existing sync logic
+                setSignUpData({ ...signUpData, [props.data.id]: val });
+              }}
               InputLeftElement={
                 <Pressable onPress={() => setShow(!show)}>
                   {props.data.icon == "faUser" && (
@@ -260,13 +276,14 @@ const InputBox: React.FC<LoginProps> = (props) => {
                 </Pressable>
               }
             ></Input>
+            </View>
           </View>
           {errors[props.data.id] && (
             <Text style={{ color: COLORS.error01 }}>
               {errors[props.data.id]}
             </Text>
           )}
-        </>
+        </View>
       )}
 
       {props.data.fieldType === "select" && (
@@ -276,13 +293,14 @@ const InputBox: React.FC<LoginProps> = (props) => {
             selectedValue={service}
             // accessibilityLabel="Choose Service"
             placeholder={props.data.placeholderName}
-            fontSize={wp("4%")}
+            fontSize={moderateScale(15)}
             isDisabled={props.disable}
             height={wp(12)}
             _selectedItem={{
               bg: "teal.600",
-              endIcon: <CheckIcon size="5" />,
-            }}
+              endIcon: <CheckIcon size="5" />}}
+            _trigger={{ _text: { fontFamily: 'AppFont-Regular' } }}
+            _item={{ _text: { fontFamily: 'AppFont-Regular' } }}
             mt={1}
             onValueChange={(itemValue: any) => setService(itemValue)}
             // defaultValue={props?.userValue ? props?.userValue[props.data.value] : props?.value}
@@ -297,14 +315,14 @@ const InputBox: React.FC<LoginProps> = (props) => {
             {props?.data?.label.map((data: any, index: any) => {
               // console.log(data, "res values");
               return (
-                <Select.Item key={index} label={data.text} value={data.value} />
+                <Select.Item key={index} label={data.Text} value={data.value} />
               );
             })}
           </Select>
         </View>
       )}
       {/* {errors[props.data.id] !== '' && <Text style={{ color: 'red' }}>{errors[props.data.id]}</Text>} */}
-    </>
+    </View>
   );
 };
 
@@ -317,16 +335,15 @@ const styles = StyleSheet.create({
     // paddingHorizontal:wp(2)
   },
   input: {
+    
     height: hp(12),
-    fontSize: hp(2),
+    fontFamily: 'AppFont-Regular', fontSize: hp(2),
     alignItems: "center",
-    width: wp(10),
-  },
+    width: wp(10)},
   username: {
+    
     height: verticalScale(50),
-    fontSize: horizontalScale(20),
-    borderColor: "none",
-  },
-});
+    fontFamily: 'AppFont-Regular', fontSize: horizontalScale(20),
+    borderColor: "none"}});
 
 export default InputBox;

@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from "react";
 import "react-native-gesture-handler";
-import { Image, LogBox, StyleSheet, Text, TextInput, Platform } from "react-native";
+import { Image, LogBox, StyleSheet, Text, TextInput, Platform, Animated } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { GluestackUIProvider } from "@gluestack-ui/themed-native-base";
 import { config } from "@gluestack-ui/config";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
-import { useFonts } from "expo-font";
-import { Roboto_400Regular, Roboto_500Medium, Roboto_700Bold, useFonts as useRobotoFonts } from '@expo-google-fonts/roboto';
 import { ThemeProvider } from "./src/service/authContext";
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -18,6 +16,9 @@ import {
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
 import { userProps } from "./src/interface/Interface";
+
+import { useFonts } from "expo-font";
+
 import BottomBar from "./src/navigation/BottomBar";
 import TesterMcqSearch from "./src/pages/TesterMcqSearch";
 import SignUp from "./src/pages/Signup";
@@ -29,23 +30,41 @@ import Test from "./src/screens/Test";
 import Default from "./src/pages/Default";
 import ResetPassword from "./src/pages/ResetPassword";
 
+// Create a custom Gluestack config to force our bundled font globally
+const customConfig = {
+  ...config,
+  tokens: {
+    ...config.tokens,
+    fonts: {
+      heading: 'AppFont-Bold',
+      body: 'AppFont-Regular',
+      mono: 'AppFont-Regular',
+    },
+  },
+};
+
 void SplashScreen.preventAutoHideAsync().catch(() => {
-  // ignore (can happen during fast refresh)
+  // ignore
 });
 
-const DEFAULT_FONT_FAMILY = Platform.OS === 'android' ? 'Roboto' : 'Manrope-VariableFont_wght';
-
 const Stack = createNativeStackNavigator();
+
+
 
 export default function App() {
   LogBox.ignoreAllLogs();
   const [loggedIn, setLoggedIn] = useState(false);
 
-  //   const STATUS_BAR_HEIGHT = Platform.OS === "ios" ? 20 : '';
-  // const HEADER_HEIGHT = Platform.OS === "ios" ? 44 : 56;
-
   let navigationRef = useNavigationContainerRef();
   const queryClient = new QueryClient();
+
+  // Load custom fonts with UNIQUE aliases to bypass system font redirection
+  // Load custom fonts from LOCAL assets for maximum reliability
+  const [fontsLoaded] = useFonts({
+    'AppFont-Regular': require('./assets/fonts/AppFont-Regular.ttf'),
+    'AppFont-Medium': require('./assets/fonts/AppFont-Medium.ttf'),
+    'AppFont-Bold': require('./assets/fonts/AppFont-Bold.ttf'),
+  });
 
   const [userData, setUserData] = useState<userProps>({
     _id: "",
@@ -67,7 +86,6 @@ export default function App() {
     planValid: false,
   });
 
-  // const queryClient = new QueryClient();
   const [signUpData, setSignUpData] = useState({
     firstName: "",
     lastName: "",
@@ -100,50 +118,14 @@ export default function App() {
     },
   });
 
-  const [fontsLoaded] = useFonts({
-    "Manrope-Light": require("./src/assets/fonts/Manrope-Light.ttf"),
-    "Manrope-VariableFont_wght": require("./src/assets/fonts/Manrope-VariableFont_wght.ttf"),
-    "Quicksand-VariableFont_wght": require("./src/assets/fonts/Quicksand-VariableFont_wght.ttf"),
-    "Raleway-Light": require("./src/assets/fonts/Raleway-Light.ttf"),
-    "CroissantOne-Regular": require("./src/assets/fonts/CroissantOne-Regular.ttf"),
-    "Amiko-Regular": require("./src/assets/fonts/Amiko-Regular.ttf"),
-    "Rowdies-Regular": require("./src/assets/fonts/Rowdies-Regular.ttf"),
-    "Comfortaa-SemiBold": require("./src/assets/fonts/Comfortaa-SemiBold.ttf"),
-  });
-
-  // Load Roboto from @expo-google-fonts (bundled via node_modules)
-  const [robotoLoaded] = useRobotoFonts({ Roboto_400Regular, Roboto_500Medium, Roboto_700Bold });
-
   useEffect(() => {
-    // Wait for both local fonts and Roboto (from package) to load.
-    if (!fontsLoaded || !robotoLoaded) return;
-
-    (Text as any).defaultProps = {
-      ...((Text as any).defaultProps ?? {}),
-      allowFontScaling: false,
-      maxFontSizeMultiplier: 1,
-      style: [
-        { fontFamily: DEFAULT_FONT_FAMILY },
-        (Text as any).defaultProps?.style,
-      ],
-    };
-
-    (TextInput as any).defaultProps = {
-      ...((TextInput as any).defaultProps ?? {}),
-      allowFontScaling: false,
-      maxFontSizeMultiplier: 1,
-      style: [
-        { fontFamily: DEFAULT_FONT_FAMILY },
-        (TextInput as any).defaultProps?.style,
-      ],
-    };
-
+    // Hide splash immediately so Default.tsx shows with its loading animation
     void SplashScreen.hideAsync().catch(() => {
-      // ignore (can happen if already hidden)
+      // ignore
     });
-  }, [fontsLoaded, robotoLoaded]);
+  }, []);
 
-  if (!fontsLoaded || !robotoLoaded) {
+  if (!fontsLoaded) {
     return null;
   }
 
@@ -177,16 +159,10 @@ export default function App() {
       <ThemeProvider>
         <NavigationContainer ref={navigationRef}>
           <QueryClientProvider client={queryClient}>
-            <GluestackUIProvider config={config}>
+            <GluestackUIProvider config={customConfig}>
               <StatusBar
-                backgroundColor={appState.bgColor}
                 style={appState.indicatorColor}
-                translucent={true}
               />
-              {/* <ProgressBar /> */}
-              {/* <Navigation /> */}
-              {/* <Wrapper/> */}
-              {/* <Login/> */}
               <Stack.Navigator initialRouteName="DefaultScreen">
                 <Stack.Screen
                   name="DefaultScreen"

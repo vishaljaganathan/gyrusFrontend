@@ -1,6 +1,12 @@
+import { Animated, Easing, View} from 'react-native'
+import { CustomText as Text, CustomAnimatedText } from './CustomText';
+
+import { Svg, Path } from 'react-native-svg';
 import React, { useState, useEffect } from "react";
-import { View, Text, Animated, Easing } from "react-native";
-import Svg, { Path } from "react-native-svg";
+
+
+
+
 
 const ArrowAnimation = ({ percentage }: any) => {
   const [scaleAnim] = useState(new Animated.Value(1)); // Scale of the arrow

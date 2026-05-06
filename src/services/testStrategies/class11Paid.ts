@@ -30,8 +30,7 @@ export const getTestConfig = (): TestConfig => {
         hasTimeLimit: false,
         canSkipQuestions: true,
         showExplanations: true, // Paid users get explanations
-        allowRetry: true,
-    };
+        allowRetry: true };
 };
 
 export const fetchQuestions = async (params: {
@@ -55,8 +54,7 @@ export const fetchQuestions = async (params: {
             difficulty: ['1', '2', '3'],
             planType: 'paid',
             cycle,
-            set,
-        });
+            set } );
 
         return response.data;
     } catch (error) {
@@ -91,8 +89,7 @@ export const getProgressionLogic = (
         nextSetIndexInCycle: nextSetIndex,
         message: percentage >= 50 ? 'Good work!' : 'Keep practicing!',
         canProgress: true,
-        isNewCycle,
-    };
+        isNewCycle };
 };
 
 const shuffleArray = (array: number[]): number[] => {

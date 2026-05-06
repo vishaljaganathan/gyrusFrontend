@@ -1,19 +1,13 @@
+import { ThemeContext } from '../service/authContext';
 
 import React, { useState, useContext } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  TextInput,
-} from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert , Platform} from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../styles/themes";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
+  heightPercentageToDP as hp } from "react-native-responsive-screen";
 import { useMutation } from "@tanstack/react-query";
 import { postRequest } from "../config/Requests";
 import { LoginFields } from "../service/FormFeilds";
@@ -24,8 +18,17 @@ import { useFormik } from "formik";
 import GradientButton from "../components/GradientButton";
 import { AxiosError } from "axios";
 import { axiosInstance } from "../config/indeceptor";
-import { ThemeContext } from "../service/authContext";
-import Icon from "react-native-vector-icons/Feather";
+import { Ionicons as Icon } from '@expo/vector-icons';
+import * as Application from 'expo-application';
+
+
+
+
+
+
+
+
+
 
 // Accept navigation as a prop
 const Login = ({ navigation }: { navigation: any }) => {
@@ -46,12 +49,7 @@ const Login = ({ navigation }: { navigation: any }) => {
     signUpData,
     setSignUpData,
     appState,
-    setAppState,
-  } = useContext(ThemeContext);
-  const data = {
-    email,
-    password,
-  };
+    setAppState } = useContext(ThemeContext);
 
   const validate = (values: any) => {
     const errors: any = {};
@@ -84,9 +82,10 @@ const Login = ({ navigation }: { navigation: any }) => {
           .then((res) => {
             if (res && res.data) {
               setUserData(res.data);
-              navigation.navigate("BottomBar", { screen: "Home" }); // Use navigation prop
-            }
-          })
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'BottomBar' }] } );
+            } })
           .catch((err) => {
             if (err.status == 401) {
               navigation.navigate("Login"); // Use navigation prop
@@ -94,8 +93,7 @@ const Login = ({ navigation }: { navigation: any }) => {
           });
       }
     },
-
-    onError: (error: AxiosError, variable, context) => {
+  onError: (error: AxiosError, variable, context) => {
       setLoading(false);
       console.error("Login error:", error);
 
@@ -111,44 +109,96 @@ const Login = ({ navigation }: { navigation: any }) => {
 
       // Handle server errors with response
       let Error: any = error.response?.data;
-      if (error.status == 400) {
-        setLoginMsg(Error.message || "Invalid credentials");
+      
+      // Extract message safely (backend sometimes sends { message: { message: "..." } })
+      let displayMessage = "An error occurred. Please try again.";
+      if (typeof Error?.message === 'string') {
+        displayMessage = Error.message;
+      } else if (typeof Error?.message?.message === 'string') {
+        displayMessage = Error.message.message;
+      }
+
+      const statusCode = error.response?.status;
+
+      if (statusCode == 400) {
+        setLoginMsg(displayMessage || "Invalid credentials");
         const timer = setTimeout(() => {
           setLoginMsg("");
           clearTimeout(timer);
         }, 5000);
-      } else if (error.status == 406) {
-        navigation.navigate("Otp", { id: Error.id });
-      } else if (error.status == 404) {
-        setLoginMsg(Error.message || "User not found");
+      } else if (statusCode == 406) {
+        const otpUserId = Error.id || Error._id || Error.data?.id || Error.data?._id;
+        console.log("[Login] 406 Error - Navigating to Otp with id:", otpUserId);
+        navigation.navigate("Otp", { 
+          id: otpUserId,
+          phoneNo: variable.payload.phoneNo,
+          msgHint: displayMessage
+        });
+      } else if (statusCode == 404) {
+        setLoginMsg(displayMessage || "User not found");
         const timer = setTimeout(() => {
           setLoginMsg("");
           clearTimeout(timer);
         }, 5000);
+      } else if (statusCode == 403) {
+        // Handle concurrent login restriction
+        console.log("[Login] 403 Forbidden - Showing session block message:", displayMessage);
+        setLoginMsg(displayMessage || "Account already logged in on another device");
+        const timer = setTimeout(() => {
+          setLoginMsg("");
+          clearTimeout(timer);
+        }, 15000); // Show for much longer (15s)
       } else {
-        setLoginMsg("An error occurred. Please try again.");
+        setLoginMsg(displayMessage);
         const timer = setTimeout(() => {
           setLoginMsg("");
           clearTimeout(timer);
         }, 5000);
       }
-    },
+    }
   });
 
   const formik: any = useFormik({
     initialValues: {
       phoneNo: "",
-      password: "",
-    },
-    validate: validate,
-    onSubmit: (values) => {
+      password: "" }, validate: validate,
+    onSubmit: async (values) => {
       setLoading(true);
+      
+      // Get unique device identifier with persistence fallback
+      let deviceId = "";
+      try {
+        // 1) Try native app identifier
+        if (Platform.OS === 'android') {
+          deviceId = Application.getAndroidId() || "";
+        } else {
+          deviceId = await Application.getIosIdForVendorAsync() || "";
+        }
+
+        // 2) Fallback to SecureStore persistent UUID if native ID is unavailable (e.g. some emulators)
+        if (!deviceId || deviceId === "" || deviceId === "null") {
+          const { getSecureStorage, setSecureStorage: storeSS } = require("../config/SecureStore");
+          const uuid = require("react-native-uuid").default;
+          
+          let storedId = await getSecureStorage("persistent_device_id");
+          if (!storedId) {
+            storedId = uuid.v4().toString();
+            await storeSS("persistent_device_id", storedId);
+          }
+          deviceId = "UUID-" + storedId;
+        }
+      } catch (e) {
+        console.error("Error getting deviceId:", e);
+        deviceId = "ERROR-FALLBACK";
+      }
+
+      console.log("[Login] Sending login request with deviceId:", deviceId);
+
       createPostMutation.mutate({
         URL: "authentication/log-in",
-        payload: values,
-      });
-    },
-  });
+        payload: {
+          ...values,
+          deviceId } }); } });
 
   const [isPasswordSecure, setIsPasswordSecure] = useState(true);
 
@@ -160,15 +210,17 @@ const Login = ({ navigation }: { navigation: any }) => {
         COLORS.primary03,
         COLORS.primary05,
       ]}
-      style={styles.container}
+            style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
       <View style={styles.loginContainer}>
-        <Animated.View entering={ZoomInLeft} style={styles.animatedContainer}>
+        <Animated.View entering={ZoomInLeft}
+            style={styles.animatedContainer}>
           {/* Logo Section */}
           <View style={styles.logoContainer}>
-            <Image source={logo} style={styles.logoImage} />
+            <Image source={logo}
+            style={styles.logoImage} />
           </View>
 
           {/* Login Form Section */}
@@ -179,7 +231,8 @@ const Login = ({ navigation }: { navigation: any }) => {
             <View style={styles.inputsContainer}>
               {LoginFields.map((data: any, index) => {
                 return (
-                  <View key={data.idx} style={styles.inputWrapper}>
+                  <View key={data.idx}
+            style={styles.inputWrapper}>
                     <View style={styles.inputFieldContainer}>
                       <TextInput
                         style={[
@@ -193,11 +246,11 @@ const Login = ({ navigation }: { navigation: any }) => {
                           data.id === "password" ? !showPassword : false
                         }
                         maxLength={data.id === "phoneNo" ? 10 : undefined}
-                        onChangeText={(text) => {
+                        onChangeText={(Text) => {
                           if (data.id === "phoneNo") {
-                            formik.setFieldValue("phoneNo", text.replace(/[^0-9]/g, ""));
+                            formik.setFieldValue("phoneNo", Text.replace(/[^0-9]/g, ""));
                           } else {
-                            formik.handleChange(data.id)(text);
+                            formik.setFieldValue(data.id, Text);
                           }
                         }}
                         onBlur={formik.handleBlur(`${data.id}`)}
@@ -206,7 +259,7 @@ const Login = ({ navigation }: { navigation: any }) => {
                       {data.id === "password" && (
                         <TouchableOpacity
                           onPress={togglePasswordVisibility}
-                          style={styles.eyeIconContainer}
+            style={styles.eyeIconContainer}
                         >
                           <Icon
                             name={showPassword ? "eye-off" : "eye"}
@@ -245,14 +298,14 @@ const Login = ({ navigation }: { navigation: any }) => {
             <View style={styles.buttonContainer}>
               <GradientButton
                 onPress={formik.handleSubmit}
-                disable={!formik.isValid}
+            disable={!formik.isValid}
                 loading={loading}
-                colors={
+            colors={
                   !formik.isValid
                     ? [COLORS.button_enable01, COLORS.button_enable02]
                     : [COLORS.button_disable01, COLORS.button_disable02]
                 }
-                text={"Sign In"}
+            Text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Sign In</Text>}
               />
             </View>
 
@@ -262,7 +315,7 @@ const Login = ({ navigation }: { navigation: any }) => {
                 If you don't have an account?{" "}
                 <Text
                   style={styles.signUpLinkText}
-                  onPress={() => navigation.navigate("SignUp")} // Use navigation prop
+            onPress={() => navigation.replace("SignUp")} // Replace to avoid stacking
                 >
                   Sign Up
                 </Text>
@@ -277,29 +330,19 @@ const Login = ({ navigation }: { navigation: any }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  loginContainer: {
+    flex: 1 }, loginContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: wp(5),
-  },
-  animatedContainer: {
+    paddingHorizontal: wp(5) }, animatedContainer: {
     width: "100%",
     maxWidth: wp(90),
+    alignItems: "center" }, logoContainer: {
     alignItems: "center",
-  },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: hp(2),
-  },
-  logoImage: {
+    marginBottom: hp(2) }, logoImage: {
     width: wp(37),
     height: hp(17),
-    resizeMode: "contain",
-  },
-  formContainer: {
+    resizeMode: "contain" }, formContainer: {
     backgroundColor: COLORS.primary05,
     width: "100%",
     paddingHorizontal: wp(6),
@@ -309,32 +352,19 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
+      height: 4 }, shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 8,
-  },
-  signInTitle: {
-    fontSize: wp(6),
-    fontWeight: "600",
-    color: COLORS.colorWhite,
-    marginBottom: hp(3),
-    textAlign: "center",
-  },
+    elevation: 8 }, signInTitle: { fontFamily: 'AppFont-Bold', fontSize: wp(6),
+        color: COLORS.colorWhite,
+    marginBottom: hp(2),
+    textAlign: "center"},
   inputsContainer: {
     width: "100%",
-    marginBottom: hp(1),
-  },
-  inputWrapper: {
-    marginBottom: hp(2),
-  },
-  inputFieldContainer: {
+    marginBottom: hp(1) }, inputWrapper: {
+    marginBottom: hp(2) }, inputFieldContainer: {
     position: "relative",
-    width: "100%",
-  },
-  textInput: {
-    fontSize: moderateScale(12),
+    width: "100%" }, textInput: {
+     fontFamily: 'AppFont-Regular', fontSize: moderateScale(12),
     width: "100%",
     height: hp(6),
     borderRadius: wp(2),
@@ -342,8 +372,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    color: "#333",
-  },
+    color: "#333" },
   passwordInput: {
     paddingRight: wp(12), // Extra padding for eye icon
   },
@@ -352,48 +381,34 @@ const styles = StyleSheet.create({
     right: wp(3),
     top: "50%",
     transform: [{ translateY: -12 }],
-    padding: wp(1),
-  },
-  errorText: {
-    fontSize: hp(1.4),
+    padding: wp(1) }, errorText: {
+     fontFamily: 'AppFont-Regular', fontSize: hp(1.4),
     color: "#FFEA00",
     marginTop: hp(0.5),
-    marginLeft: wp(1),
-  },
+    marginLeft: wp(1) },
   loginErrorText: {
-    fontSize: hp(1.5),
+     fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
     color: "#FFEA00",
     textAlign: "center",
-    marginBottom: hp(1),
-  },
+    marginBottom: hp(1) },
   forgotPasswordContainer: {
     alignSelf: "flex-end",
-    marginBottom: hp(3),
-  },
-  forgotPasswordText: {
-    fontSize: hp(1.6),
+    marginBottom: hp(3) }, forgotPasswordText: {
+     fontFamily: 'AppFont-Regular', fontSize: hp(1.6),
     color: "#FFEFFF",
-    textDecorationLine: "underline",
-  },
+    textDecorationLine: "underline" },
   buttonContainer: {
+    fontFamily: 'AppFont-Bold',
     width: "100%",
-    marginBottom: hp(2),
-  },
-  signUpLinkContainer: {
+    marginBottom: hp(2) }, signUpLinkContainer: {
     alignItems: "center",
-    marginTop: hp(1),
-  },
-  signUpText: {
-    color: COLORS.colorWhite,
-    fontSize: wp(3.8),
+    marginTop: hp(1) }, signUpText: {
+     color: COLORS.colorWhite,
+    fontFamily: 'AppFont-Regular', fontSize: wp(3.8),
     textAlign: "center",
-    lineHeight: wp(5),
-  },
+    lineHeight: wp(5) },
   signUpLinkText: {
-    color: COLORS.colorWhite,
-    fontSize: wp(3.8),
-    fontWeight: "700",
-  },
-});
+     color: COLORS.colorWhite,
+    fontFamily: 'AppFont-Regular', fontSize: wp(3.8)} });
 
 export default Login;

@@ -1,13 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, StyleSheet, Text, Pressable, LayoutChangeEvent } from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert, LayoutChangeEvent } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
+
 import { RadioButtonProps } from "../interface/Interface";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
+  heightPercentageToDP as hp} from "react-native-responsive-screen";
 import { SplitStringValues } from "../service/DataShow";
 import { StringSplitQuestion } from "../service/StringSplit";
 import { Radio } from "@gluestack-ui/themed-native-base";
+
+
+
+
 
 const RadioButton = ({
   labelName,
@@ -19,8 +24,7 @@ const RadioButton = ({
   answer,
   showAnswer,
   setSelectedIndex,
-  selectedIndex,
-}: RadioButtonProps) => {
+  selectedIndex}: RadioButtonProps) => {
   const [maxOptionHeight, setMaxOptionHeight] = useState<number>(0);
   const touchStateRef = useRef<Record<number, { startX: number; startY: number; moved: boolean }>>({});
   const interactionRef = useRef<Record<number, boolean>>({});
@@ -118,7 +122,7 @@ const RadioButton = ({
             );
           }
 
-          // Handle case where optionValue is directly a string (simple text)
+          // Handle case where optionValue is directly a string (simple Text)
           let optionText = null;
           let hasComplexContent = false;
 
@@ -136,7 +140,7 @@ const RadioButton = ({
             optionText = optionValue;
             hasComplexContent = optionText.includes('#@#') || optionText.includes('#*#');
           } else if (typeof optionValue === 'object' && optionValue !== null && optionValue.value) {
-            // optionValue is { value: "text" } - extract the value
+            // optionValue is { value: "Text" } - extract the value
             optionText = String(optionValue.value); // Force to string
             hasComplexContent = optionText.includes('#@#') || optionText.includes('#*#');
           } else if (typeof optionValue === 'object' && optionValue !== null) {
@@ -200,8 +204,7 @@ const RadioButton = ({
             touchStateRef.current[idx] = {
               startX: pageX,
               startY: pageY,
-              moved: false,
-            };
+              moved: false};
           };
 
           const handleTouchMove = (event: any) => {
@@ -229,63 +232,59 @@ const RadioButton = ({
           const hasScrollableEq = typeof optionText === 'string' && optionText.includes('eq#*#');
 
           if (hasScrollableEq) {
-            // Make container pressable so taps (when not interacting with inner scroll) select the option.
+            // Use View instead of Pressable to prevent swallowing horizontal scroll events on Android.
+            // We passively listen to touch events to trigger selection on tap.
             return (
-              <Pressable
+              <View
                 key={index}
-                onPress={handleOptionPress}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onStartShouldSetResponder={() => false}
-                onMoveShouldSetResponder={() => false}
-                onStartShouldSetResponderCapture={() => false}
-                onMoveShouldSetResponderCapture={() => false}
+                style={[
+                  labelName === "report" ? Styles.reportContainer : Styles.container,
+                  {
+                    borderColor: returnColor(idx),
+                    backgroundColor: getEmphasisBackground(idx),
+                    paddingVertical: hasImage ? hp(1.8) : hp(1),
+                    minHeight: maxOptionHeight > 0 ? maxOptionHeight : undefined,
+                  },
+                ]}
               >
-                <View
-                  style={[
-                    labelName === "report" ? Styles.reportContainer : Styles.container,
-                    {
-                      borderColor: returnColor(idx),
-                      backgroundColor: getEmphasisBackground(idx),
-                      paddingVertical: hasImage ? hp(1.8) : hp(1),
-                      minHeight: maxOptionHeight > 0 ? maxOptionHeight : undefined,
-                    },
-                  ]}
-                >
-                  <View style={Styles.optionRow}>
-                    <Text style={Styles.optionIndex}>{idx})</Text>
-                    <View style={Styles.optionContent}>
-                      <View
-                        style={Styles.optionContentMeasure}
-                        onLayout={(event) => onOptionContentLayout(idx, event, hasImage)}
-                      >
-                        {optionText ? (
-                          hasComplexContent ? (
-                            <SplitStringValues
-                              MCQ={optionValue}
-                              keyName="value"
-                              onImagePress={handleImagePress}
-                              isOptionContent
-                              onInteractStart={setInteractionStart}
-                              onInteractEnd={setInteractionEnd}
-                            />
-                          ) : (
-                            <StringSplitQuestion
-                              MCQ={optionText}
-                              keyName="txt"
-                              content="option"
-                              uniqueId={`option-${index}`}
-                            />
-                          )
+                <Pressable
+                  style={StyleSheet.absoluteFillObject}
+                  onPress={handleOptionPress}
+                />
+                <View style={Styles.optionRow} pointerEvents="box-none">
+                  <Text style={Styles.optionIndex} onPress={handleOptionPress}>{idx})</Text>
+                  <View style={Styles.optionContent} pointerEvents="box-none">
+                    <View
+                      style={[Styles.optionContentMeasure, { pointerEvents: 'box-none' as any }]}
+                      onLayout={(event) => onOptionContentLayout(idx, event, hasImage)}
+                    >
+                      {optionText ? (
+                        hasComplexContent ? (
+                          <SplitStringValues
+                            MCQ={optionValue}
+                            keyName="value"
+                            onImagePress={handleImagePress}
+                            isOptionContent
+                            onInteractStart={setInteractionStart}
+                            onInteractEnd={setInteractionEnd}
+                            onOptionPress={handleOptionPress}
+                          />
                         ) : (
-                          <Text style={{ color: '#999' }}>No option text</Text>
-                        )}
-                      </View>
+                          <StringSplitQuestion
+                            MCQ={optionText}
+                            keyName="txt"
+                            content="option"
+                            uniqueId={`option-${index}`}
+                            onOptionPress={handleOptionPress}
+                          />
+                        )
+                      ) : (
+                        <Text style={{ color: '#999' }}>No option Text</Text>
+                      )}
                     </View>
                   </View>
                 </View>
-              </Pressable>
+              </View>
             );
           }
 
@@ -309,8 +308,7 @@ const RadioButton = ({
                     backgroundColor: getEmphasisBackground(idx),
                     // Give image options a bit more vertical space
                     paddingVertical: hasImage ? hp(1.8) : hp(1),
-                      minHeight: maxOptionHeight > 0 ? maxOptionHeight : undefined,
-                  },
+                      minHeight: maxOptionHeight > 0 ? maxOptionHeight : undefined},
                 ]}
               >
                 <View style={Styles.optionRow}>
@@ -339,7 +337,7 @@ const RadioButton = ({
                           />
                         )
                       ) : (
-                        <Text style={{ color: '#999' }}>No option text</Text>
+                        <Text style={{ color: '#999' }}>No option Text</Text>
                       )}
                     </View>
                   </View>
@@ -408,32 +406,28 @@ const Styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-start", // Align content to the left
     width: "100%",
-    paddingHorizontal: wp(2),
-  },
+    paddingHorizontal: wp(2)},
   optionIndex: {
+    
     color: "#FFFFFF",
     marginRight: wp(2),
     width: wp(6),
-    fontSize: wp(3.8),
+    fontFamily: 'AppFont-Regular', fontSize: wp(3.8),
     textAlign: "left",
     textAlignVertical: "center", // Ensure vertical centering for Android
-    fontFamily: "Manrope-VariableFont_wght",
   },
   optionContent: {
     flex: 1,
     justifyContent: "center", // Center the content vertically
     alignItems: "flex-start",
-    alignSelf: "stretch",
-  },
+    alignSelf: "stretch"},
   optionContentMeasure: {
     width: "100%",
     flex: 1,
     justifyContent: "center",
-    paddingVertical: hp(0.4),
-  },
+    paddingVertical: hp(0.4)},
   reportContainer: {
     // kept intentionally minimal for report view
-  },
-});
+  }});
 
 export default RadioButton;

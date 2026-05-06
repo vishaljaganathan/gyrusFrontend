@@ -1,10 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, Button } from "react-native";
+import { View,  Button } from 'react-native'
+import { CustomText as Text } from '../components/CustomText';
+import { useState, useEffect } from 'react';
+
+
+
+
 
 const WebSocketComponent = () => {
   const [data, setData] = useState("");
   const ws = new WebSocket(
-    "wss://demo.piesocket.com/v3/channel_123?api_key=VCXCEuvhGcBDP7XhiJJUDvR1e1D3eiVjgZ9VRiaV&notify_self"
+    "wss://demo.piesocket.com/v3/channel_123?api_key=VCXCEuvhGcBDP7XhiJJUDvR1e1D3eiVjgZ9VRiaV&notify_self",
   ); // Replace with your WebSocket server URL
   useEffect(() => {
     ws.onopen = () => {

@@ -1,21 +1,11 @@
 import React, { useEffect, useState, useContext, useMemo } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  TextInput,
-  ScrollView,
-  TouchableOpacity, // Added TouchableOpacity
-} from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert , KeyboardAvoidingView, Platform, ScrollView} from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../styles/themes";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
+  heightPercentageToDP as hp } from "react-native-responsive-screen";
 import { createSignUpFields } from "../service/FormFeilds";
 import { postRequest } from "../config/Requests";
 import { useMutation } from "@tanstack/react-query";
@@ -26,8 +16,12 @@ import { useFormik } from "formik";
 import { moderateScale } from "../styles/Responsive";
 import { Dropdown } from "react-native-element-dropdown";
 import DateInput from "../components/DatePicker";
+import { Ionicons as Icon } from '@expo/vector-icons';
 import { AxiosError } from "axios";
-import Icon from "react-native-vector-icons/Feather";
+
+
+
+
 
 const SignUp = ({ navigation }: { navigation: any }) => {
   const logo = require("../assets/appLogo.png");
@@ -49,7 +43,10 @@ const SignUp = ({ navigation }: { navigation: any }) => {
       if (data.status == 201) {
         setLoading(false);
         setSignUpData(data.data);
-        navigation.navigate("Otp", { id: data.data._id, otp: Number(data.data.otp) }); // Use navigation prop
+        navigation.navigate("Otp", { 
+          id: data.data._id, 
+          phoneNo: variable.payload.phoneNo 
+        }); // Use navigation prop
       }
     },
     onError(error: AxiosError, variables, context) {
@@ -63,7 +60,7 @@ const SignUp = ({ navigation }: { navigation: any }) => {
           clearTimeout(timer);
         }, 5000);
       }
-    },
+    }
   });
 
   const checkPostMutation = useMutation({
@@ -75,8 +72,7 @@ const SignUp = ({ navigation }: { navigation: any }) => {
         formik.resetForm({
           values: formik.values,
           isValid: false,
-          dirty: false,
-        });
+          dirty: false } );
       }
     },
     onError(error: AxiosError, variables, context) {
@@ -89,7 +85,7 @@ const SignUp = ({ navigation }: { navigation: any }) => {
           clearTimeout(timer);
         }, 5000);
       }
-    },
+    }
   });
 
   const validate = (values: any) => {
@@ -111,6 +107,16 @@ const SignUp = ({ navigation }: { navigation: any }) => {
       }
       if (!values.std) {
         errors.std = "Standard is required";
+      }
+      
+      if (!values.schoolName) {
+        errors.schoolName = "School name is required";
+      }
+      
+      if (!values.schoolPin) {
+        errors.schoolPin = "School pincode is required";
+      } else if (!/^\d{6}$/.test(String(values.schoolPin))) {
+        errors.schoolPin = "School pincode must be 6 digits";
       }
     } else {
       // Validate email
@@ -149,20 +155,6 @@ const SignUp = ({ navigation }: { navigation: any }) => {
       }
     }
 
-    // Pincode rules (digits only, exactly 6 when provided)
-    if (values.pinCode !== undefined) {
-      const pin = String(values.pinCode || "");
-      if (pin.length > 0 && !/^\d{6}$/.test(pin)) {
-        errors.pinCode = "Pincode must be exactly 6 digits";
-      }
-    }
-    if (values.schoolPin !== undefined) {
-      const schoolPin = String(values.schoolPin || "");
-      if (schoolPin.length > 0 && !/^\d{6}$/.test(schoolPin)) {
-        errors.schoolPin = "School pincode must be exactly 6 digits";
-      }
-    }
-
     return errors;
   };
 
@@ -179,9 +171,7 @@ const SignUp = ({ navigation }: { navigation: any }) => {
       targetYear: "",
       password: "",
       schoolName: "",
-      schoolPin: "",
-    },
-    validate: validate,
+      schoolPin: "" }, validate: validate,
     onSubmit: (values) => {
       if (page == 0) {
         setLoading(true);
@@ -189,9 +179,7 @@ const SignUp = ({ navigation }: { navigation: any }) => {
           URL: "authentication/validate",
           payload: {
             phoneNo: formik.values.phoneNo,
-            email: formik.values.email,
-          },
-        });
+            email: formik.values.email } });
       } else {
         // Hard guard: never allow submitting with an invalid pincode.
         const schoolPin = String(values.schoolPin || "");
@@ -200,28 +188,21 @@ const SignUp = ({ navigation }: { navigation: any }) => {
           formik.setFieldError("schoolPin", "School pincode must be exactly 6 digits");
           return;
         }
-        const pinCode = (values as any).pinCode !== undefined ? String((values as any).pinCode || "") : "";
-        if (pinCode.length > 0 && !/^\d{6}$/.test(pinCode)) {
-          formik.setFieldTouched("pinCode", true);
-          formik.setFieldError("pinCode", "Pincode must be exactly 6 digits");
-          return;
-        }
 
         setLoading(true);
         const { confirmPassword, ...newUserData }: any = values;
         createPostMutation.mutate({
           URL: "authentication/register",
-          payload: newUserData,
+          payload: newUserData
         });
       }
-    },
+    }
   });
 
   const initialButtonState = {
     disable: !formik.isValid || !formik.dirty,
     colors: [COLORS.button_disable01, COLORS.button_disable02],
-    isValid: formik.isValid,
-  };
+    isValid: formik.isValid };
 
   const neetDateFromState = appState?.neetDate || userData?.examDate;
   const signUpFields = useMemo(
@@ -242,10 +223,16 @@ const SignUp = ({ navigation }: { navigation: any }) => {
       end={{ x: 1, y: 1 }}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        // Use `padding` on both platforms to avoid Android 'height' causing
+        // continuous layout/resize loops on some devices when the keyboard toggles.
+        behavior={'padding'}
         style={styles.keyboardContainer}
       >
         <ScrollView 
+          // Avoid vertically centering content with `justifyContent: 'center'`
+          // because small height changes (keyboard, measurement) can cause
+          // a re-layout loop for some devices. Keep items top-aligned and
+          // rely on padding to position content.
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -280,7 +267,6 @@ const SignUp = ({ navigation }: { navigation: any }) => {
                   {signUpFields[page].map((data: any, index: number) => {
                     const isPhone = data.id === "phoneNo";
                     const isPinLike =
-                      data.id === "pinCode" ||
                       data.id === "schoolPin" ||
                       data.id === "schoolPincode";
                     const numericMaxLen = isPhone ? 10 : isPinLike ? 6 : undefined;
@@ -298,16 +284,16 @@ const SignUp = ({ navigation }: { navigation: any }) => {
                                 styles.textInput,
                                 isPasswordField && styles.passwordInput,
                               ]}
-                              onChangeText={(text) => {
+                              onChangeText={(Text) => {
                                 if (isPhone || isPinLike) {
-                                  const digitsOnly = String(text || "").replace(/\D/g, "");
+                                  const digitsOnly = String(Text || "").replace(/\D/g, "");
                                   const clipped = numericMaxLen
                                     ? digitsOnly.slice(0, numericMaxLen)
                                     : digitsOnly;
                                   formik.setFieldValue(`${data.id}`, clipped);
                                   return;
                                 }
-                                formik.setFieldValue(`${data.id}`, text);
+                                formik.setFieldValue(`${data.id}`, Text);
                               }}
                               onBlur={formik.handleBlur(`${data.id}`)}
                               value={String(formik.values?.[`${data.id}`] ?? "")}
@@ -333,8 +319,7 @@ const SignUp = ({ navigation }: { navigation: any }) => {
                                   } else {
                                     setShowConfirmPassword(!showConfirmPassword);
                                   }
-                                }}
-                                style={styles.eyeIconContainer}
+                                }} style={styles.eyeIconContainer}
                               >
                                 <Icon
                                   name={
@@ -360,6 +345,8 @@ const SignUp = ({ navigation }: { navigation: any }) => {
                             style={styles.dropdown}
                             placeholderStyle={styles.placeholderStyle}
                             selectedTextStyle={styles.selectedTextStyle}
+                            inputSearchStyle={styles.inputSearchStyle}
+                            itemTextStyle={{ fontFamily: 'AppFont-Regular' }}
                             data={data.label}
                             labelField={"label"}
                             valueField={"value"}
@@ -402,7 +389,7 @@ const SignUp = ({ navigation }: { navigation: any }) => {
                     disable={initialButtonState.disable}
                     colors={initialButtonState.colors}
                     loading={loading}
-                    text={page === 0 ? "Next" : "Sign Up"}
+                    Text={<Text style={{ fontFamily: 'AppFont-Bold' }}>{page === 0 ? "Next" : "Sign Up"}</Text>}
                   />
                 </View>
 
@@ -412,7 +399,7 @@ const SignUp = ({ navigation }: { navigation: any }) => {
                     Do you have an account?{" "}
                     <Text
                       style={styles.signInLinkText}
-                      onPress={() => navigation.navigate("Login")} // Use navigation prop
+                      onPress={() => navigation.replace("Login")} // Replace to avoid stacking
                     >
                       Sign In
                     </Text>
@@ -428,38 +415,29 @@ const SignUp = ({ navigation }: { navigation: any }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardContainer: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  keyboardContainer: { flex: 1 },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: hp(2),
+    // Avoid centering to prevent layout loops when keyboard toggles
+    paddingTop: hp(2),
+    paddingBottom: hp(2),
   },
   signUpContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: wp(5),
   },
   animatedContainer: {
     width: "100%",
-    maxWidth: wp(90),
+    maxWidth: 450,
+    alignItems: "center" }, logoContainer: {
     alignItems: "center",
-  },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: hp(2),
-  },
-  logoImage: {
-    width: wp(37),
-    height: hp(17),
-    resizeMode: "contain",
-  },
-  formContainer: {
+    marginBottom: hp(2) }, logoImage: {
+    width: 150,
+    height: 120,
+    resizeMode: "contain" }, formContainer: {
     backgroundColor: COLORS.primary05,
     width: "100%",
     paddingHorizontal: wp(6),
@@ -469,52 +447,33 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
+      height: 4 }, shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 8,
-  },
-  signUpTitle: {
-    fontSize: wp(6),
-    fontWeight: "600",
-    color: COLORS.colorWhite,
+    elevation: 8 }, signUpTitle: {
+    fontFamily: 'AppFont-Bold', fontSize: wp(6),
+        color: COLORS.colorWhite,
     marginBottom: hp(2),
-    textAlign: "center",
-  },
+    textAlign: "center" },
   progressContainer: {
     width: "100%",
     alignItems: "center",
-    marginBottom: hp(2.5),
-  },
-  progressBar: {
+    marginBottom: hp(2.5) }, progressBar: {
     flexDirection: "row",
     width: wp(20),
-    justifyContent: "space-between",
-  },
-  progressStep: {
+    justifyContent: "space-between" }, progressStep: {
     width: wp(8),
     height: hp(0.5),
-    borderRadius: wp(1),
-  },
-  progressText: {
-    fontSize: wp(3.2),
+    borderRadius: wp(1) }, progressText: {
+    fontFamily: 'AppFont-Regular', fontSize: wp(3.2),
     color: "rgba(255,255,255,0.8)",
-    textAlign: "center",
-  },
+    textAlign: "center" },
   inputsContainer: {
     width: "100%",
-    marginBottom: hp(1),
-  },
-  inputWrapper: {
-    marginBottom: hp(1.5),
-  },
-  inputFieldContainer: {
+    marginBottom: hp(1) }, inputWrapper: {
+    marginBottom: hp(1.5) }, inputFieldContainer: {
     position: "relative",
-    width: "100%",
-  },
-  textInput: {
-    fontSize: moderateScale(12),
+    width: "100%" }, textInput: {
+    fontFamily: 'AppFont-Regular', fontSize: moderateScale(12),
     width: "100%",
     height: hp(6),
     borderRadius: wp(2),
@@ -522,8 +481,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    color: "#333",
-  },
+    color: "#333" },
   passwordInput: {
     paddingRight: wp(12), // Extra padding for eye icon
   },
@@ -534,84 +492,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(4),
     borderRadius: wp(2),
     borderWidth: 1,
-    borderColor: "#e0e0e0",
-  },
-  dateInputWrapper: {
+    borderColor: "#e0e0e0" }, dateInputWrapper: {
     width: "100%",
     height: hp(6), // Same height as other inputs
   },
-  placeholderStyle: {
-    fontSize: moderateScale(12),
-    color: "#999",
-  },
-  selectedTextStyle: {
-    fontSize: moderateScale(12),
-    color: "#333",
-  },
+  placeholderStyle: { fontFamily: 'AppFont-Regular',
+     fontSize: moderateScale(12),
+     textAlign: 'left',
+    color: "#999" },
+  selectedTextStyle: { fontFamily: 'AppFont-Regular',
+     fontSize: moderateScale(12),
+     textAlign: 'left',
+    color: "#333" },
   errorText: {
-    fontSize: hp(1.4),
+     fontFamily: 'AppFont-Regular', fontSize: hp(1.4),
     color: "#FFEA00",
     marginTop: hp(0.5),
-    marginLeft: wp(1),
-  },
+    marginLeft: wp(1) },
   loginErrorText: {
-    fontSize: hp(1.5),
+     fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
     color: "#FFEA00",
     textAlign: "center",
-    marginBottom: hp(1),
-  },
+    marginBottom: hp(1) },
   buttonContainer: {
     width: "100%",
-    marginBottom: hp(2),
-  },
-  signInLinkContainer: {
-    alignItems: "center",
-  },
-  signInText: {
-    color: COLORS.colorWhite,
-    fontSize: wp(3.8),
+    marginBottom: hp(2) }, signInLinkContainer: {
+    alignItems: "center" }, signInText: {
+     color: COLORS.colorWhite,
+    fontFamily: 'AppFont-Regular', fontSize: wp(3.8),
     textAlign: "center",
-    lineHeight: wp(5),
-  },
+    lineHeight: wp(5) },
   signInLinkText: {
-    color: COLORS.colorWhite,
-    fontSize: wp(3.8),
-    fontWeight: "700",
-  },
+     color: COLORS.colorWhite,
+    fontFamily: 'AppFont-Regular', fontSize: wp(3.8)},
   validation: {
-    fontSize: hp(2),
-    fontWeight: "bold",
-    color: COLORS.answer_wrong01,
+     fontFamily: 'AppFont-Regular', fontSize: hp(2),
+        color: COLORS.answer_wrong01,
     textAlign: "left",
-    width: wp(78),
-  },
+    width: "100%" },
   disabledDropdown: {
-    backgroundColor: "#f0f0f0",
-  },
-  toggleButton: {
-    marginTop: 15,
-    color: "blue",
-  },
+    backgroundColor: "#f0f0f0" }, toggleButton: {
+     marginTop: 15,
+    color: "blue" },
   icon: {
-    marginRight: 5,
-  },
-  iconStyle: {
+    marginRight: 5 }, iconStyle: {
     width: 20,
-    height: 20,
-  },
-  inputSearchStyle: {
-    height: 40,
-    fontSize: 16,
-    backgroundColor: "#FFFFFF",
-  },
+    height: 20 }, inputSearchStyle: { 
+     height: 40,
+    fontFamily: 'AppFont-Regular', fontSize: 16,
+    backgroundColor: "#FFFFFF" },
   eyeIconContainer: {
     position: "absolute",
     right: 10,
     top: 0,
     bottom: 0,
     justifyContent: "center",
-    alignItems: "center",
-  },
-});
+    alignItems: "center" } });
 
 export default SignUp;

@@ -30,8 +30,7 @@ export const getTestConfig = (): TestConfig => {
         hasTimeLimit: false,
         canSkipQuestions: true,
         showExplanations: true,
-        allowRetry: true,
-    };
+        allowRetry: true };
 };
 
 export const fetchQuestions = async (params: {
@@ -55,8 +54,7 @@ export const fetchQuestions = async (params: {
             difficulty: ['1', '2', '3'],
             planType: 'paid',
             cycle,
-            set,
-        });
+            set } );
 
         return response.data;
     } catch (error) {
@@ -106,8 +104,7 @@ export const getProgressionLogic = (
             nextSetIndexInCycle: nextSetIndex,
             message: percentage >= 75 ? 'Excellent preparation!' : 'Review weak areas from 11th & 12th.',
             canProgress: true,
-            isNewCycle,
-        };
+            isNewCycle };
     } else {
         // Individual subject pattern: 6 sets
         const basePattern = [20, 40];
@@ -132,8 +129,7 @@ export const getProgressionLogic = (
             nextSetIndexInCycle: nextSetIndex,
             message: percentage >= 75 ? 'Excellent preparation!' : 'Review weak areas from 11th & 12th.',
             canProgress: true,
-            isNewCycle,
-        };
+            isNewCycle };
     }
 };
 

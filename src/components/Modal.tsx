@@ -1,5 +1,8 @@
 import React, { useContext, useState, useEffect } from "react";
-import { Image, View, Text, StyleSheet, Pressable } from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Alert } from 'react-native'
+import { Ionicons as Icon } from '@expo/vector-icons';
+import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
+
 import { Center, Modal } from "@gluestack-ui/themed-native-base";
 import { ModalProps } from "../interface/Interface";
 import { useNavigation } from "@react-navigation/native";
@@ -10,10 +13,13 @@ import GradientButton from "./GradientButton";
 import { ThemeContext } from "../service/authContext";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
-import { setSecureStorage } from "../config/SecureStore";
-import uuid from "react-native-uuid";
+  heightPercentageToDP as hp } from "react-native-responsive-screen";
+import uuid from 'react-native-uuid';
+import { setSecureStorage } from '../config/SecureStore';
+
+
+
+
 
 const ModalBox = ({
   showModal,
@@ -21,8 +27,7 @@ const ModalBox = ({
   setShowModal,
   showEmoji,
   report,
-  streakData,
-}: ModalProps) => {
+  streakData } : ModalProps) => {
   const StreaksImage = require("../assets/stricks.png");
   const SleepyImage = require("../assets/sleepyface.png");
   const themeContext = useContext(ThemeContext);
@@ -74,33 +79,39 @@ const ModalBox = ({
     <Center>
       <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
         <Modal.Content
-          maxWidth="320"
-          maxH="300"
-          style={ModalStyle.modalContent}
+          maxWidth="350"
+          style={{ backgroundColor: "rgba(52, 52, 52, 0.9)", borderRadius: 10, borderWidth: 1, borderColor: '#fff' }}
         >
-          {/* Remove Modal.Header border by setting borderBottomWidth to 0 */}
-          <Modal.CloseButton style={{ padding: 5, zIndex: 2 }} />
-
           {/* Emoji Section */}
           {showEmoji ? (
-            <Modal.Header style={{ backgroundColor: "transparent", borderBottomWidth: 0, elevation: 0, shadowOpacity: 0 }}>
+            <Modal.Body style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
+              <TouchableOpacity
+                onPress={() => setShowModal(false)}
+                style={{ position: 'absolute', top: 10, right: 10, zIndex: 10 }}
+              >
+                <Icon name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+
               <View style={ModalStyle.emojiContainer}>
                 <View style={ModalStyle.streakContainer}>
-                  <Image source={StreaksImage} style={ModalStyle.streakImage} />
+                  <Image source={StreaksImage}
+            style={ModalStyle.streakImage} />
                   <Text style={ModalStyle.streakText}>
                     {streakData?.active}
                   </Text>
                 </View>
                 <View style={ModalStyle.sleepyContainer}>
-                  <Image source={SleepyImage} style={ModalStyle.sleepyImage} />
+                  <Image source={SleepyImage}
+            style={ModalStyle.sleepyImage} />
                   <Text style={ModalStyle.streakText}>
                     {Math.max(0, Math.abs(Number(streakData?.inactive) || 0))}
                   </Text>
                 </View>
               </View>
-            </Modal.Header>
+            </Modal.Body>
           ) : (
             <Modal.Header style={{ backgroundColor: "transparent", borderBottomWidth: 0, elevation: 0, shadowOpacity: 0 }}>
+              <Modal.CloseButton style={{ padding: 5, zIndex: 2 }} />
               <View style={ModalStyle.emojiContainer} />
             </Modal.Header>
           )}
@@ -127,8 +138,7 @@ const ModalBox = ({
                       }
                       setAppState((prev: any) => ({
                         ...prev,
-                        home: res.subject || "neet",
-                      }));
+                        home: res.subject || "neet" } ));
                       setShowModal(false);
 
                       // Paid users: if they change subject from the top bar,
@@ -153,13 +163,12 @@ const ModalBox = ({
                             selectedItem && res.sub &&
                               String(selectedItem).toLowerCase() === String(res.sub).toLowerCase()
                               ? "#FFFFFF"
-                              : "transparent",
-                        },
-                      ]}
+                              : "transparent" } ]}
                     >
                       <View style={ModalStyle.iconWrapper}>
                         {res.sub && res.img && (
-                          <Image source={res.img} style={ModalStyle.icon} />
+                          <Image source={res.img}
+            style={ModalStyle.icon} />
                         )}
                       </View>
 
@@ -182,9 +191,11 @@ const ModalBox = ({
 
                 {/* Membership Card */}
                 {res.title && res.img && (
-                  <View key={String(uuid.v4())} style={ModalStyle.actSilver}>
+                  <View key={String(uuid.v4())}
+            style={ModalStyle.actSilver}>
                     {res.img && (
-                      <Image source={res.img} style={ModalStyle.memberImg} />
+                      <Image source={res.img}
+            style={ModalStyle.memberImg} />
                     )}
                     <View style={ModalStyle.memberDetails}>
                       <Text style={ModalStyle.memberTitle}>
@@ -198,6 +209,17 @@ const ModalBox = ({
                           <Text style={ModalStyle.expiryText}>
                             on {new Date(res.expiryDate).toLocaleDateString("en-GB")}
                           </Text>
+                          {daysUntil(res.expiryDate) <= 5 && (
+                            <TouchableOpacity
+                              style={ModalStyle.updateNowButton}
+                              onPress={() => {
+                                setShowModal(false);
+                                navigation.navigate("Plans");
+                              }}
+                            >
+                              <Text style={ModalStyle.updateNowText}>Update Now</Text>
+                            </TouchableOpacity>
+                          )}
                         </View>
                       ) : (
                         <GradientButton
@@ -206,7 +228,8 @@ const ModalBox = ({
                             navigation.navigate("Plans");
                           }}
                           colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-                          text="Upgrade"
+                          Text="Upgrade"
+                          textStyle={{ fontWeight: "bold" }}
                         />
                       )}
                     </View>
@@ -215,7 +238,8 @@ const ModalBox = ({
 
                 {/* NEET Date Card */}
                 {res.date && (
-                  <View key={String(uuid.v4())} style={ModalStyle.neetPopUpContainer}>
+                  <View key={String(uuid.v4())}
+            style={ModalStyle.neetPopUpContainer}>
                     <Text style={ModalStyle.neetDateText}>
                       {daysUntil(String(res.date))} Days to NEET{"\n"}
                       NEET exam will be held on
@@ -242,43 +266,31 @@ const ModalStyle = StyleSheet.create({
     borderColor: "#ADADAD",
     borderStyle: "solid",
     borderRadius: 12,
-    overflow: "hidden",
-  },
-  emojiContainer: {
+    overflow: "hidden" }, emojiContainer: {
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 10,
-    gap: wp(10),
-  },
-  streakContainer: {
+    gap: 10 }, streakContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 20,
-    gap: wp(5),
-  },
-  sleepyContainer: {
+    gap: 100 }, sleepyContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: wp(5),
-  },
-  streakImage: {
-    width: wp(40),
+    gap: 100 }, streakImage: {
+    width: 40,
     height: hp(4),
-    resizeMode: "contain",
-  },
-  sleepyImage: {
-    width: wp(40),
+    resizeMode: "contain" }, sleepyImage: {
+    width: 40,
     height: hp(4),
-    resizeMode: "contain",
-  },
-  streakText: {
-    fontSize: wp(4),
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
+    resizeMode: "contain" }, streakText: {
+    fontFamily: 'AppFont-Bold', 
+    fontWeight: '700',
+    fontSize: 18,
+    color: "#FFFFFF"},
 
   subjectContainer: {
     flexDirection: "row",
@@ -288,39 +300,29 @@ const ModalStyle = StyleSheet.create({
     marginTop: hp(1.2),
     paddingVertical: 15,
     paddingHorizontal: wp(3),
-    borderRadius: 30,
-  },
-  iconWrapper: {
+    borderRadius: 30 }, iconWrapper: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-  },
-  icon: {
+    justifyContent: "center" }, icon: {
     width: wp(7),
     height: hp(3),
-    resizeMode: "contain",
-  },
-  textWrapper: {
+    resizeMode: "contain" }, textWrapper: {
     flex: 3,
     alignItems: "center",
-    justifyContent: "center",
-  },
-  subjectText: {
+    justifyContent: "center" }, subjectText: {
+    fontFamily: 'AppFont-Bold', 
+    fontWeight: '700',
     fontSize: wp(4.8),
     color: "#FFFFFF",
-    fontWeight: "600",
-    textAlign: "center",
-  },
+        textAlign: "center" },
   percentageWrapper: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-  },
-  percentageText: {
+    justifyContent: "center" }, percentageText: {
+    fontFamily: 'AppFont-Bold', 
+    fontWeight: '700',
     fontSize: wp(4.8),
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
+    color: "#FFFFFF"},
 
   actSilver: {
     flexDirection: "row",
@@ -328,28 +330,23 @@ const ModalStyle = StyleSheet.create({
     backgroundColor: COLORS.light,
     marginTop: 12,
     padding: 12,
-    borderRadius: 9,
-  },
-  memberImg: {
+    borderRadius: 9 }, memberImg: {
     width: 80,
     height: 80,
     resizeMode: "contain",
-    marginRight: 12,
-  },
-  memberDetails: {
+    marginRight: 12 }, memberDetails: {
     flex: 1,
-    justifyContent: "center",
-  },
-  memberTitle: {
-    fontSize: 14,
+    justifyContent: "center" }, memberTitle: {
+    fontFamily: 'AppFont-Bold', 
+    fontWeight: '700',
+    fontSize: wp(4.2),
     color: COLORS.secondary06,
-    fontWeight: "bold",
-    marginBottom: 6,
-  },
+        marginBottom: 6 },
   expiryText: {
-    fontSize: 12,
-    color: COLORS.secondary06,
-  },
+    fontFamily: 'AppFont-Regular',
+    fontWeight: '500',
+    fontSize: wp(3.2),
+    color: '#000000' },
 
   neetPopUpContainer: {
     backgroundColor: COLORS.light,
@@ -358,26 +355,33 @@ const ModalStyle = StyleSheet.create({
     borderRadius: 9,
     paddingVertical: 20,
     paddingHorizontal: wp(3),
-    marginTop: 12,
-  },
-  neetDate: {
-    fontSize: 22,
+    marginTop: 12 }, neetDate: {
+    fontFamily: 'AppFont-Regular', fontSize: 22,
     color: COLORS.primary09,
-    fontWeight: "bold",
-    marginTop: 6,
+        marginTop: 6,
     textShadowColor: "black",
     textShadowRadius: 0.5,
-    textShadowOffset: { width: 1, height: 1 },
-  },
-
+    textShadowOffset: { width: 1, height: 1 }},
   neetDateText: {
-    fontSize: 16,
+     fontFamily: 'AppFont-Regular', fontSize: 16,
     color: '#2b2b2bff',
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 5,
-    marginVertical: 10,
+    marginVertical: 10 },
+  updateNowButton: {
+    backgroundColor: "#15BBB1",
+    paddingVertical: hp(0.5),
+    paddingHorizontal: wp(2),
+    borderRadius: 5,
+    marginTop: hp(0.8),
+    alignSelf: 'flex-start'
   },
-});
+  updateNowText: {
+    color: '#FFFFFF',
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.2),
+    fontWeight: '700'
+  } });
 
 export default ModalBox;

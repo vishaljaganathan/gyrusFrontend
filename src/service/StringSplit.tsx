@@ -1,30 +1,29 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  Image,
-  ScrollView,
-  Animated as RNAnimated,
-  Modal,
-  Pressable,
-  LayoutChangeEvent,
-} from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert, ScrollView, Animated as RNAnimated, LayoutChangeEvent } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput, CustomAnimatedText } from '../components/CustomText';
+import { GestureHandlerRootView, Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+  withTiming} from "react-native-reanimated";
 import { COLORS } from "../styles/themes";
-import { View } from "@gluestack-ui/themed-native-base";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
+  heightPercentageToDP as hp} from "react-native-responsive-screen";
 import MathJaxSvg from "react-native-mathjax-svg";
-import { debounce } from "lodash";
-import Icon from "react-native-vector-icons/Feather";
+import { Ionicons as Icon } from '@expo/vector-icons';
+
+const debounce = (func: Function, wait: number) => {
+  let timeout: any;
+  return (...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
+
+
+
+
 
 const clamp = (value: number, min: number, max: number) => {
   "worklet";
@@ -49,10 +48,10 @@ const preprocessChemTex = (input: string) => {
       const mapped = parts.map((p) => {
         // keep math-like tokens (subscripts, LaTeX commands) as-is
         if (/[_\\^{}]/.test(p)) return p;
-        // numbers or parenthesized numbers should be text
-        if (/^\(\d+\)$/.test(p) || /^\d+$/.test(p)) return `\\text{${p}}`;
-        // otherwise wrap in text to preserve spacing
-        return `\\text{${p}}`;
+        // numbers or parenthesized numbers should be Text
+        if (/^\(\d+\)$/.test(p) || /^\d+$/.test(p)) return `\\Text{${p}}`;
+        // otherwise wrap in Text to preserve spacing
+        return `\\Text{${p}}`;
       });
       return mapped.join('\\,');
     };
@@ -72,7 +71,7 @@ const preprocessChemTex = (input: string) => {
   return s;
 };
 
-// Vertical gap used between content chunks (text, equation, image)
+// Vertical gap used between content chunks (Text, equation, image)
 const CHUNK_V_GAP = hp(0.8);
 
 const ZoomablePreviewImage = ({ uri }: { uri: string }) => {
@@ -144,8 +143,7 @@ const ZoomablePreviewImage = ({ uri }: { uri: string }) => {
         { translateX: translateX.value },
         { translateY: translateY.value },
         { scale: scale.value },
-      ],
-    };
+      ]};
   });
 
   return (
@@ -173,6 +171,7 @@ export const StringSplitQuestion = (props: any) => {
   const [previewVisible, setPreviewVisible] = useState(false);
 
   const scrollX = useRef(new RNAnimated.Value(0)).current;
+  const scrollTouchRef = useRef<{ startX: number; startY: number; moved: boolean }>({ startX: 0, startY: 0, moved: false });
 
   const handleLayout = (event: LayoutChangeEvent) => {
     setParentWidth(event.nativeEvent.layout.width);
@@ -196,7 +195,7 @@ export const StringSplitQuestion = (props: any) => {
     }
   }, [parentWidth, contentWidth]);
 
-  // Do not force a large estimated width for option equations — let the
+  // Do not force a large estimated width for option equations â€” let the
   // rendered content determine if horizontal scrolling is needed. Forcing a
   // wider inner width caused non-scrollable equations to be treated as
   // scrollable, delaying option presses.
@@ -217,26 +216,24 @@ export const StringSplitQuestion = (props: any) => {
               horizontal
               nestedScrollEnabled
               directionalLockEnabled
-              showsHorizontalScrollIndicator={true}
-              showsVerticalScrollIndicator={true}
-              persistentScrollbar={true} // Ensure scrollbar is always visible
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
               contentContainerStyle={{
-                paddingHorizontal: 0,
+                paddingLeft: 4,
+                paddingRight: 20, // Add extra padding right to ensure the closing arrow is never cut off
                 // For option content: vertically center (alignItems) but keep items left-aligned (justifyContent)
                 alignItems: props.isOptionContent ? 'center' : 'flex-start',
                 justifyContent: props.isOptionContent ? 'flex-start' : 'flex-start',
                 paddingTop: props.isOptionContent ? CHUNK_V_GAP / 2 : CHUNK_V_GAP / 2,
                 paddingBottom: props.isOptionContent ? CHUNK_V_GAP / 2 : CHUNK_V_GAP / 2,
                 // allow vertical centering
-                flexGrow: props.isOptionContent ? 1 : 0,
-              }}
+                flexGrow: props.isOptionContent ? 1 : 0}}
               onContentSizeChange={(w, h) => handleContentSizeChange(w)}
                 style={{
                 alignSelf: "stretch",
                 width: "100%",
                 marginBottom: CHUNK_V_GAP,
-                flex: props.isOptionContent ? 1 : undefined,
-              }}
+                flex: props.isOptionContent ? 1 : undefined}}
               scrollEventThrottle={16}
               onScroll={RNAnimated.event(
                 [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -258,16 +255,30 @@ export const StringSplitQuestion = (props: any) => {
                 console.log('[StringSplit] onMomentumScrollEnd', props.uniqueId || props.isOptionContent);
                 if (showHint && props.onInteractEnd) props.onInteractEnd();
               }}
-              onTouchStart={() => {
-                console.log('[StringSplit] onTouchStart', props.uniqueId || props.isOptionContent);
+              onTouchStart={(e) => {
+                const { pageX, pageY } = e.nativeEvent;
+                scrollTouchRef.current.startX = pageX;
+                scrollTouchRef.current.startY = pageY;
+                scrollTouchRef.current.moved = false;
+                console.log('[StringSplit] onTouchStart', props.uniqueId || props.isOptionContent, { pageX, pageY });
                 if (showHint && props.onInteractStart) props.onInteractStart();
               }}
+              onTouchMove={(e) => {
+                const { pageX, pageY } = e.nativeEvent;
+                const dx = Math.abs(pageX - scrollTouchRef.current.startX);
+                const dy = Math.abs(pageY - scrollTouchRef.current.startY);
+                if (dx > 6 || dy > 6) scrollTouchRef.current.moved = true;
+              }}
               onTouchEnd={() => {
-                console.log('[StringSplit] onTouchEnd', props.uniqueId || props.isOptionContent);
+                console.log('[StringSplit] onTouchEnd', props.uniqueId || props.isOptionContent, scrollTouchRef.current.moved);
+                if (!scrollTouchRef.current.moved) {
+                  if (props.onOptionPress) props.onOptionPress();
+                }
                 if (showHint && props.onInteractEnd) props.onInteractEnd();
+                scrollTouchRef.current.moved = false;
               }}
             >
-              {showHint && <Text style={{ marginRight: 4 }}>➡️</Text>}
+              {showHint && <Text style={{ marginRight: 4, alignSelf: 'center', flexShrink: 0, fontSize: wp(3.5) }}>➡️</Text>}
               <View style={props.isOptionContent ? style.optionEquationInner : undefined}>
                 {(() => {
                   const rawTex = String(props.MCQ || "");
@@ -276,18 +287,42 @@ export const StringSplitQuestion = (props: any) => {
                   const rendered = pre;
                   console.log('[StringSplit] RENDER_TEX:', { isOptionContent: !!props.isOptionContent, rendered });
                   return (
-                    <MathJaxSvg
-                      color="#FFFFFF"
-                      fontSize={wp(4)}
-                      style={[style.mathSvg, props.isOptionContent ? { alignSelf: 'flex-start' } : {}]}
+                    <View
+                      onStartShouldSetResponder={() => true}
+                      onResponderRelease={() => { if (props.onOptionPress) props.onOptionPress(); }}
                     >
-                      {rendered}
-                    </MathJaxSvg>
+                      <MathJaxSvg
+                        color="#FFFFFF"
+                        fontSize={wp(4)}
+                        style={[style.mathSvg, props.isOptionContent ? { alignSelf: 'flex-start' } : {}]}
+                      >
+                        {rendered}
+                      </MathJaxSvg>
+                    </View>
                   );
                 })()}
               </View>
-              {showHint && <Text style={{ marginLeft: 4 }}>⬅️</Text>}
+              {showHint && <Text style={{ marginLeft: 8, marginRight: 8, alignSelf: 'center', flexShrink: 0, fontSize: wp(3.5) }}>⬅️</Text>}
             </ScrollView>
+            {showHint && parentWidth > 0 && contentWidth > 0 ? (
+              <View style={style.scrollTrack} pointerEvents="none">
+                <RNAnimated.View
+                  style={[
+                    style.scrollThumb,
+                    {
+                      width: Math.max(30, (parentWidth / contentWidth) * parentWidth),
+                      transform: [{
+                        translateX: scrollX.interpolate({
+                          inputRange: [0, Math.max(1, contentWidth - parentWidth)],
+                          outputRange: [0, Math.max(0, parentWidth - Math.max(30, (parentWidth / contentWidth) * parentWidth))],
+                          extrapolate: 'clamp'
+                        })
+                      }]
+                    }
+                  ]}
+                />
+              </View>
+            ) : null}
           </View>
         </>
       )}
@@ -301,8 +336,7 @@ export const StringSplitQuestion = (props: any) => {
               justifyContent: "center",
               marginTop: CHUNK_V_GAP / 2,
               marginBottom: CHUNK_V_GAP / 2,
-              width: "100%",
-            }}
+              width: "100%"}}
           >
             {/* For images inside options, tapping the image should NOT open preview.
                 Only the magnifying-glass icon should trigger preview/zoom. */}
@@ -319,16 +353,14 @@ export const StringSplitQuestion = (props: any) => {
                           resizeMode: "contain",
                           borderRadius: 8,
                           backgroundColor: "#f0f0f0",
-                          alignSelf: "center",
-                        }
+                          alignSelf: "center"}
                       : {
                           width: "100%",
                           maxWidth: "100%",
                           aspectRatio: 16 / 9,
                           resizeMode: "contain",
                           borderRadius: 8,
-                          backgroundColor: "#f0f0f0",
-                        }
+                          backgroundColor: "#f0f0f0"}
                   }
                 />
                 <Pressable
@@ -366,16 +398,14 @@ export const StringSplitQuestion = (props: any) => {
                             resizeMode: "contain",
                             borderRadius: 8,
                             backgroundColor: "#f0f0f0",
-                            alignSelf: "center",
-                          }
+                            alignSelf: "center"}
                         : {
                             width: "100%",
                             maxWidth: "100%",
                             aspectRatio: 16 / 9,
                             resizeMode: "contain",
                             borderRadius: 8,
-                            backgroundColor: "#f0f0f0",
-                          }
+                            backgroundColor: "#f0f0f0"}
                     }
                   />
                 </Pressable>
@@ -418,7 +448,7 @@ export const StringSplitQuestion = (props: any) => {
                     accessibilityLabel="Close image preview"
                     style={style.previewClose}
                   >
-                    <Text style={style.previewCloseText}>✕</Text>
+                    <Text style={style.previewCloseText}>✖</Text>
                   </Pressable>
 
                   <ZoomablePreviewImage uri={String(props.MCQ)} />
@@ -449,42 +479,40 @@ export const StringSplitQuestion = (props: any) => {
 
 const style = StyleSheet.create({
   katex: {
-    fontSize: wp(90),
+    fontFamily: 'AppFont-Regular', fontSize: wp(90),
     margin: 0,
     display: "flex",
     // color:'red',
     paddingVertical: "auto",
     paddingHorizontal: "auto",
     right: wp(20),
-    color: "#FFFFFF",
-  },
+    color: "#FFFFFF"},
   fontQus: {
-    fontSize: wp(4),
+    
+    fontFamily: 'AppFont-Regular', fontSize: wp(4.3),
     color: COLORS.light,
     marginVertical: CHUNK_V_GAP,
     marginHorizontal: wp(1),
     lineHeight: hp(3),
-    textAlign: "justify",
-  },
+    textAlign: "justify"},
   fontOp: {
-    fontSize: wp(4),
+    
+    fontFamily: 'AppFont-Regular', fontSize: wp(4.3),
     color: COLORS.light,
     marginHorizontal: wp(1),
     marginVertical: CHUNK_V_GAP,
+    lineHeight: hp(3.1),
     textAlign: "left",
-    textAlignVertical: "center",
-  },
+    textAlignVertical: "center"},
   mathSvg: {
-    transform: [{ scale: 0.9 }], // Scale down the content
-    width: "100%",
+    // Removed width: "100%" to let the SVG push the layout
     // Let the svg size itself so padding takes effect instead of forcing full height
     height: undefined,
     // Give equal space above and below the equation
     paddingTop: CHUNK_V_GAP / 2,
     paddingBottom: CHUNK_V_GAP / 2,
     marginBottom: 0,
-    alignSelf: "flex-start",
-  },
+    alignSelf: "flex-start"},
   equationContainer: {
     flexDirection: "column",
     alignItems: "flex-start",
@@ -492,74 +520,60 @@ const style = StyleSheet.create({
     // ensure symmetric vertical spacing around equations
     paddingTop: CHUNK_V_GAP / 2,
     paddingBottom: CHUNK_V_GAP / 2,
-    width: "100%",
-  },
+    width: "100%"},
   optionEquationContainer: {
-    overflow: "hidden",
-  },
+    overflow: "hidden"},
   optionEquationInner: {
-    minWidth: "100%",
     alignSelf: "flex-start",
     justifyContent: "center",
     // also add vertical padding here to cover option-specific cases
     paddingTop: CHUNK_V_GAP / 2,
-    paddingBottom: CHUNK_V_GAP / 2,
-  },
+    paddingBottom: CHUNK_V_GAP / 2},
   optionContentBlock: {
     width: "100%",
     justifyContent: "center",
-    alignItems: "flex-start",
-  },
+    alignItems: "flex-start"},
   previewOverlay: {
     flex: 1,
     backgroundColor: COLORS.dark80,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: wp(4),
-  },
+    paddingHorizontal: wp(4)},
   previewCard: {
     width: "100%",
     height: "75%",
     borderRadius: 12,
     backgroundColor: COLORS.dark,
-    overflow: "hidden",
-  },
+    overflow: "hidden"},
   previewImageWrap: {
     width: "100%",
     height: "100%",
-    backgroundColor: COLORS.dark,
-  },
+    backgroundColor: COLORS.dark},
   previewClose: {
     position: "absolute",
     top: 8,
     right: 10,
     zIndex: 2,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
+    paddingVertical: 6},
   previewCloseText: {
     color: '#808080',
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+    fontFamily: 'AppFont-Regular', fontSize: 18},
   previewImage: {
     width: "100%",
     height: "100%",
     resizeMode: "contain",
-    backgroundColor: COLORS.dark,
-  },
+    backgroundColor: COLORS.dark},
   scrollHint: {
     position: "absolute",
     top: -20,
     right: 10,
-    fontSize: 14,
-    color: "#FFF",
-  },
+    fontFamily: 'AppFont-Regular', fontSize: 14,
+    color: "#FFF"},
   scrollContent: {
     alignItems: "flex-start",
     justifyContent: "flex-start",
-    paddingHorizontal: 0,
-  },
+    paddingHorizontal: 0},
   magnifyIconWrap: {
     position: "absolute",
     right: wp(2),
@@ -568,6 +582,19 @@ const style = StyleSheet.create({
     borderRadius: wp(4),
     padding: wp(1.2),
     justifyContent: "center",
-    alignItems: "center",
+    alignItems: "center"},
+  scrollTrack: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 2,
+    marginHorizontal: wp(1),
+    marginBottom: hp(0.5),
+    overflow: 'hidden',
+    width: '98%',
+    alignSelf: 'center',
   },
-});
+  scrollThumb: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 2,
+  }});

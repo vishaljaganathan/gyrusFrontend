@@ -58,8 +58,7 @@ export const fetchQuestions = async (params: {
             highYieldOnly: true,
             timebound: true,
             cycle,
-            set,
-        });
+            set } );
 
         return response.data;
     } catch (error) {
@@ -85,18 +84,17 @@ export const getProgressionLogic = (
     // Sets 0,1,2: Base [20,40,100] in order
     // Set 3: 180
 
-    const basePattern = [20, 40, 100];
-    const nextSetIndex = (setIndexInCycle + 1) % 4;
+    const basePattern = [20, 40];
+    const nextSetIndex = (setIndexInCycle + 1) % 2;
     const isNewCycle = nextSetIndex === 0;
     const nextCycleIndex = isNewCycle ? cycleIndex + 1 : cycleIndex;
 
     let nextSetSize: number;
-    if (nextSetIndex < 3) {
-        // Base set in ascending order
+    if (nextSetIndex < 2) {
+        // Base set in order
         nextSetSize = basePattern[nextSetIndex];
     } else {
-        // Set 3: 180 questions
-        nextSetSize = 180;
+        nextSetSize = 20;
     }
 
     return {
@@ -105,7 +103,6 @@ export const getProgressionLogic = (
         nextSetIndexInCycle: nextSetIndex,
         message: percentage >= 80 ? 'Excellent! Moving to next topic.' : 'Focus on high-yield topics first.',
         canProgress: true,
-        isNewCycle,
-    };
+        isNewCycle };
 };
 

@@ -1,7 +1,13 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { widthPercentageToDP as Wp } from "react-native-responsive-screen";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
+
+
+
+
+
 
 const CustomProgressBar = ({ progress }: any) => {
   return (
@@ -20,21 +26,18 @@ const CustomProgressBar = ({ progress }: any) => {
 const styles = StyleSheet.create({
   progressBarContainer: {
     width: "100%",
-    height: Wp(15.8),
+    height: wp(15.8),
     backgroundColor: "#e0e0e0",
     borderRadius: 5,
-    overflow: "hidden",
-  },
+    overflow: "hidden"},
   progressBar: {
-    height: "100%",
-  },
+    height: "100%"},
   progressText: {
+    
     position: "absolute",
     alignSelf: "center",
     lineHeight: 30,
     color: "#000",
-    fontSize: 8,
-  },
-});
+    fontFamily: 'AppFont-Regular', fontSize: 8}});
 
 export default CustomProgressBar;

@@ -1,7 +1,12 @@
-import React, { useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, Animated } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
-import MathJaxSvg from 'react-native-mathjax-svg';
+import React, { useRef } from 'react';
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert , Animated, ScrollView} from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput, CustomAnimatedText } from '../components/CustomText';
+import MathJaxSvg from "react-native-mathjax-svg";
+
+
+
+
 
 const DebugEqScroll = ({ route }: any) => {
   const raw = route?.params?.raw || 'CH3C eq C-CH2CH3';
@@ -22,7 +27,7 @@ const DebugEqScroll = ({ route }: any) => {
         onMomentumScrollEnd={() => console.log('[DebugEqScroll] onMomentumScrollEnd')}
         onTouchStart={() => console.log('[DebugEqScroll] onTouchStart')}
         onTouchEnd={() => console.log('[DebugEqScroll] onTouchEnd')}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } } ], { useNativeDriver: false })}
         contentContainerStyle={{ alignItems: 'center' }}
         style={{ maxWidth: wp(100), paddingVertical: hp(4) }}
       >
@@ -40,9 +45,11 @@ const DebugEqScroll = ({ route }: any) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#233', padding: wp(4) },
-  title: { color: '#fff', fontSize: wp(5), fontWeight: 'bold', marginBottom: hp(1) },
-  subtitle: { color: '#ddd', marginBottom: hp(2) },
-  hint: { color: '#fff', marginTop: hp(2) },
-});
+  title: {
+     color: '#fff', fontFamily: 'AppFont-Regular', fontSize: wp(5),  marginBottom: hp(1)  },
+  subtitle: {
+     color: '#ddd', marginBottom: hp(2)  },
+  hint: {
+     color: '#fff', marginTop: hp(2) } });
 
 export default DebugEqScroll;

@@ -59,33 +59,28 @@ const getQuestionDistribution = (setSize: number) => {
             return {
                 perSubject: 5,
                 from11th: 3,
-                from12th: 2,
-            };
+                from12th: 2 };
         case 40:
             return {
                 perSubject: 10,
                 from11th: 7,
-                from12th: 3,
-            };
+                from12th: 3 };
         case 100:
             return {
                 perSubject: 25,
                 from11th: 18,
-                from12th: 7,
-            };
+                from12th: 7 };
         case 180:
             return {
                 perSubject: 45,
                 from11th: 30,
-                from12th: 15,
-            };
+                from12th: 15 };
         default:
             // Default to 20
             return {
                 perSubject: 5,
                 from11th: 3,
-                from12th: 2,
-            };
+                from12th: 2 };
     }
 };
 
@@ -94,7 +89,7 @@ const getQuestionDistribution = (setSize: number) => {
  * Base Set [20,40,100] → Shuffled → Re-shuffled
  */
 export const getCyclePattern = (cycleIndex: number): number[] => {
-    const baseSet = [20, 40, 100];
+    const baseSet = [20, 40];
 
     // Determine which phase of the cycle we're in
     const phaseIndex = cycleIndex % 3;
@@ -102,15 +97,15 @@ export const getCyclePattern = (cycleIndex: number): number[] => {
     switch (phaseIndex) {
         case 0:
             // Base set in ascending order
-            return [20, 40, 100];
+            return [20, 40];
         case 1:
             // Shuffled base set
-            return shuffleArray([20, 40, 100]);
+            return shuffleArray([20, 40]);
         case 2:
             // Re-shuffled set
-            return shuffleArray([20, 40, 100]);
+            return shuffleArray([20, 40]);
         default:
-            return [20, 40, 100];
+            return [20, 40];
     }
 };
 
@@ -159,8 +154,7 @@ export const fetchQuestions = async (params: {
             offset,
             usedIds,
             cycle,
-            set,
-        });
+            set } );
 
         if (response && response.data && Array.isArray(response.data)) {
             return response.data;
@@ -198,26 +192,23 @@ export const getProgressionLogic = (
     // Set 9: 180
     // Total: 10 sets per cycle
 
-    const basePattern = [20, 40, 100];
-    const nextSetIndex = (setIndexInCycle + 1) % 10;
+    const basePattern = [20, 40];
+    const nextSetIndex = (setIndexInCycle + 1) % 6; // 3 base + 3 shuffled
     const isNewCycle = nextSetIndex === 0;
     const nextCycleIndex = isNewCycle ? cycleIndex + 1 : cycleIndex;
 
     let nextSetSize: number;
-    if (nextSetIndex < 3) {
-        // Base set in ascending order
+    if (nextSetIndex < 2) {
+        // Base set in order
         nextSetSize = basePattern[nextSetIndex];
-    } else if (nextSetIndex < 6) {
+    } else if (nextSetIndex < 4) {
         // First shuffled set
         const shuffled1 = shuffleArray([...basePattern]);
-        nextSetSize = shuffled1[nextSetIndex - 3];
-    } else if (nextSetIndex < 9) {
+        nextSetSize = shuffled1[nextSetIndex - 2];
+    } else {
         // Second shuffled set
         const shuffled2 = shuffleArray([...basePattern]);
-        nextSetSize = shuffled2[nextSetIndex - 6];
-    } else {
-        // Set 9: 180 questions
-        nextSetSize = 180;
+        nextSetSize = shuffled2[nextSetIndex - 4];
     }
 
     return {
@@ -226,8 +217,7 @@ export const getProgressionLogic = (
         nextSetIndexInCycle: nextSetIndex,
         message: percentage >= 70 ? 'Good job! Continue practicing.' : 'Keep practicing to improve!',
         canProgress: true,
-        isNewCycle,
-    };
+        isNewCycle };
 };
 
 
@@ -248,6 +238,5 @@ export const getCurrentSetInfo = (cycleIndex: number, setIndexInCycle: number) =
         cycleIndex,
         setIndexInCycle,
         phaseName,
-        pattern: cyclePattern,
-    };
+        pattern: cyclePattern };
 };

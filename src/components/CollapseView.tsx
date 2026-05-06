@@ -1,12 +1,17 @@
 import React, { useState } from "react";
 import {
   faChevronDown,
-  faChevronRight,
-} from "@fortawesome/free-solid-svg-icons";
+  faChevronRight} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
-import { View, Text, TouchableOpacity } from "react-native";
-import { quesProps } from "../interface/Interface";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
+
 import { SplitStringValues } from "../service/DataShow";
+import { quesProps } from "../interface/Interface";
+
+
+
+
 
 function CollapsibleText(props: quesProps) {
   const [isCollapsed, setIsCollapsed] = useState(true);
@@ -22,10 +27,9 @@ function CollapsibleText(props: quesProps) {
             display: "flex",
             flexDirection: "row",
             justifyContent: "space-between",
-            alignItems: "center",
-          }}
+            alignItems: "center"}}
         >
-          <Text style={{ fontWeight: "bold" }}>
+          <Text style={{  }}>
             {isCollapsed ? "Explaination More" : "Explaination Less"}
           </Text>
 

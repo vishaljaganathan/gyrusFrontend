@@ -21,8 +21,7 @@ export const exampleBasicUsage = (userData: any) => {
     // Get the appropriate strategy based on user profile
     const strategy = getTestStrategy({
         std: userData.std,
-        planValid: userData.planValid,
-    }, 'physics');
+        planValid: userData.planValid }, 'physics');
 
     // Get configuration
     const config = strategy.getTestConfig();
@@ -37,8 +36,7 @@ export const exampleBasicUsage = (userData: any) => {
                 std: userData.std,
                 type: 20,
                 offset: 0,
-                usedIds: [],
-            });
+                usedIds: [] } );
 
             // Filter questions based on strategy
             const filteredQuestions = strategy.filterQuestions(questions);
@@ -57,8 +55,7 @@ export const exampleBasicUsage = (userData: any) => {
 export const exampleProgressionCheck = (userData: any, correctAnswers: number, totalQuestions: number) => {
     const strategy = getTestStrategy({
         std: userData.std,
-        planValid: userData.planValid,
-    }, 'physics');
+        planValid: userData.planValid }, 'physics');
 
     const progression = strategy.getProgressionLogic(correctAnswers, totalQuestions);
 
@@ -73,8 +70,7 @@ export const exampleProgressionCheck = (userData: any, correctAnswers: number, t
 export const exampleFeatureCheck = (userData: any) => {
     const userProfile = {
         std: userData.std,
-        planValid: userData.planValid,
-    };
+        planValid: userData.planValid };
 
     const hasExplanations = canAccessFeature(userProfile, 'explanations');
     const hasAnalytics = canAccessFeature(userProfile, 'analytics');
@@ -91,8 +87,7 @@ export const exampleFeatureCheck = (userData: any) => {
 export const exampleGetDescription = (userData: any) => {
     const description = getStrategyDescription({
         std: userData.std,
-        planValid: userData.planValid,
-    });
+        planValid: userData.planValid } );
 
     // console.log('Strategy:', description);
     return description;
@@ -103,8 +98,7 @@ export const exampleCompleteIntegration = (userData: any) => {
     // 1. Get strategy
     const strategy = getTestStrategy({
         std: userData.std,
-        planValid: userData.planValid,
-    }, 'physics');
+        planValid: userData.planValid }, 'physics');
 
     // 2. Get config
     const config = strategy.getTestConfig();
@@ -118,8 +112,7 @@ export const exampleCompleteIntegration = (userData: any) => {
     }) => {
         const questions = await strategy.fetchQuestions({
             ...params,
-            std: userData.std,
-        });
+            std: userData.std } );
 
         return strategy.filterQuestions(questions);
     };
@@ -138,14 +131,12 @@ export const exampleCompleteIntegration = (userData: any) => {
                 subject: 'physics',
                 type: progression.nextSetSize,
                 offset: 0,
-                usedIds: [],
-            });
+                usedIds: [] } );
         }
     };
 
     return {
         config,
         fetchQuestions,
-        handleTestComplete,
-    };
+        handleTestComplete };
 };

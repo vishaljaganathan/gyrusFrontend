@@ -12,8 +12,7 @@ export const getTestConfig = (planValid: boolean) => {
         hasTimeLimit: false,
         canSkipQuestions: true,
         showExplanations: planValid,
-        allowRetry: true,
-    };
+        allowRetry: true };
 };
 
 export const fetchQuestions = async (params: {
@@ -35,8 +34,7 @@ export const fetchQuestions = async (params: {
             offset,
             usedIds,
             cycle,
-            set,
-        });
+            set } );
 
         return response.data;
     } catch (error) {
@@ -71,15 +69,30 @@ const getIndividualPattern = (std: string = ''): number[] => {
     return pattern;
 };
 
-export const getCyclePattern = (std: string = '', subject: string = ''): number[] => {
-    if (!isNeetSubject(subject)) {
+const getFreeNeetPattern = (): number[] => {
+    // Free NEET users pattern: [20, 40] repeating
+    // Updated: removed 100 and 180 as per requirements
+    return [20, 40];
+};
+
+export const getCyclePattern = (std: string = '', subject: string = '', isPaid: boolean = true): number[] => {
+    const isNeet = isNeetSubject(subject);
+    
+    // Free NEET users get the ascending pattern [20, 40, 100]
+    if (isNeet && !isPaid) {
+        return getFreeNeetPattern();
+    }
+    
+    // Individual subjects (paid or free) get the individual pattern
+    if (!isNeet) {
         return getIndividualPattern(std);
     }
 
+    // Paid NEET users get the ascending pattern
     // NEET pattern requirements (combined 4 subjects):
-    // - XI/XII: [20,40,100] x3 then 180
-    // - Repeater: [20,40,100] x2 then 180
-    // - Crash: [20,40,100] x1 then 180
+    // - XI/XII: [20, 40, 100] x3 then 180
+    // - Repeater: [20, 40, 100] x2 then 180
+    // - Crash: [20, 40, 100] x1 then 180
     const category = normalizeStdCategory(std);
     const repeats = category === 'regular' ? 3 : category === 'repeater' ? 2 : 1;
     const pattern: number[] = [];
@@ -94,7 +107,8 @@ export const getProgressionLogic = (
     currentCycle: number = 0,
     currentSetIndex: number = 0,
     subject: string = '',
-    std: string = ''
+    std: string = '',
+    isPaid: boolean = true
 ) => {
     const percentage = (correctAnswers / totalQuestions) * 100;
 
@@ -104,7 +118,7 @@ export const getProgressionLogic = (
     const forceNeetBySize = Number(totalQuestions) === 100 || Number(totalQuestions) === 180;
     const effectiveSubject = forceNeetBySize ? 'neet' : subject;
 
-    const pattern = getCyclePattern(std, effectiveSubject);
+    const pattern = getCyclePattern(std, effectiveSubject, isPaid);
     const nextSetIndex = (currentSetIndex + 1) % pattern.length;
     const isNewCycle = nextSetIndex === 0;
     const nextCycleIndex = isNewCycle ? currentCycle + 1 : currentCycle;
@@ -114,6 +128,7 @@ export const getProgressionLogic = (
         subject,
         effectiveSubject,
         std,
+        isPaid,
         pattern,
         currentCycle,
         currentSetIndex,
@@ -123,8 +138,7 @@ export const getProgressionLogic = (
         nextSetIndex,
         nextSetSize,
         nextCycleIndex,
-        isNewCycle,
-    });
+        isNewCycle } );
 
     return {
         nextSetSize,
@@ -132,8 +146,7 @@ export const getProgressionLogic = (
         nextSetIndexInCycle: nextSetIndex,
         message: percentage >= 50 ? 'Good work!' : 'Keep practicing!',
         canProgress: true,
-        isNewCycle,
-    };
+        isNewCycle };
 };
 
 export const getSetLabel = (setIndex: number) => {

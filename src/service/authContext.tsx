@@ -1,11 +1,13 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState, AppStateStatus } from "react-native";
+import { axiosInstance } from "../config/indeceptor";
+import { getSecureStorage } from "../config/SecureStore";
 import React, {
   createContext,
   useState,
   useMemo,
   useEffect,
-  ReactNode,
-} from "react";
+  ReactNode } from "react";
 
 // Define the context type (optional but recommended)
 interface ThemeContextType {
@@ -23,16 +25,14 @@ export const ThemeContext = createContext<ThemeContextType>({
   signUpData: {},
   setSignUpData: () => {},
   appState: {},
-  setAppState: () => {},
-});
+  setAppState: () => { } });
 
 interface ThemeProviderProps {
   children: ReactNode; // `children` can be any valid React element or nodes
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
-  children,
-}: any) => {
+  children } : any) => {
   const [userData, setUserData] = useState<any>({
     _id: "",
     email: "",
@@ -50,8 +50,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     notificationId: {},
     plan: "",
     examDate: "",
-    planValid: false,
-  });
+    planValid: false } );
   const [signUpData, setSignUpData] = useState<any>({
     firstName: "",
     lastName: "",
@@ -66,8 +65,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     schoolPin: "",
     residentialPin: "",
     page1Valid: false,
-    page2Valid: false,
-  });
+    page2Valid: false } );
   const [appState, setAppState] = useState<any>({
     bgColor: "#00474C",
     indicatorColor: "light",
@@ -79,9 +77,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       scores: 0,
       subject: "",
       correctQtsId: [],
-      wrongQtsId: [],
-    },
-  });
+      wrongQtsId: [] } });
 
   useEffect(() => {
     const loadAppState = async () => {
@@ -112,6 +108,35 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     saveAppState();
   }, [appState]);
 
+  // Handle background-to-foreground transitions to sync plan status
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        console.log('[authContext] App became active. Syncing user data...');
+        getSecureStorage("token")
+          .then((token: any) => {
+            if (token) {
+              axiosInstance
+                .get("authentication/user")
+                .then((res: any) => {
+                  if (res && res.data) {
+                    setUserData(res.data);
+                  } })
+                .catch((err: any) => {
+                  console.log('[authContext] Background sync failed (likely offline/unauth)');
+                });
+            } })
+          .catch(() => {});
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(
     () => ({
@@ -120,8 +145,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       signUpData,
       setSignUpData,
       appState,
-      setAppState,
-    }),
+      setAppState } ),
     [userData, signUpData, appState]
   );
 

@@ -1,16 +1,19 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Text, View, Image, StyleSheet, Pressable } from "react-native";
+import { View,  StyleSheet, Pressable, Image } from "react-native"
+import { CustomText as Text } from '../components/CustomText';
+import { axiosInstance } from "../config/indeceptor";
 import ModalBox from "../components/Modal";
 import { COLORS } from "../styles/themes";
 import { PopupModal } from "../interface/Interface";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
+  heightPercentageToDP as hp} from "react-native-responsive-screen";
 import { ThemeContext } from "../service/authContext";
 import { moderateScale } from "../styles/Responsive";
-import uuid from "react-native-uuid";
-import { axiosInstance } from "../config/indeceptor";
+
+
+
+
 
 const HeaderBar = () => {
   const [modelData, setModelData] = useState<PopupModal[]>([]);
@@ -102,8 +105,7 @@ const HeaderBar = () => {
         setshowEmoji(true);
         setStreakData({
           active: userData?.active?.days || 0,
-          inactive: userData?.inActive || 0,
-        });
+          inactive: userData?.inActive || 0});
         break;
 
       case 1:
@@ -112,44 +114,39 @@ const HeaderBar = () => {
           setModelData([
             {
               img: noto_stethoscope,
-              sub: "Neet",
+              sub: "NEET",
               subject: "neet",
               subjectId: "6728835a32ffdd2cd2c55ac3",
               lock: false,
-              openTest: true,
-            },
+              openTest: true},
             {
               img: physics,
               sub: "Physics",
               subject: "physics",
               subjectId: "659fc324c2444fa264d2b546",
               lock: !isPlanValid,
-              openTest: isPlanValid,
-            },
+              openTest: isPlanValid},
             {
               img: chemistry,
               sub: "Chemistry",
               subject: "chemistry",
               subjectId: "659fc329c2444fa264d2b548",
               lock: !isPlanValid,
-              openTest: isPlanValid,
-            },
+              openTest: isPlanValid},
             {
               img: Botany,
               sub: "Botany",
               subject: "botany",
               subjectId: "659fc35dc2444fa264d2b54b",
               lock: !isPlanValid,
-              openTest: isPlanValid,
-            },
+              openTest: isPlanValid},
             {
               img: zoology,
               sub: "Zoology",
               subject: "zoology",
               subjectId: "659fc3c2c2444fa264d2b553",
               lock: !isPlanValid,
-              openTest: isPlanValid,
-            },
+              openTest: isPlanValid},
           ]);
           setshowEmoji(false);
           break;
@@ -164,8 +161,7 @@ const HeaderBar = () => {
               : Silver,
             title: userData?.planId?.name,
             plan: userData?.planValid,
-            expiryDate: userData?.planExpiry,
-          },
+            expiryDate: userData?.planExpiry},
         ]);
         setshowEmoji(false);
         break;
@@ -175,8 +171,7 @@ const HeaderBar = () => {
           {
             id: 1,
             title: "NEET exam will held on",
-            date: neetDate,
-          },
+            date: neetDate},
         ]);
         setshowEmoji(false);
         break;
@@ -218,7 +213,7 @@ const HeaderBar = () => {
         <Pressable onPress={() => handleClick(0)} style={HeaderMenuStyle.menuItem}>
           <View style={HeaderMenuStyle.itemContainer}>
             <Image source={streak} style={HeaderMenuStyle.icon} />
-            {/* <Text style={HeaderMenuStyle.text}>
+            {/* <Text style={HeaderMenuStyle.Text}>
               {userData?.active?.days || 0} Active / {userData?.inActive || 0} Inactive
             </Text> */}
           </View>
@@ -228,7 +223,7 @@ const HeaderBar = () => {
         <Pressable onPress={() => handleClick(1)} style={HeaderMenuStyle.menuItem}>
           <View style={HeaderMenuStyle.itemContainer}>
             <Image source={subImage} style={HeaderMenuStyle.icon} />
-            {/* <Text style={HeaderMenuStyle.text}>
+            {/* <Text style={HeaderMenuStyle.Text}>
               {appState.home.charAt(0).toUpperCase() + appState.home.slice(1)}
             </Text> */}
           </View>
@@ -289,86 +284,73 @@ const HeaderMenuStyle = StyleSheet.create({
     borderBottomColor: "#0AB8AD",
     paddingVertical: hp(0.5),
     paddingHorizontal: wp(1),
-    marginTop: 0,
-  },
+    marginTop: 0},
   headerContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    height: hp(6),
-  },
+    height: hp(6)},
   menuItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: wp(0.8),
-  },
+    paddingHorizontal: wp(0.8)},
   itemContainer: {
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
-  },
+    width: "100%"},
   icon: {
     width: wp(10),
     height: hp(4),
     resizeMode: "contain",
-    marginBottom: hp(0.4),
-  },
-  text: {
+    marginBottom: hp(0.4)},
+  Text: {
+    
     color: COLORS.light,
-    fontSize: wp(3),
-    textAlign: "center",
-    fontWeight: "500",
-  },
+    fontFamily: 'AppFont-Regular', fontSize: wp(3),
+    textAlign: "center"},
   neetContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
-  },
+    width: "100%"},
   neetTextContainer: {
     flex: 1,
     alignItems: "flex-start",
     justifyContent: "center",
-    marginLeft: wp(1.5),
-  },
+    marginLeft: wp(1.5)},
   daysToText: {
+    
     color: "white",
-    fontSize: wp(2.6),
+    fontFamily: 'AppFont-Regular', fontSize: wp(2.6),
     textAlign: "left",
-    lineHeight: hp(1.8),
-    fontWeight: "500",
-  },
+    lineHeight: hp(1.8)},
   neetText: {
+    
     color: "white",
-    fontSize: wp(3.2),
-    fontWeight: "600",
-    textAlign: "left",
-  },
+    fontFamily: 'AppFont-Regular', fontSize: wp(3.2),
+        textAlign: "left"},
   countdownContainer: {
     position: "relative",
     width: wp(9),
-    height: wp(8.5),
-  },
+    height: wp(8.5)},
   countdownBackground: {
     width: "100%",
-    height: "100%",
-  },
+    height: "100%"},
   countdownOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  countdownNumber: {
-    fontSize: wp(3.5),
-    color: "white",
-    fontWeight: "bold",
     textAlign: "center",
-  },
-});
+    justifyContent: "center",
+    alignItems: "center"},
+  countdownNumber: {
+    
+    fontFamily: 'AppFont-Bold', fontSize: wp(3.5),
+    color: "white",
+        textAlign: "center",
+      justifyContent: "center"}});
 
 export default HeaderBar;

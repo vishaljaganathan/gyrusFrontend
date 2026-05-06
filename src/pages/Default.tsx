@@ -1,29 +1,29 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   View,
-  Text,
+  
   StyleSheet,
   Image,
   Animated,
   Dimensions,
   Easing,
   TouchableOpacity,
-  BackHandler,
-} from "react-native";
+  BackHandler} from "react-native"
+import { CustomText as Text, CustomAnimatedText } from '../components/CustomText';
+
+
+
 import { ThemeContext } from "../service/authContext";
 import { getSecureStorage } from "../config/SecureStore";
 import { axiosInstance } from "../config/indeceptor";
 import { LinearGradient } from "expo-linear-gradient";
-import NetInfo from '@react-native-community/netinfo';
+import NetInfo from "@react-native-community/netinfo";
 import { COLORS } from "../styles/themes";
-import GradientButton from "../components/GradientButton";
 
 const { width, height } = Dimensions.get("window");
 
 // Medical-related emojis
-const floatingItems = [
-  "⚕", "🧬", "🔬", "🩺", "🧪"
-];
+const floatingItems = ["⚕", "🧬", "🔬", "🩺", "🧪"];
 
 // Adjusted positions to avoid logo, text, progress bar
 const emojiPositions = [
@@ -34,304 +34,212 @@ const emojiPositions = [
   { top: "75%", right: "5%" },
 ];
 
-
 const Default = ({ navigation }: { navigation: any }) => {
-  const { setUserData } = useContext(ThemeContext);
-  const [progress, setProgress] = useState(0);
-  const [isConnected, setIsConnected] = useState(true);
-  const [isLowInternet, setIsLowInternet] = useState(false);
-  const showNoInternet = false; // temporary for testing
-
+  const logoImg = require("../assets/appLogo.png");
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const emojiAnimations = useRef(
+    floatingItems.map(() => new Animated.Value(0)),
+  ).current;
+
+  const { setUserData, setAppState } = useContext(ThemeContext);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
-      Animated.spring(scaleAnim, { toValue: 1, friction: 4, tension: 40, useNativeDriver: true }),
-    ]).start();
+    // Fade in logo and app name
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true}).start();
 
-    let progressVal = 0;
-    const interval = setInterval(() => {
-      progressVal += 0.02;
-      setProgress(progressVal);
-      if (progressVal >= 1) clearInterval(interval);
-    }, 60);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsConnected(state.isConnected ?? false);
-      if (state.details && (state.details as any).strength < 10) {
-        setIsLowInternet(true);
-      } else {
-        setIsLowInternet(false);
-      }
+    // Floating animation for emojis
+    emojiAnimations.forEach((anim, index) => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 2000 + index * 500,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true}),
+          Animated.timing(anim, {
+            toValue: 0,
+            duration: 2000 + index * 500,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true}),
+        ]),
+      ).start();
     });
-    return unsubscribe;
-  }, []);
 
-  useEffect(() => {
-    const checkAuth = async () => {
+    // Simulate loading progress
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 2500,
+      useNativeDriver: false}).start();
+
+    const progressListener = progressAnim.addListener(({ value }) => {
+      setLoadingProgress(Math.floor(value * 100));
+    });
+
+    // Main logic: check connectivity and navigate
+    const setupApp = async () => {
       try {
-        const newUser = await getSecureStorage("newUser");
-        if (!newUser) { navigation.navigate("SignUp"); return; }
+        const netState = await NetInfo.fetch();
+        setAppState((prev: any) => ({
+          ...prev,
+          internetStatus: netState.isConnected}));
+
         const token = await getSecureStorage("token");
         if (token) {
           try {
             const res = await axiosInstance.get("authentication/user");
-            if (res?.data) setUserData(res.data);
-            navigation.navigate("BottomBar");
-          } catch (err: any) {
-            console.error("Error fetching user data:", err.message || err);
-            // Navigate to login on any error (network timeout, 401, server unreachable, etc.)
-            navigation.navigate("Login");
+            if (res && res.data) {
+              setUserData(res.data);
+              navigation.replace("BottomBar");
+            } else {
+              navigation.replace("Login");
+            }
+          } catch (err) {
+            navigation.replace("Login");
           }
-        } else navigation.navigate("Login");
-      } catch {
-        navigation.navigate("SignUp");
+        } else {
+          // Wait a bit more for the splash feel
+          setTimeout(() => {
+            navigation.replace("Login");
+          }, 1000);
+        }
+      } catch (err) {
+        navigation.replace("Login");
       }
     };
-    const timer = setTimeout(checkAuth, 3000);
-    return () => clearTimeout(timer);
-  }, []);
+
+    setupApp();
+
+    return () => {
+      progressAnim.removeListener(progressListener);
+    };
+  }, [navigation]);
 
   return (
-    <LinearGradient colors={["#02645e", "#01524d"]} style={styles.container}>
-      {/* Floating Emojis in bubbles */}
-      {floatingItems.map((emoji, index) => (
-        <BubbleEmoji key={index} emoji={emoji} position={emojiPositions[index]} />
-      ))}
+    <LinearGradient
+      style={styles.container}
+      colors={["#00474C", "#0AB8AD", "#028464"]}
+    >
+      {/* Floating Emojis */}
+      {floatingItems.map((item, index) => {
+        const position = emojiPositions[index];
+        const translateY = emojiAnimations[index].interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -15]});
 
-      <Animated.View style={[styles.logoWrapper, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-        <Image source={require("../assets/appLogo.png")} style={styles.logo} resizeMode="contain" />
+        return (
+          <Animated.View
+            key={index}
+            style={[
+              styles.floatingItem,
+              position as any,
+              { transform: [{ translateY }] },
+            ]}
+          >
+            <Text style={styles.emojiText}>{item}</Text>
+          </Animated.View>
+        );
+      })}
+
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        <View style={styles.logoContainer}>
+          <Image source={logoImg} style={styles.logo} resizeMode="contain" />
+        </View>
+
+        <CustomAnimatedText style={[styles.appName, { opacity: fadeAnim }]}>
+          Gyrus NEET
+        </CustomAnimatedText>
+        <Text style={styles.tagline}>Your NEET Preparation App</Text>
+
+        <View style={styles.loadingContainer}>
+          <View style={styles.progressBarContainer}>
+            <Animated.View
+              style={[
+                styles.progressFill,
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ["0%", "100%"]})},
+              ]}
+            />
+          </View>
+          <Text style={styles.loadingText}>Preparing your journey...</Text>
+        </View>
       </Animated.View>
-
-      <Animated.Text style={[styles.appName, { opacity: fadeAnim }]}>Gyrus NEET</Animated.Text>
-      <Text style={styles.tagline}>Your NEET Preparation App</Text>
-
-      <View style={styles.progressBarContainer}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-      </View>
-      <Text style={styles.loadingText}>Preparing your journey...</Text>
-
-      {!isConnected && (
-        <View style={styles.overlay}>
-          <View style={styles.noInternetContainer}>
-            <Text style={styles.noInternetText}>No internet! </Text>
-            <Text style={styles.noInternetText}>Please check and try again!</Text>
-            <View style={{ marginTop: 10 }}>
-              <GradientButton
-                onPress={() => BackHandler.exitApp()}
-                colors={["#00b7c2ff", "#c5fff480"]}
-                text="Exit App"
-              />
-            </View>
-          </View>
-        </View>
-      )}
-
-      {isLowInternet && (
-        <View style={styles.overlay}>
-          <View style={styles.lowInternetContainer}>
-            <Text style={styles.lowInternetText}>Something went wrong!</Text>
-            <Text style={styles.lowInternetText}>Check your internet speed and</Text>
-            <Text style={styles.lowInternetText}>Try Again!</Text>
-            <View style={{ marginTop: 10 }}>
-              <GradientButton
-                onPress={() => BackHandler.exitApp()}
-                colors={["#00b7c2ff", "#c5fff480"]}
-                text="Exit App"
-              />
-            </View>
-          </View>
-        </View>
-      )}
     </LinearGradient>
   );
 };
 
-const BubbleEmoji = ({ emoji, position }: { emoji: string; position: any }) => {
-  const translateY = useRef(new Animated.Value(0)).current;
-  const translateX = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const animate = () => {
-      Animated.parallel([
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(translateY, {
-              toValue: -10 - Math.random() * 10,
-              duration: 4000 + Math.random() * 2000,
-              easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
-            }),
-            Animated.timing(translateY, {
-              toValue: 0,
-              duration: 4000 + Math.random() * 2000,
-              easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
-            }),
-          ])
-        ),
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(translateX, {
-              toValue: 10 - Math.random() * 20,
-              duration: 3500 + Math.random() * 1500,
-              easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
-            }),
-            Animated.timing(translateX, {
-              toValue: 0,
-              duration: 3500 + Math.random() * 1500,
-              easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
-            }),
-          ])
-        ),
-      ]).start();
-    };
-    animate();
-  }, []);
-
-  return (
-    <Animated.View
-      style={[
-        styles.bubble,
-        position,
-        { transform: [{ translateY }, { translateX }] },
-      ]}
-    >
-      <Text style={styles.emoji}>{emoji}</Text>
-    </Animated.View>
-  );
-};
-
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", justifyContent: "center", overflow: "hidden", padding: 20 },
-
-  bubble: {
-    position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0)",
+  container: {
+    flex: 1,
+    paddingHorizontal: 30},
+  content: {
+    flex: 1,
     alignItems: "center",
+    justifyContent: "center"},
+  logoContainer: {
+    width: 200,
+    height: 200,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 100,
+    padding: 20,
     justifyContent: "center",
-    shadowColor: "#15BBB1",
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-  },
-  emoji: {
-    fontSize: 30,
-    opacity: 0.4,
-  },
-  logoWrapper: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(21,187,177,0.15)",
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 30,
-    shadowColor: "#15BBB1",
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 12,
-    position: "relative",
-  },
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8},
   logo: {
-    width: 130,
-    height: 130,
-  },
+    width: "100%",
+    height: "100%"},
   appName: {
-    fontSize: 30,
-    fontWeight: "800",
-    color: "#fff",
+    
+    fontFamily: 'AppFont-Bold', fontSize: 40,
+        color: "#fff",
     letterSpacing: 1.2,
     marginBottom: 6,
-    textAlign: "center",
-  },
+    textAlign: "center"},
   tagline: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.9)",
+    
+    fontFamily: 'AppFont-Regular', fontSize: 18,
+        color: "rgba(255,255,255,0.9)",
     marginBottom: 50,
-    textAlign: "center",
-  },
+    textAlign: "center"},
+  loadingContainer: {
+    width: "100%",
+    alignItems: "center"},
   progressBarContainer: {
     width: width * 0.6,
-    height: 2,
+    height: 4,
     backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 10,
     overflow: "hidden",
-  },
+    marginBottom: 15},
   progressFill: {
     height: "100%",
-    backgroundColor: "#15BBB1",
-    borderRadius: 10,
-  },
+    backgroundColor: "#fff",
+    borderRadius: 10},
   loadingText: {
-    fontSize: 14,
+    
     color: "rgba(255,255,255,0.7)",
-    marginTop: 12,
-    letterSpacing: 0.5,
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noInternetContainer: {
-    backgroundColor: "rgba(42, 50, 42,0.8)",
-    borderWidth: 2,
-    borderColor: "#ADADAD",
-    borderStyle: "solid",
-    borderRadius: 12,
-    overflow: "hidden",
-    padding: 20,
-    alignItems: 'center',
-    width: 250,
-    height: 150,
-  },
-  noInternetText: {
-    fontSize: 16,
-    color: "#FFFFFF",
-  },
-  exitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  lowInternetContainer: {
-    backgroundColor: "rgba(42, 50, 42,0.8)",
-    borderWidth: 2,
-    borderColor: "#ADADAD",
-    borderStyle: "solid",
-    borderRadius: 12,
-    overflow: "hidden",
-    padding: 20,
-    alignItems: 'center',
-    width: 280,
-    height: 180,
-  },
-  lowInternetText: {
-    fontSize: 16,
-    color: "#FFFFFF",
-  },
-  tryAgainButtonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-});
+    fontFamily: 'AppFont-Regular', fontSize: 14},
+  floatingItem: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center"},
+  emojiText: {
+    fontFamily: 'AppFont-Regular', fontSize: 24,
+    color: "rgba(255,255,255,0.6)"}});
 
 export default Default;

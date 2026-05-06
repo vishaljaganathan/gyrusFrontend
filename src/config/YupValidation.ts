@@ -36,8 +36,7 @@ export const SignupSchema = Yup.object().shape({
   pinCode: Yup.string()
     .matches(/^\d{6}$/, { message: "Pincode must be exactly 6 digits", excludeEmptyString: true }),
   schoolPin: Yup.string()
-    .matches(/^\d{6}$/, { message: "School pincode must be exactly 6 digits", excludeEmptyString: true }),
-});
+    .matches(/^\d{6}$/, { message: "School pincode must be exactly 6 digits", excludeEmptyString: true }) } );
 
 export const initialValue: any = {
   firstName: "",
@@ -51,5 +50,4 @@ export const initialValue: any = {
   password: "",
   schoolName: "",
   schoolPin: "",
-  residentialPin: "",
-};
+  residentialPin: "" };

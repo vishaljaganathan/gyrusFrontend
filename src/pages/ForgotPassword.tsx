@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, TextInput } from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../styles/themes";
 import OTPInputView from "react-native-otp-inputs";
@@ -7,17 +8,13 @@ import { postRequest } from "../config/Requests";
 import { useMutation } from "@tanstack/react-query";
 import Animated, { ZoomInLeft } from "react-native-reanimated";
 import GradientButton from "../components/GradientButton";
-import { Text } from "react-native";
-import {
-  heightPercentageToDP,
-  widthPercentageToDP,
-} from "react-native-responsive-screen";
-import { moderateScale } from "../styles/Responsive";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
+  heightPercentageToDP as hp } from "react-native-responsive-screen";
+import { moderateScale } from "../styles/Responsive";
 import { AxiosError } from "axios";
+
+
 
 // Accept navigation as a prop
 const ForgotPassword = ({ navigation }: { navigation: any }) => {
@@ -28,15 +25,25 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
   const createPostMutation = useMutation({
     mutationFn: postRequest,
     onSuccess: async (data: any, variable, context) => {
-      if (data.status == 200) {
-        navigation.navigate("Otp", { id: data.data.id, operation: "fp" }); // Use navigation prop
+        if (data.status == 200) {
+        const otpUserId = data.data.id || data.data._id;
+        navigation.replace("Otp", { 
+          id: otpUserId, 
+          operation: "fp",
+          phoneNo: variable.payload.phoneNo
+        }); // Replace to avoid stacking
       }
     },
-    onError: (error: AxiosError, variable, context) => {
+  onError: (error: AxiosError, variable, context) => {
       setLoading(false);
       let Error: any = error.response?.data;
       if (error.status == 400) {
-        navigation.navigate("Otp", { id: Error.id, operation: "fp" }); // Use navigation prop
+        const otpUserId = Error.id || Error._id || Error.data?.id || Error.data?._id;
+        navigation.replace("Otp", { 
+          id: otpUserId, 
+          operation: "fp",
+          phoneNo: variable.payload.phoneNo
+        }); // Replace to avoid stacking
       } else if (error.status == 406) {
       } else if (error.status == 404) {
         setLoginMsg(Error.message);
@@ -45,7 +52,7 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
           clearTimeout(timer);
         }, 5000);
       }
-    },
+    }
   });
 
   return (
@@ -57,7 +64,7 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
           COLORS.primary03,
           COLORS.primary05,
         ]}
-        style={styles.container}
+            style={styles.container}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
@@ -65,8 +72,7 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
           style={{
             flex: 1,
             alignItems: "center",
-            justifyContent: "center",
-          }}
+            justifyContent: "center" } }
         >
           <View
             style={{
@@ -75,23 +81,21 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
               paddingHorizontal: wp(4),
               paddingTop: wp(9),
               paddingBottom: wp(10),
-              borderRadius: wp(3),
-            }}
+              borderRadius: wp(3) } }
           >
             <Text
               style={{
-                fontSize: wp(5),
-                fontWeight: "600",
-                marginBottom: wp(3),
-                color: COLORS.colorWhite,
-              }}
+                fontFamily: 'AppFont-Bold', fontSize: wp(5),
+                                marginBottom: wp(3),
+                color: COLORS.colorWhite } }
             >
               Forgot Password
             </Text>
             <>
               <TextInput
                 style={{
-                  fontSize: moderateScale(12),
+                  
+                  fontFamily: 'AppFont-Regular', fontSize: moderateScale(12),
                   marginBottom: wp(1),
                   width: wp(80),
                   height: hp(5.5),
@@ -100,15 +104,14 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
                   borderWidth: 0,
                   paddingHorizontal: wp(3),
                   borderColor: "transparent",
-                  backgroundColor: "white",
-                }}
+                  backgroundColor: "white" } }
                 keyboardType={"numeric"}
                 placeholder={"Mobile Number"}
                 placeholderTextColor="gray"
                 secureTextEntry={false}
                 maxLength={10}
-                onChangeText={(text) => {
-                  setPhoneNo(text.replace(/[^0-9]/g, ""));
+                onChangeText={(Text) => {
+                  setPhoneNo(Text.replace(/[^0-9]/g, ""));
                 }}
                 value={phoneNo}
               />
@@ -116,11 +119,10 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
                 <>
                   <Text
                     style={{
-                      fontSize: hp(1.5),
+                      fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
                       color: "#FFEA00",
                       paddingHorizontal: wp(1),
-                      marginBottom: hp(1),
-                    }}
+                      marginBottom: hp(1) } }
                   >
                     {loginMsg}
                   </Text>
@@ -132,21 +134,18 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
                   setLoading(true);
                   createPostMutation.mutate({
                     URL: "authentication/forgot-password",
-                    payload: { phoneNo: phoneNo },
-                  });
+                    payload: { phoneNo: phoneNo } });
                 }}
-                disable={phoneNo.length == 10 ? false : true}
+            disable={phoneNo.length == 10 ? false : true}
                 loading={loading}
-                text={"Submit"}
+            Text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Submit</Text>}
               />
               <Text
                 style={{
                   color: "#ffffff",
-                  fontSize: heightPercentageToDP(2),
-                  fontWeight: "600",
-                  textAlign: "center",
-                }}
-                onPress={() => navigation.navigate("Login")} // Use navigation prop
+                  fontFamily: 'AppFont-Bold', fontSize: hp(2),
+                                    textAlign: "center" } }
+            onPress={() => navigation.replace("Login")} // Replace to avoid stacking
               >
                 Back
               </Text>
@@ -162,30 +161,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-  },
-  Img: {
+    justifyContent: "center" }, Img: {
     width: "100%",
     height: "100%",
-    resizeMode: "stretch",
-  },
-  borderStyleBase: {
+    resizeMode: "stretch" }, borderStyleBase: {
     width: 30,
-    height: 45,
-  },
-  borderStyleHighLighted: {
-    borderColor: "#03DAC6",
-  },
-  underlineStyleBase: {
+    height: 45 }, borderStyleHighLighted: {
+    borderColor: "#03DAC6" }, underlineStyleBase: {
     width: 40,
     height: 45,
     borderWidth: 2,
     borderColor: COLORS.light,
-    borderRadius: 7,
-  },
-  underlineStyleHighLighted: {
-    borderColor: "#03DAC6",
-  },
-});
+    borderRadius: 7 }, underlineStyleHighLighted: {
+    borderColor: "#03DAC6" } });
 
 export default ForgotPassword;

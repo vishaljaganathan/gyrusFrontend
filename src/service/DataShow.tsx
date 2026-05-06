@@ -4,6 +4,8 @@ import { View } from "@gluestack-ui/themed-native-base";
 import Table from "../components/Table";
 import { StringSplitQuestion } from "./StringSplit";
 
+
+
 export const SplitStringValues = (props: any) => {
   if (!props || !props.MCQ || !props.keyName) {
     console.warn('[SplitStringValues] Missing required props');
@@ -52,6 +54,7 @@ export const SplitStringValues = (props: any) => {
                   isOptionContent={props.isOptionContent}
                   onInteractStart={props.onInteractStart}
                   onInteractEnd={props.onInteractEnd}
+                  onOptionPress={props.onOptionPress}
                 />
               )}
               {keyType === "table" && (
@@ -76,9 +79,7 @@ export const SplitStringValues = (props: any) => {
 
 const style = StyleSheet.create({
   katex: {
-    fontSize: 24,
+     fontFamily: 'AppFont-Regular', fontSize: 24,
     margin: 0,
     display: "flex",
-    color: "#FFFFFF",
-  },
-});
+    color: "#FFFFFF" } });

@@ -1,6 +1,13 @@
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
+import { Animated, View, StyleSheet } from 'react-native'
+import { CustomAnimatedText } from './CustomText';
+
+import { Svg, Path, Rect, Defs, Stop, LinearGradient } from 'react-native-svg';
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Text, Animated } from "react-native";
-import { Defs, LinearGradient, Path, Rect, Stop, Svg } from "react-native-svg";
+
+
+
+
 
 const returnSide = (index: any) => {
   if (index % 2 == 0) {
@@ -67,8 +74,7 @@ const Arrow = ({ progress }: any) => {
     Animated.timing(widthAnim, {
       toValue: progress, // Progress value (0 to 100)
       duration: 500, // Animation duration
-      useNativeDriver: false,
-    }).start();
+      useNativeDriver: false}).start();
   }, [progress]);
 
   return (
@@ -85,8 +91,6 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 50,
-  },
-});
+    marginTop: 50}});
 
 export default Arrow;

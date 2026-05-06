@@ -23,8 +23,7 @@ export const getTestConfig = (): TestConfig => {
         hasTimeLimit: false,
         canSkipQuestions: true,
         showExplanations: false,
-        allowRetry: true,
-    };
+        allowRetry: true };
 };
 
 export const fetchQuestions = async (params: {
@@ -53,8 +52,7 @@ export const fetchQuestions = async (params: {
             difficulty: ['1', '2'],
             planType: 'free',
             cycle,
-            set,
-        });
+            set } );
 
         return response.data;
     } catch (error) {
@@ -81,26 +79,23 @@ export const getProgressionLogic = (
     // Sets 6,7,8: Shuffled [20,40,100] again
     // Set 9: 180
 
-    const basePattern = [20, 40, 100];
-    const nextSetIndex = (setIndexInCycle + 1) % 10;
+    const basePattern = [20, 40];
+    const nextSetIndex = (setIndexInCycle + 1) % 6; // 3 cycles of 2
     const isNewCycle = nextSetIndex === 0;
     const nextCycleIndex = isNewCycle ? cycleIndex + 1 : cycleIndex;
 
     let nextSetSize: number;
-    if (nextSetIndex < 3) {
-        // Base set in ascending order
+    if (nextSetIndex < 2) {
+        // Base set in order
         nextSetSize = basePattern[nextSetIndex];
-    } else if (nextSetIndex < 6) {
+    } else if (nextSetIndex < 4) {
         // First shuffled set
         const shuffled1 = shuffleArray([...basePattern]);
-        nextSetSize = shuffled1[nextSetIndex - 3];
-    } else if (nextSetIndex < 9) {
+        nextSetSize = shuffled1[nextSetIndex - 2];
+    } else {
         // Second shuffled set
         const shuffled2 = shuffleArray([...basePattern]);
-        nextSetSize = shuffled2[nextSetIndex - 6];
-    } else {
-        // Set 9: 180 questions
-        nextSetSize = 180;
+        nextSetSize = shuffled2[nextSetIndex - 4];
     }
 
     return {
@@ -109,8 +104,7 @@ export const getProgressionLogic = (
         nextSetIndexInCycle: nextSetIndex,
         message: percentage >= 70 ? 'Well done! Continue your preparation.' : 'Review 12th standard concepts.',
         canProgress: true,
-        isNewCycle,
-    };
+        isNewCycle };
 };
 
 const shuffleArray = (array: number[]): number[] => {

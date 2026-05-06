@@ -3,13 +3,13 @@
     "name": "Gyrus NEET",
     "newArchEnabled": true,
     "slug": "gyus-neet",
-    "version": "1.0.7",
+    "version": "1.0.10",
     "orientation": "portrait",
     "icon": "./assets/appLogo.png",
     
     "jsEngine": "hermes",
         "splash": {
-          "image": "./assets/splash.png",
+          "image": "./assets/appLogo.png",
           "resizeMode": "contain",
           "backgroundColor": "#004541"
         },
@@ -36,7 +36,7 @@
         "backgroundColor": "#004541"
       },
       "package": "com.gyrus.neet",
-      "versionCode": 38
+      "versionCode": 41
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -58,12 +58,12 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#004541",
-          "image": "./assets/splash.png",
+          "image": "./assets/appLogo.png",
           "resizeMode": "contain",
           "imageWidth": 220,
           "dark": {
             "backgroundColor": "#004541",
-            "image": "./assets/splash.png"
+            "image": "./assets/appLogo.png"
           }
         }
       ]

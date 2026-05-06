@@ -1,5 +1,7 @@
+import { View, Button, Share } from 'react-native';
 import React from "react";
-import { Share, View, Button } from "react-native";
+
+
 
 const ShareDetails = () => {
   const onShare = async () => {
@@ -8,8 +10,7 @@ const ShareDetails = () => {
         message:
           "React Native | A framework for building native apps using React https://mail.google.com",
         url: "https://www.youtube.com/watch?v=kR8wzFxXegE",
-        title: "aaaaaaaaaaaaaaa",
-      });
+        title: "aaaaaaaaaaaaaaa"});
       if (result.action === Share.sharedAction) {
         if (result.activityType) {
           // shared with activity type of result.activityType

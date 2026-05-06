@@ -95,8 +95,7 @@ export const INDIA_STATE_OPTIONS = [
   { label: "Tripura", value: "Tripura" },
   { label: "Uttar Pradesh", value: "Uttar Pradesh" },
   { label: "Uttarakhand", value: "Uttarakhand" },
-  { label: "West Bengal", value: "West Bengal" },
-];
+  { label: "West Bengal", value: "West Bengal" } ];
 
 const baseSignUpFields = [
   [
@@ -109,9 +108,7 @@ const baseSignUpFields = [
       show: true,
       required: true,
       page: 1,
-      error: "",
-    },
-    {
+      error: "" }, {
       idx: 1,
       inputType: "text",
       placeholderName: "Last Name",
@@ -120,10 +117,7 @@ const baseSignUpFields = [
       required: true,
       page: 1,
       error: "",
-      id: "lastName",
-    },
-
-    {
+      id: "lastName" }, {
       idx: 2,
       inputType: "text",
       placeholderName: "Gender",
@@ -131,15 +125,12 @@ const baseSignUpFields = [
       label: [
         { label: "Male", value: "M" },
         { label: "Female", value: "F" },
-        { label: "Others", value: "O" },
-      ],
+        { label: "Others", value: "O" } ],
       page: 1,
       error: "",
       required: true,
       id: "gender",
-      show: true,
-    },
-    {
+      show: true }, {
       idx: 3,
       inputType: "text",
       placeholderName: "State",
@@ -149,9 +140,7 @@ const baseSignUpFields = [
       error: "",
       required: true,
       id: "state",
-      show: true,
-    },
-    {
+      show: true }, {
       idx: 4,
       inputType: "text",
       placeholderName: "Email",
@@ -160,10 +149,8 @@ const baseSignUpFields = [
       error: "Email not valid",
       id: "email",
       required: true,
-      show: true,
-    },
-    {
-      idx: 4,
+      show: true }, {
+      idx: 4.1,
       inputType: "text",
       placeholderName: "Phone number",
       fieldType: "input",
@@ -171,9 +158,7 @@ const baseSignUpFields = [
       required: true,
       error: "Required 10 digits",
       id: "phoneNo",
-      show: true,
-    },
-    {
+      show: true }, {
       idx: 5,
       inputType: "date",
       placeholderName: "DOB",
@@ -182,11 +167,7 @@ const baseSignUpFields = [
       required: true,
       page: 1,
       error: "",
-      id: "dob",
-    },
-
-    
-  ],
+      id: "dob" } ],
   [
     {
       idx: 6,
@@ -197,15 +178,12 @@ const baseSignUpFields = [
         { label: "11th", value: "XI" },
         { label: "12th", value: "XII" },
         { label: "Repeater", value: "R" },
-        { label: "Crash Course", value: "C" },
-      ],
+        { label: "Crash Course", value: "C" } ],
       page: 2,
       required: true,
       error: "",
       id: "std",
-      show: true,
-    },
-    {
+      show: true }, {
       idx: 7,
       inputType: "text",
       placeholderName: "NEET Target Year",
@@ -215,15 +193,12 @@ const baseSignUpFields = [
         { label: "2027", value: "2027" },
         { label: "2028", value: "2028" },
         { label: "2029", value: "2029" },
-        { label: "2030", value: "2030" },
-      ],
+        { label: "2030", value: "2030" } ],
       page: 2,
       required: true,
       error: "",
       id: "targetYear",
-      show: true,
-    },
-    {
+      show: true }, {
       idx: 8,
       inputType: "password",
       placeholderName: "Password",
@@ -232,9 +207,7 @@ const baseSignUpFields = [
       error: "Password should contain 1 Special Character",
       required: true,
       id: "password",
-      show: true,
-    },
-    {
+      show: true }, {
       idx: 9,
       inputType: "password",
       placeholderName: "Confirm Password",
@@ -243,31 +216,25 @@ const baseSignUpFields = [
       error: "Passwords do not match",
       required: true,
       id: "confirmPassword",
-      show: true,
-    },
-    {
+      show: true }, {
       idx: 10,
       inputType: "text",
-      placeholderName: "School Name (Optional)",
+      placeholderName: "School Name",
       fieldType: "input",
       page: 2,
-      required: false,
+      required: true,
       error: "Required 10 digits",
       id: "schoolName",
-      show: true,
-    },
-    {
+      show: true }, {
       idx: 11,
       inputType: "text",
-      placeholderName: "School Pincode (Optional)",
+      placeholderName: "School Pincode",
       fieldType: "input",
       page: 2,
-      required: false,
+      required: true,
       error: "Required 6 digits",
       id: "schoolPin",
-      show: true,
-    },
-  ],
+      show: true } ],
 ];
 
 export const createSignUpFields = (neetDate?: Date | string) => {
@@ -297,9 +264,7 @@ export const LoginFields = [
     icon: "faUser",
     id: "phoneNo",
     show: true,
-    phonePad: true,
-  },
-  {
+    phonePad: true }, {
     idx: 1,
     inputType: "password",
     placeholderName: "Password",
@@ -310,9 +275,7 @@ export const LoginFields = [
     order: 1,
     id: "password",
     show: true,
-    phonePad: false,
-  },
-];
+    phonePad: false } ];
 
 export const ResetFields = [
   {
@@ -325,9 +288,7 @@ export const ResetFields = [
     icon: "faUser",
     id: "password",
     show: true,
-    phonePad: false,
-  },
-  {
+    phonePad: false }, {
     idx: 1,
     inputType: "password",
     placeholderName: "Confirm Password",
@@ -338,9 +299,7 @@ export const ResetFields = [
     order: 1,
     id: "confirmPassword",
     show: true,
-    phonePad: false,
-  },
-];
+    phonePad: false } ];
 
 const baseProfileFields = [
   {
@@ -352,9 +311,7 @@ const baseProfileFields = [
     required: true,
     error: "",
     id: "firstName",
-    show: true,
-  },
-  {
+    show: true }, {
     idx: 1,
     name: "lastName",
     id: "lastName",
@@ -363,10 +320,7 @@ const baseProfileFields = [
     fieldType: "input",
     required: true,
     error: "",
-    show: true,
-  },
-
-  {
+    show: true }, {
     idx: 2,
     inputType: "text",
     placeholderName: "Gender",
@@ -374,15 +328,12 @@ const baseProfileFields = [
     label: [
       { label: "Male", value: "M" },
       { label: "Female", value: "F" },
-      { label: "Others", value: "O" },
-    ],
+      { label: "Others", value: "O" } ],
     page: 1,
     error: "",
     required: true,
     id: "gender",
-    show: true,
-  },
-  {
+    show: true }, {
     idx: 3,
     name: "std",
     inputType: "text",
@@ -394,13 +345,10 @@ const baseProfileFields = [
       { label: "11th", value: "XI" },
       { label: "12th", value: "XII" },
       { label: "Repeater", value: "R" },
-      { label: "Crash Course", value: "C" },
-    ],
+      { label: "Crash Course", value: "C" } ],
     required: true,
     error: "",
-    show: true,
-  },
-  {
+    show: true }, {
     idx: 4,
     inputType: "text",
     placeholderName: "State",
@@ -410,9 +358,7 @@ const baseProfileFields = [
     error: "",
     required: true,
     id: "state",
-    show: true,
-  },
-  {
+    show: true }, {
     idx: 5,
     name: "email",
     inputType: "text",
@@ -421,9 +367,7 @@ const baseProfileFields = [
     id: "email",
     required: true,
     error: "Email not valid",
-    show: true,
-  },
-  {
+    show: true }, {
     idx: 6,
     name: "targetYear",
     id: "targetYear",
@@ -434,13 +378,10 @@ const baseProfileFields = [
       { label: "2024", value: "2024" },
       { label: "2025", value: "2025" },
       { label: "2026", value: "2025" },
-      { label: "2027", value: "2026" },
-    ],
+      { label: "2027", value: "2026" } ],
     required: true,
     error: "",
-    show: true,
-  },
-  {
+    show: true }, {
     idx: 7,
     name: "phoneNo",
     id: "phoneNo",
@@ -449,9 +390,7 @@ const baseProfileFields = [
     fieldType: "input",
     required: true,
     error: "Required 10 digits",
-    show: true,
-  },
-  // {
+    show: true }, // {
   //   idx: 8,
   //   name: "pincode",
   //   inputType: "text",
@@ -465,25 +404,22 @@ const baseProfileFields = [
   {
     idx: 8,
     inputType: "text",
-    placeholderName: "School Name (Optional)",
+    placeholderName: "School Name",
     fieldType: "input",
     page: 2,
     required: false,
-    error: "Required 10 digits",
+    error: "",
     id: "schoolName",
-    show: true,
-  },
-  {
+    show: true }, {
     idx: 9,
     inputType: "text",
-    placeholderName: "School Pincode (Optional)",
+    placeholderName: "School Pincode",
     fieldType: "input",
     page: 2,
     required: false,
     error: "Required 6 digits",
     id: "schoolPin",
-    show: true,
-  }, {
+    show: true }, {
     idx: 10,
     inputType: "date",
     placeholderName: "DOB",
@@ -493,9 +429,7 @@ const baseProfileFields = [
 
     page: 1,
     error: "",
-    id: "dob",
-  },
-];
+    id: "dob" } ];
 
 export const createProfileFields = (neetDate?: Date | string) => {
   const profileFields = JSON.parse(JSON.stringify(baseProfileFields));
@@ -517,8 +451,6 @@ export const SearchFields = [
     inputType: "text",
     placeholderName: "search",
     fieldType: "input",
-    show: true,
-  },
-];
+    show: true } ];
 
 //

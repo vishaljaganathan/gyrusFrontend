@@ -146,24 +146,23 @@ export const SIZES = {
 };
 
 export const FONTS = {
-  largeTitle: { fontFamily: 'Manrope-VariableFont_wght', fontSize: SIZES.largeTitle, textAlign: 'justify' },
+  largeTitle: { fontFamily: 'AppFont-Regular', fontSize: SIZES.largeTitle, textAlign: 'justify' },
   h1: {
-    fontFamily: 'Manrope-VariableFont_wght',
+    fontFamily: 'AppFont-Regular',
     fontSize: SIZES.h1,
     lineHeight: 36,
     color: 'black',
-    fontWeight: 'bold',
-    textAlign: 'justify',
+        textAlign: 'justify',
   },
-  h2: { fontFamily: 'Manrope-VariableFont_wght', fontSize: SIZES.h2, lineHeight: 30, textAlign: 'justify' },
-  h3: { fontFamily: 'Manrope-VariableFont_wght', fontSize: SIZES.h3, lineHeight: 22, textAlign: 'justify' },
-  h4: { fontFamily: 'Manrope-VariableFont_wght', fontSize: SIZES.h4, lineHeight: 22, textAlign: 'justify' },
-  h5: { fontFamily: 'Manrope-VariableFont_wght', fontSize: SIZES.h5, lineHeight: 22, textAlign: 'justify' },
-  body1: { fontFamily: 'Manrope-VariableFont_wght', fontSize: SIZES.body1, lineHeight: 36, textAlign: 'justify' },
-  body2: { fontFamily: 'Manrope-VariableFont_wght', fontSize: SIZES.body2, lineHeight: 30, textAlign: 'justify' },
-  body3: { fontFamily: 'Manrope-VariableFont_wght', fontSize: SIZES.body3, lineHeight: 22, textAlign: 'justify' },
-  body4: { fontFamily: 'Manrope-VariableFont_wght', fontSize: SIZES.body4, lineHeight: 22, textAlign: 'justify' },
-  body5: { fontFamily: 'Manrope-VariableFont_wght', fontSize: SIZES.body5, lineHeight: 22, textAlign: 'justify' },
+  h2: { fontFamily: 'AppFont-Regular', fontSize: SIZES.h2, lineHeight: 30, textAlign: 'justify' },
+  h3: { fontFamily: 'AppFont-Regular', fontSize: SIZES.h3, lineHeight: 22, textAlign: 'justify' },
+  h4: { fontFamily: 'AppFont-Regular', fontSize: SIZES.h4, lineHeight: 22, textAlign: 'justify' },
+  h5: { fontFamily: 'AppFont-Regular', fontSize: SIZES.h5, lineHeight: 22, textAlign: 'justify' },
+  body1: { fontFamily: 'AppFont-Regular', fontSize: SIZES.body1, lineHeight: 36, textAlign: 'justify' },
+  body2: { fontFamily: 'AppFont-Regular', fontSize: SIZES.body2, lineHeight: 30, textAlign: 'justify' },
+  body3: { fontFamily: 'AppFont-Regular', fontSize: SIZES.body3, lineHeight: 22, textAlign: 'justify' },
+  body4: { fontFamily: 'AppFont-Regular', fontSize: SIZES.body4, lineHeight: 22, textAlign: 'justify' },
+  body5: { fontFamily: 'AppFont-Regular', fontSize: SIZES.body5, lineHeight: 22, textAlign: 'justify' },
 };
 
 // export const darkTheme = {
@@ -178,9 +177,8 @@ const appTheme = { COLORS, SIZES, FONTS };
 
 export default appTheme;
 
-/* fonts */
 export const FontFamily = {
-  palanquinBold: "Palanquin-Bold",
+  palanquinBold: "AppFont-Bold",
 };
 /* font sizes */
 export const FontSize = {

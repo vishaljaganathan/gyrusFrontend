@@ -57,8 +57,7 @@ export const fetchQuestions = async (params: {
             isRepeater: true,
             mixBothYears: true,
             cycle,
-            set,
-        });
+            set } );
 
         return response.data;
     } catch (error) {
@@ -84,22 +83,19 @@ export const getProgressionLogic = (
     // Sets 3,4,5: Shuffled [20,40,100]
     // Set 6: 180
 
-    const basePattern = [20, 40, 100];
-    const nextSetIndex = (setIndexInCycle + 1) % 7;
+    const basePattern = [20, 40];
+    const nextSetIndex = (setIndexInCycle + 1) % 4; // 2 base + 2 shuffled
     const isNewCycle = nextSetIndex === 0;
     const nextCycleIndex = isNewCycle ? cycleIndex + 1 : cycleIndex;
 
     let nextSetSize: number;
-    if (nextSetIndex < 3) {
-        // Base set in ascending order
+    if (nextSetIndex < 2) {
+        // Base set in order
         nextSetSize = basePattern[nextSetIndex];
-    } else if (nextSetIndex < 6) {
+    } else {
         // Shuffled set
         const shuffled = shuffleArray([...basePattern]);
-        nextSetSize = shuffled[nextSetIndex - 3];
-    } else {
-        // Set 6: 180 questions
-        nextSetSize = 180;
+        nextSetSize = shuffled[nextSetIndex - 2];
     }
 
     return {
@@ -108,8 +104,7 @@ export const getProgressionLogic = (
         nextSetIndexInCycle: nextSetIndex,
         message: percentage >= 50 ? 'Good progress. Focus on weak topics.' : 'Identify and strengthen weak areas.',
         canProgress: true,
-        isNewCycle,
-    };
+        isNewCycle };
 };
 
 const shuffleArray = (array: number[]): number[] => {

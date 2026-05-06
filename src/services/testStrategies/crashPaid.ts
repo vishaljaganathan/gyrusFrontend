@@ -32,8 +32,7 @@ export const getTestConfig = (): TestConfig => {
         canSkipQuestions: false,
         showExplanations: true,
         allowRetry: true,
-        focusOnHighYield: true,
-    };
+        focusOnHighYield: true };
 };
 
 export const fetchQuestions = async (params: {
@@ -60,8 +59,7 @@ export const fetchQuestions = async (params: {
             highYieldOnly: true,
             timebound: true,
             cycle,
-            set,
-        });
+            set } );
 
         return response.data;
     } catch (error) {
@@ -105,8 +103,7 @@ export const getProgressionLogic = (
             nextSetIndexInCycle: nextSetIndex,
             message: percentage >= 80 ? 'Excellent performance!' : 'Keep reviewing high-yield areas.',
             canProgress: true,
-            isNewCycle,
-        };
+            isNewCycle };
     } else {
         // Individual subject pattern: 2 sets
         const basePattern = [20, 40];
@@ -122,7 +119,6 @@ export const getProgressionLogic = (
             nextSetIndexInCycle: nextSetIndex,
             message: percentage >= 80 ? 'Excellent performance!' : 'Keep reviewing high-yield areas.',
             canProgress: true,
-            isNewCycle,
-        };
+            isNewCycle };
     }
 };

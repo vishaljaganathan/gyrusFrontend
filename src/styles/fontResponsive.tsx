@@ -1,4 +1,6 @@
-import { PixelRatio, useWindowDimensions } from "react-native";
+import { PixelRatio, useWindowDimensions } from 'react-native';
+
+
 
 const FontScale = (size: number) => {
   const { height, width, scale, fontScale } = useWindowDimensions();

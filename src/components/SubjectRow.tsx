@@ -1,7 +1,13 @@
 import React from "react";
-import { View, Text, StyleSheet, Image, Pressable } from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
+
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
+
+
+
+
 
 interface SubjectRowProps {
   subject: string;
@@ -18,8 +24,7 @@ const SubjectRow: React.FC<SubjectRowProps> = ({
   percentage,
   isLocked,
   isPlanValid,
-  onClick,
-}) => {
+  onClick}) => {
   const showLock = subject !== "Neet" && !isPlanValid && isLocked;
 
   return (
@@ -52,39 +57,31 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     marginTop: 8,
-    cursor: "pointer",
-  },
+    cursor: "pointer"},
   imageContainer: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   avatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "transparent",
-  },
+    backgroundColor: "transparent"},
   subjectContainer: {
     flex: 3,
-    justifyContent: "flex-start",
-  },
+    justifyContent: "flex-start"},
   subjectText: {
+    
     color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 16,
-    letterSpacing: 0.5,
-  },
+        fontFamily: 'AppFont-Regular', fontSize: 16,
+    letterSpacing: 0.5},
   statusContainer: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"},
   percentageText: {
+    
     color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-});
+        fontFamily: 'AppFont-Regular', fontSize: 16}});
 
 export default SubjectRow;

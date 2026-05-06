@@ -1,12 +1,12 @@
 
 import React, { useState, useContext } from "react";
-import { View, Text, StyleSheet, Image, TextInput } from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../styles/themes";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
+  heightPercentageToDP as hp } from "react-native-responsive-screen";
 import { useMutation } from "@tanstack/react-query";
 import { postRequest } from "../config/Requests";
 import { LoginFields, ResetFields } from "../service/FormFeilds";
@@ -16,10 +16,11 @@ import { moderateScale } from "../styles/Responsive";
 import { useFormik } from "formik";
 import GradientButton from "../components/GradientButton";
 import { AxiosError } from "axios";
-import { TouchableOpacity } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
-import { axiosInstance } from "../config/indeceptor";
-import { ThemeContext } from "../service/authContext";
+
+
+
+
 
 // Accept navigation and route as props
 const ResetPassword = ({ navigation, route }: { navigation: any; route: any }) => {
@@ -53,10 +54,10 @@ const ResetPassword = ({ navigation, route }: { navigation: any; route: any }) =
       setStatus(data.status);
       setLoading(false);
       if (data.status == 200) {
-        navigation.navigate("Login"); // Use navigation prop
+        navigation.replace("Login"); // Replace to avoid stacking
       }
     },
-    onError: (error: AxiosError, variable, context) => {
+  onError: (error: AxiosError, variable, context) => {
       setLoading(false);
       let Error: any = error.response?.data;
       if (error.status == 400) {
@@ -69,25 +70,22 @@ const ResetPassword = ({ navigation, route }: { navigation: any; route: any }) =
         setLoginMsg(error.message);
         const timer = setTimeout(() => {
           setLoginMsg("");
-          clearTimeout(timer);
         }, 5000);
       }
-    },
+    }
   });
 
   const formik: any = useFormik({
     initialValues: {
       password: "",
-      confirmPassword: "",
-    },
-    validate: validate,
+      confirmPassword: "" }, validate: validate,
     onSubmit: (values) => {
       setLoading(true);
       createPostMutation.mutate({
         URL: "authentication/reset/password/" + route.params.id, // Use route prop
-        payload: values,
+        payload: values
       });
-    },
+    }
   });
 
   return (
@@ -109,50 +107,33 @@ const ResetPassword = ({ navigation, route }: { navigation: any; route: any }) =
               backgroundColor: COLORS.primary05,
               margin: wp(1),
               paddingHorizontal: wp(4),
-              paddingTop: wp(9),
-              paddingBottom: wp(10),
-              borderRadius: wp(3),
-            }}
+              paddingTop: wp(6),
+              paddingBottom: wp(6),
+              borderRadius: wp(3) } }
           >
             <Text
               style={{
-                fontSize: wp(5),
-                fontWeight: "600",
-                marginBottom: wp(3),
-                color: COLORS.colorWhite,
-              }}
+                fontFamily: 'AppFont-Bold', fontSize: wp(5),
+                                marginBottom: wp(3),
+                color: COLORS.colorWhite } }
             ></Text>
             <Text
               style={{
-                fontSize: wp(5),
-                fontWeight: "600",
-                marginBottom: wp(3),
-                color: COLORS.colorWhite,
-              }}
+                fontFamily: 'AppFont-Bold', fontSize: wp(5),
+                                marginBottom: wp(3),
+                color: COLORS.colorWhite } }
             >
               Reset Password
             </Text>
             {ResetFields.map((data: any, index) => {
               return (
-                <View key={data.idx} style={{ marginBottom: wp(1) }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', width: wp(80), position: 'relative' }}>
+                <View key={data.idx} style={{ marginBottom: hp(2) }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', width: wp(85), position: 'relative' }}>
                     <TextInput
-                      style={{
-                        fontSize: moderateScale(12),
-                        flex: 1,
-                        height: hp(5.5),
-                        borderRadius: wp(2),
-                        zIndex: 0,
-                        borderWidth: 0,
-                        paddingLeft: wp(3),
-                        paddingRight: 40,
-                        borderColor: "transparent",
-                        backgroundColor: "white",
-                        color: "black",
-                      }}
+                      style={styles.inputField}
                       keyboardType={data.phonePad ? "numeric" : "default"}
                       placeholder={data.placeholderName}
-                      placeholderTextColor="gray"
+                      placeholderTextColor="#999"
                       secureTextEntry={data.id === 'password' ? !showPassword : data.id === 'confirmPassword' ? !showConfirmPassword : true}
                       maxLength={data.id == "phoneNo" ? 10 : undefined}
                       onChangeText={formik.handleChange(`${data.id}`)}
@@ -167,8 +148,7 @@ const ResetPassword = ({ navigation, route }: { navigation: any; route: any }) =
                           } else if (data.id === 'confirmPassword') {
                             setShowConfirmPassword(!showConfirmPassword);
                           }
-                        }}
-                        style={{ position: 'absolute', right: 10, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}
+                        }} style={{ position: 'absolute', right: 10, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' }}
                       >
                         <Ionicons
                           name={data.id === 'password' ? (showPassword ? 'eye-off' : 'eye') : (showConfirmPassword ? 'eye-off' : 'eye')}
@@ -182,11 +162,10 @@ const ResetPassword = ({ navigation, route }: { navigation: any; route: any }) =
                     <>
                       <Text
                         style={{
-                          fontSize: hp(1.5),
+                          fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
                           color: "#FFEA00",
                           paddingHorizontal: wp(1),
-                          marginBottom: hp(1),
-                        }}
+                          marginBottom: hp(1) } }
                       >
                         {formik.errors[`${data.id}`]}
                       </Text>
@@ -200,11 +179,10 @@ const ResetPassword = ({ navigation, route }: { navigation: any; route: any }) =
               <>
                 <Text
                   style={{
-                    fontSize: hp(1.5),
+                    fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
                     color: "#FFEA00",
                     paddingHorizontal: wp(1),
-                    marginBottom: hp(1),
-                  }}
+                    marginBottom: hp(1) } }
                 >
                   {loginMsg}
                 </Text>
@@ -219,24 +197,21 @@ const ResetPassword = ({ navigation, route }: { navigation: any; route: any }) =
                   ? [COLORS.button_enable01, COLORS.button_enable02]
                   : [COLORS.button_disable01, COLORS.button_disable02]
               }
-              text={"Reset Password"}
+              Text={"Reset Password"}
             />
             <Text
               style={{
                 color: "white",
-                fontSize: wp(4),
-                marginTop: wp(3),
-              }}
+                fontFamily: 'AppFont-Regular', fontSize: wp(4),
+                marginTop: wp(3) } }
             >
               {" "}
               If you don't have an account ?{" "}
               <Text
                 style={{
                   color: COLORS.colorWhite,
-                  fontSize: wp(4),
-                  fontWeight: "700",
-                }}
-                onPress={() => navigation.navigate("SignUp")} // Use navigation prop
+                  fontFamily: 'AppFont-Regular', fontSize: wp(4)} }
+                onPress={() => navigation.replace("SignUp")} // Replace to avoid stacking
               >
                 {" "}
                 Sign Up
@@ -264,6 +239,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  inputField: {
+    fontFamily: 'AppFont-Regular',
+    width: "100%",
+    borderRadius: wp(2),
+    zIndex: 0,
+    borderWidth: 0,
+    paddingHorizontal: wp(3),
+    borderColor: "transparent",
+    backgroundColor: "white",
+    height: hp(5.5),
   },
 });
 

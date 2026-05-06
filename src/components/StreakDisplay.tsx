@@ -1,7 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faFire, faFrown } from '@fortawesome/free-solid-svg-icons';
+import React from "react";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
+
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import { faFire, faFrown } from "@fortawesome/free-solid-svg-icons";
+
+
+
+
 
 interface StreakDisplayProps {
   streakData?: {
@@ -22,7 +28,9 @@ const StreakDisplay: React.FC<StreakDisplayProps> = ({ streakData }) => {
 
       <View style={styles.streakItem}>
         <FontAwesomeIcon icon={faFrown} size={22} color="#9E9E9E" />
-        <Text style={styles.streakText}>{Math.max(0, Math.abs(Number(streakData.inactive) || 0))}</Text>
+        <Text style={styles.streakText}>
+          {Math.max(0, Math.abs(Number(streakData.inactive) || 0))}
+        </Text>
       </View>
     </View>
   );
@@ -30,22 +38,18 @@ const StreakDisplay: React.FC<StreakDisplayProps> = ({ streakData }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 10},
   streakItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-  },
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20},
   streakText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '500',
-    marginLeft: 8,
-  },
-});
+    
+    color: "#FFFFFF",
+    fontFamily: 'AppFont-Regular', fontSize: 18,
+        marginLeft: 8}});
 
 export default StreakDisplay;

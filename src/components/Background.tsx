@@ -1,8 +1,9 @@
 import { ImageBackground, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ScreenWithBackgroundProps } from "../interface/Interface";
-import { useEffect, useState } from "react";
-import React from "react";
+import React, { useEffect, useState } from "react";
+
+
 
 const ScreenWithBackground = ({ children }: any) => {
   let BackgroundImg = require("../assets/BgImg.png");
@@ -40,14 +41,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "transparent",
     height: 800,
-    width: "100%",
-  },
+    width: "100%"},
   Img: {
     width: "100%",
     height: "100%",
     resizeMode: "contain",
-    zIndex: 1000,
-  },
-});
+    zIndex: 1000}});
 
 export default React.memo(ScreenWithBackground);

@@ -1,34 +1,38 @@
+import { useNavigation } from '@react-navigation/native';
+import { ThemeContext } from '../service/authContext';
 import React, { useContext, useMemo } from "react";
 import {
   BottomTabBarProps,
-  createBottomTabNavigator,
-} from "@react-navigation/bottom-tabs";
+  createBottomTabNavigator} from "@react-navigation/bottom-tabs";
 import {
   faBookmark,
   faAward,
   faHouse,
   faBell,
   faRankingStar,
-  faUser,
-} from "@fortawesome/free-solid-svg-icons";
+  faUser} from "@fortawesome/free-solid-svg-icons";
+
+
 import Home from "../pages/Home";
-// import Bookmark from "../pages/Bookmark";
 import Rewards from "../pages/Rewards";
 import Profile from "../pages/Profile";
-// import Ranking from "../pages/Ranking";
+import Bookmark from "../pages/Bookmark";
+import Ranking from "../pages/Ranking";
 import Notification from "../pages/Notification";
 import GyrusNEETAnalytics from "../pages/GyrusNEETAnalytics";
 import { COLORS, FONTS } from "../styles/themes";
 import { Svg, Path, G, Rect, Defs, ClipPath, Circle as SvgCircle } from "react-native-svg";
 import {
-  widthPercentageToDP as wp,
-} from "react-native-responsive-screen";
+  widthPercentageToDP as wp} from "react-native-responsive-screen";
 import { Circle } from "@gluestack-ui/themed-native-base";
 import { useSafeAreaInsets, initialWindowMetrics } from "react-native-safe-area-context";
-import { View, Animated, Platform, Pressable, Modal, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert , Animated, Platform} from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput, CustomAnimatedText } from '../components/CustomText';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
-import { ThemeContext } from "../service/authContext";
+
+
+
+
 
 const Tab = createBottomTabNavigator();
 
@@ -107,25 +111,20 @@ const NotificationIcon = ({ color, size = 28 }: any) => (
 
 const AnalyticsIcon = ({ color, size = 28 }: any) => (
   <Svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-    {/* Axes */}
-    <Path d="M8 32H32" stroke={color} strokeWidth="2" strokeLinecap="round" />
-    <Path d="M8 32V8" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    {/* Outer rounded square */}
+    <Rect x="4" y="4" width="32" height="32" rx="6" stroke={color} strokeWidth={2} fill="none" />
 
-    {/* Line graph */}
-    <Path
-      d="M10 26 L15 20 L20 22 L25 16"
-      stroke={color}
-      strokeWidth="2.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
+    {/* Folded corner accent (top-right) */}
+    <Path d="M26 4 H36 V14" stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
 
-    {/* Data points (final point higher) */}
-    <SvgCircle cx="10" cy="26" r="1.8" fill={color} />
-    <SvgCircle cx="15" cy="20" r="1.8" fill={color} />
-    <SvgCircle cx="20" cy="22" r="1.8" fill={color} />
-    <SvgCircle cx="25" cy="16" r="1.8" fill={color} />
+    {/* Simple line chart inside the square */}
+    <Path d="M12 26 L16 20 L22 23 L28 16" stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+
+    {/* Data points */}
+    <SvgCircle cx="12" cy="26" r="1.6" fill={color} />
+    <SvgCircle cx="16" cy="20" r="1.6" fill={color} />
+    <SvgCircle cx="22" cy="23" r="1.6" fill={color} />
+    <SvgCircle cx="28" cy="16" r="1.6" fill={color} />
   </Svg>
 );
 
@@ -186,8 +185,7 @@ const MagnifyIcon: React.FC<{
     Animated.timing(scale, {
       toValue: focused ? scaleFocused : scaleUnfocused,
       duration,
-      useNativeDriver: true,
-    }).start();
+      useNativeDriver: true}).start();
   }, [focused, scale, scaleFocused, scaleUnfocused, duration]);
 
   return <Animated.View style={{ transform: [{ scale }] }}>{children}</Animated.View>;
@@ -255,8 +253,7 @@ const BottomBar: React.FC = () => {
     <View
       style={{
         alignItems: "center",
-        justifyContent: "center",
-      }}
+        justifyContent: "center"}}
     >
       <MagnifyIcon focused={focused}>{icon}</MagnifyIcon>
     </View>
@@ -278,8 +275,7 @@ const BottomBar: React.FC = () => {
                 paddingTop: tabBarLayout.paddingBottom,
                 backgroundColor: COLORS.secondary01,
                 borderTopColor: "#0AB8AD",
-                borderTopWidth: wp(0.6),
-              }}
+                borderTopWidth: wp(0.6)}}
             >
               {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
@@ -289,8 +285,7 @@ const BottomBar: React.FC = () => {
                   const event = navigation.emit({
                     type: "tabPress",
                     target: route.key,
-                    canPreventDefault: true,
-                  });
+                    canPreventDefault: true});
 
                   if (!isFocused && !event.defaultPrevented) {
                     navigation.navigate(route.name);
@@ -300,8 +295,7 @@ const BottomBar: React.FC = () => {
                 const onLongPress = () => {
                   navigation.emit({
                     type: "tabLongPress",
-                    target: route.key,
-                  });
+                    target: route.key});
                 };
 
                 const color = isFocused ? "#F2C112" : "#CCCCCC";
@@ -309,8 +303,7 @@ const BottomBar: React.FC = () => {
                   ? options.tabBarIcon({
                       focused: isFocused,
                       color,
-                      size: iconSize,
-                    } as any)
+                      size: iconSize} as any)
                   : null;
 
                 return (
@@ -324,8 +317,7 @@ const BottomBar: React.FC = () => {
                     style={{
                       flex: 1,
                       alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                      justifyContent: "center"}}
                   >
                     {icon}
                   </Pressable>
@@ -338,31 +330,27 @@ const BottomBar: React.FC = () => {
           headerShown: false,
           tabBarShowLabel: false,
           tabBarActiveTintColor: "#F2C112",
-          tabBarInactiveTintColor: "#CCCCCC",
-        }}
+          tabBarInactiveTintColor: "#CCCCCC"}}
       >
           <Tab.Screen
             name={"Home"}
             component={Home}
             options={{
               tabBarIcon: ({ color, focused }) =>
-                renderTabIcon(focused, <HomeIcon color={color} size={iconSize} />),
-            }}
+                renderTabIcon(focused, <HomeIcon color={color} size={iconSize} />)}}
           />
           {/* <Tab.Screen
           name={"Bookmark"}
           component={Bookmark}
           options={{
-            tabBarIcon: ({ color }: { color: string }) => <BookmarkIcon color={color} />,
-          }}
+            tabBarIcon: ({ color }: { color: string }) => <BookmarkIcon color={color} />}}
         /> */}
           <Tab.Screen
             name={"Rewards"}
             component={Rewards}
             options={{
               tabBarIcon: ({ color, focused }) =>
-                renderTabIcon(focused, <RewardsIcon color={color} size={iconSize} />),
-            }}
+                renderTabIcon(focused, <RewardsIcon color={color} size={iconSize} />)}}
           />
 
           <Tab.Screen
@@ -374,17 +362,19 @@ const BottomBar: React.FC = () => {
                   e.preventDefault();
                   setShowSubscriptionModal(true);
                 }
-              },
-            })}
+              }})}
             options={{
               tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
                 <View style={{ alignItems: "center", justifyContent: "center" }}>
-                  <MagnifyIcon focused={focused}>
-                    <AnalyticsIcon color={color} size={40} />
-                  </MagnifyIcon>
+                    <MagnifyIcon focused={focused}>
+                      <Image
+                        source={focused ? require('../assets/WebAnalytics.png') : require('../assets/WebAnalyticsin.png')}
+                        style={{ width: iconSize, height: iconSize }}
+                        resizeMode="contain"
+                      />
+                    </MagnifyIcon>
                 </View>
-              ),
-            }}
+              )}}
           />
 
           <Tab.Screen
@@ -392,16 +382,14 @@ const BottomBar: React.FC = () => {
             component={Notification}
             options={{
               tabBarIcon: ({ color, focused }) =>
-                renderTabIcon(focused, <NotificationIcon color={color} size={iconSize} />),
-            }}
+                renderTabIcon(focused, <NotificationIcon color={color} size={iconSize} />)}}
           />
           <Tab.Screen
             name={"Profile"}
             component={Profile}
             options={{
               tabBarIcon: ({ color, focused }) =>
-                renderTabIcon(focused, <ProfileIcon color={color} size={iconSize} />),
-            }}
+                renderTabIcon(focused, <ProfileIcon color={color} size={iconSize} />)}}
           />
       </Tab.Navigator>
       <Modal visible={showSubscriptionModal} transparent animationType="fade">
@@ -424,12 +412,12 @@ const BottomBar: React.FC = () => {
                       navigation.navigate('Plans');
                     }}
                   >
-                    <Text style={[styles.upgradeTxt, { color: '#fff' }]}>UPGRADE</Text>
+                    <Text style={[styles.upgradeTxt, { color: '#fff', fontFamily: 'AppFont-Bold' }]}>UPGRADE</Text>
                   </TouchableOpacity>
                 </LinearGradient>
               </View>
               <TouchableOpacity style={styles.maybeLaterBtn} onPress={() => setShowSubscriptionModal(false)}>
-                <Text style={styles.maybeLaterTxt}>Maybe later</Text>
+                <Text style={[styles.maybeLaterTxt,{fontFamily: 'AppFont-Bold'}]}>Maybe later</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -461,16 +449,15 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0)'
   },
   modalContent: { width: '100%', backgroundColor: '#dce9f0', borderRadius: 12, paddingTop: 32, paddingBottom: 18, paddingHorizontal: 16, position: 'relative' },
-  modalTitleCenteredWhite: { fontSize: 20, fontWeight: '800', color: COLORS.dark, textAlign: 'center', marginTop: 4, marginBottom: 8 },
-  modalBodyCenteredWhite: { fontSize: 15, color: COLORS.grey, textAlign: 'center', marginBottom: 16 },
+  modalTitleCenteredWhite: { fontFamily: 'AppFont-Regular', fontSize: 20,  color: COLORS.dark, textAlign: 'center', marginTop: 4, marginBottom: 8 },
+  modalBodyCenteredWhite: { fontFamily: 'AppFont-Regular', fontSize: 15, color: COLORS.grey, textAlign: 'center', marginBottom: 16 },
   modalActionsColumn: { alignItems: 'center' },
   upgradeGradient: { width: '100%', borderRadius: 8, overflow: 'hidden', marginBottom: 10 },
   upgradeInner: { paddingVertical: 12, alignItems: 'center' },
-  upgradeTxt: { color: COLORS.one, fontWeight: '700', fontSize: 15 },
+  upgradeTxt: { color: COLORS.one,  fontFamily: 'AppFont-Regular', fontSize: 15 },
   maybeLaterBtn: { width: '100%', borderRadius: 8, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(14, 13, 13, 0.04)' },
-  maybeLaterTxt: { color: '#101010', fontWeight: '600', fontSize: 15 },
+  maybeLaterTxt: { color: '#101010',  fontFamily: 'AppFont-Regular', fontSize: 15 },
   closeBtn: { position: 'absolute', right: 8, top: 8,bottom: 8 , width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#121212', fontSize: 20, fontWeight: '700' },
+  closeTxt: { color: '#121212', fontFamily: 'AppFont-Regular', fontSize: 20},
   modalButtonSecondary: { backgroundColor: 'transparent' },
-  modalButtonText: { fontSize: 16, fontWeight: '800', color: COLORS.light, fontFamily: FONTS.h4.fontFamily },
-});
+  modalButtonText: { fontFamily: 'AppFont-Regular', fontSize: 16,  color: COLORS.light }});

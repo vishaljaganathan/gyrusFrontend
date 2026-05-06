@@ -12,8 +12,7 @@ export const getTestConfig = (planValid: boolean) => {
         hasTimeLimit: false,
         canSkipQuestions: true,
         showExplanations: true,
-        allowRetry: true,
-    };
+        allowRetry: true };
 };
 
 export const fetchQuestions = async (params: {
@@ -35,8 +34,7 @@ export const fetchQuestions = async (params: {
             offset,
             usedIds,
             cycle,
-            set,
-        });
+            set } );
 
         return response.data;
     } catch (error) {
@@ -103,8 +101,7 @@ export const getProgressionLogic = (
         nextSetIndexInCycle: nextSetIndex,
         message: percentage >= 50 ? 'Great job!' : 'Keep trying!',
         canProgress: true,
-        isNewCycle,
-    };
+        isNewCycle };
 };
 
 export const getSetLabel = (setIndex: number) => {

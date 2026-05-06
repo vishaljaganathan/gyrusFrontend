@@ -12,7 +12,7 @@ export const axiosInstance = axios.create({
   // 
   // Example IPs: 192.168.1.103, 192.168.0.105, 10.0.0.15
   // Your phone MUST be on the SAME WiFi network!
-      // baseURL: "http://192.168.1.103:3000/api/",  // ← Your current IP from Metro bundler
+      // baseURL: "http://192.168.0.103:3000/api/", 
    baseURL:"https://api-v2.gyrusneet.com/api/",
   timeout: 30000, // 30 second timeout
 });

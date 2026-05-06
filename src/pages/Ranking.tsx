@@ -1,5 +1,8 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import HeaderBar from "../navigation/Headerbar";
 // import React, { useEffect, useState, useContext } from "react";
-// import { StyleSheet, View, ScrollView, Text, Platform } from "react-native";
+// import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+
 // import { Dimensions } from "react-native";
 // import {
 //   widthPercentageToDP as wp,
@@ -121,7 +124,7 @@
 //             <View style={style.rankingList}>
 //               {rankingList.length == 0 && (
 //                 <Text
-//                   style={{ color: "#FFF", fontSize: wp(4), fontWeight: "500" }}
+//                   style={{ color: "#FFF", fontFamily: 'AppFont-Regular', fontSize: wp(4)}}
 //                 >
 //                   Rankings not available Yet!
 //                 </Text>
@@ -269,28 +272,30 @@
 //     paddingHorizontal: wp(2),
 //   },
 //   font: {
-//     fontSize: hp(1.6),
-//     fontWeight: "700",
-//     color: "#FFFFFF",
+//     ,
+//     fontFamily: 'AppFont-Regular', fontSize: hp(1.6),
+//     //     color: "#FFFFFF",
 //   },
 //   fontGp: {
-//     fontSize: hp(1.6),
-//     fontWeight: "600",
-//     color: "#0AB8AD",
+//     ,
+//     fontFamily: 'AppFont-Regular', fontSize: hp(1.6),
+//     //     color: "#0AB8AD",
 //   },
 //   yourFont: {
-//     fontSize: hp(2),
-//     fontWeight: "500",
-//   },
+//     ,
+//     fontFamily: 'AppFont-Regular', fontSize: hp(2),
+//     //   }
 // });
 
 //  export default Ranking;
 
 import React from "react";
-import { StyleSheet, View, Text } from "react-native";
+import { View, Text, StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator, TextInput, Modal, Alert } from 'react-native';
 import { LinearGradient } from "expo-linear-gradient";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import HeaderBar from "../navigation/Headerbar";
+
+
+
+
 
 const Ranking = () => {
   const insets = useSafeAreaInsets(); // Get safe area insets
@@ -312,25 +317,18 @@ const Ranking = () => {
 
 const style = StyleSheet.create({
   safeArea: {
-    flex: 1,
+     flex: 1,
     backgroundColor: "#028464", // Match the gradient's starting color
-  },
+   },
   androidLarge57: {
     flex: 1,
     overflow: "hidden",
     backgroundColor: "transparent",
-    width: "100%",
-  },
-  comingSoonContainer: {
+    width: "100%" }, comingSoonContainer: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-  },
-  comingSoonText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-  },
-});
+    alignItems: "center" }, comingSoonText: {
+     fontFamily: 'AppFont-Regular', fontSize: 24,
+        color: "#FFFFFF" } });
 
 export default Ranking;

@@ -24,10 +24,8 @@ export const RayzorPay = () => {
     prefill: {
       email: "info@jetcode.in",
       contact: "6369312738",
-      name: "Razorpay Software",
-    },
-    theme: { color: COLORS.secondary01 },
-  };
+      name: "Razorpay Software" }, theme: {
+    fontFamily: 'AppFont-Regular', color: COLORS.secondary01  } };
   RazorpayCheckout.open(options)
     .then((data) => {
       // handle success

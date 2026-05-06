@@ -1,8 +1,7 @@
 import {
   IconLookup,
   IconName,
-  IconPrefix,
-} from "@fortawesome/free-solid-svg-icons";
+  IconPrefix } from "@fortawesome/free-solid-svg-icons";
 
 export interface ModalProps {
   showModal: boolean;

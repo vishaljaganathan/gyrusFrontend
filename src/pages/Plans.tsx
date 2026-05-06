@@ -1,33 +1,26 @@
+import { axiosInstance } from '../config/indeceptor';
 import React, { useEffect, useState, useContext } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-  Alert,
-  NativeModules,
-  TextInput,
-} from "react-native";
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Alert, ScrollView, NativeModules } from 'react-native'
+import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
+import { Modal } from "@gluestack-ui/themed-native-base";
 import { LinearGradient } from "expo-linear-gradient";
-import Theme from "../styles/themes";
+import Theme, { FontFamily } from "../styles/themes";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
+  heightPercentageToDP as hp } from "react-native-responsive-screen";
 import {
   faCircleCheck,
   faCircleXmark,
-  faTriangleExclamation,
-} from "@fortawesome/free-solid-svg-icons";
+  faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import RazorpayCheckout from "react-native-razorpay";
 import { ThemeContext } from "../service/authContext";
 import SubscribeBtn from "../components/SubscribeButton";
-import { axiosInstance } from "../config/indeceptor";
-import { Modal } from "@gluestack-ui/themed-native-base";
+
+
+
+
 
 const Plans = ({ navigation }: any) => {
   const check = require("../assets/check-square.png");
@@ -51,8 +44,7 @@ const Plans = ({ navigation }: any) => {
     discountApplicable: false,
     gst: 18,
     gstPrice: 100,
-    prices: { discountPrice: "0", offer: 0, price: "0" },
-  });
+    prices: { discountPrice: "0", offer: 0, price: "0" } });
 
   const { userData, setUserData } = useContext(ThemeContext);
   const Top = (insets.top = 62);
@@ -125,6 +117,7 @@ const Plans = ({ navigation }: any) => {
     setShowPayment(false);
     if (shouldCloseOrderSummary) {
       closeOrderSummary();
+      navigation.navigate("BottomBar", { screen: "Home", params: { fromPaymentSuccess: true } });
     }
   };
 
@@ -146,8 +139,7 @@ const Plans = ({ navigation }: any) => {
     axiosInstance
       .post("authentication/coupon/verify", {
         planId: order._id,
-        couponCode: normalizedCouponCode,
-      })
+        couponCode: normalizedCouponCode } )
       .then((res) => {
         setVerifiedCoupon(res.data);
         setCouponCode(res.data?.couponCode || normalizedCouponCode);
@@ -203,8 +195,7 @@ const Plans = ({ navigation }: any) => {
           onResolved?.(!!latestUser?.planValid);
         } else {
           onResolved?.(false);
-        }
-      })
+        } })
       .catch(() => {
         onResolved?.(false);
       });
@@ -216,8 +207,7 @@ const Plans = ({ navigation }: any) => {
     axiosInstance
       .post("authentication/create-order", {
         planId,
-        couponCode: verifiedCoupon?.couponCode || undefined,
-      })
+        couponCode: verifiedCoupon?.couponCode || undefined } )
       .then((orderResponse) => {
         const orderData = orderResponse?.data;
 
@@ -225,8 +215,7 @@ const Plans = ({ navigation }: any) => {
           axiosInstance
             .put("authentication/payment/update", {
               planId,
-              couponCode: verifiedCoupon?.couponCode || undefined,
-            })
+              couponCode: verifiedCoupon?.couponCode || undefined } )
             .then((res) => {
               const emailSent = !!res?.data?.emailSent;
               const downloadUrl = res?.data?.downloadUrl;
@@ -236,15 +225,9 @@ const Plans = ({ navigation }: any) => {
               setshowPaymentStatus(true);
               refreshUserAndResolvePaymentStatus();
 
-              if (emailSent) {
-                Alert.alert("Plan activated", "Invoice has been sent to your email.");
-              } else if (downloadUrl) {
-                Alert.alert(
-                  "Plan activated",
-                  `Invoice email could not be sent. You can download your bill from: ${downloadUrl}`
-                );
-              }
-            })
+              // Success modal will be shown by setShowPayment(true) above
+              // No additional Alert needed per user request
+              })
             .catch((err) => {
               console.log(err);
               setLoading(false);
@@ -266,8 +249,7 @@ const Plans = ({ navigation }: any) => {
           setLoading(false);
           setShowPayment(true);
           setshowPaymentStatus(false);
-        }
-      })
+        } })
       .catch((err) => {
         console.log(err);
         setLoading(false);
@@ -293,8 +275,7 @@ const Plans = ({ navigation }: any) => {
       console.error("Razorpay native module is unavailable", {
         hasCheckoutModule,
         canCallOpen,
-        razorpayRelatedNativeModules: nativeModuleKeys.filter((name) => /razorpay/i.test(name)),
-      });
+        razorpayRelatedNativeModules: nativeModuleKeys.filter((name) => /razorpay/i.test(name)) } );
       setLoading(false);
       setShowPayment(true);
       setshowPaymentStatus(false);
@@ -329,19 +310,15 @@ const Plans = ({ navigation }: any) => {
       key: razorpayKey,
       amount: amountInPaise,
       currency: "INR",
-      name: "Gyrus Neet",
+      name: "Gyrus NEET",
       description: "Payment for Order",
       image: logo,
       order_id: orderId,
       prefill: {
         email: userData.email,
         contact: userData.phoneNo,
-        name: userData.firstName + " " + userData.lastName,
-      },
-      theme: {
-        color: "rgba(2, 134, 134, 1)",
-      },
-    };
+        name: userData.firstName + " " + userData.lastName }, theme: {
+     color: "rgba(2, 134, 134, 1)" } };
 
     try {
       const checkoutPromise = RazorpayCheckout.open(options);
@@ -353,44 +330,23 @@ const Plans = ({ navigation }: any) => {
             couponCode: appliedCouponCode,
             razorpay_payment_id: paymentData?.razorpay_payment_id,
             razorpay_order_id: paymentData?.razorpay_order_id,
-            razorpay_signature: paymentData?.razorpay_signature,
-          })
+            razorpay_signature: paymentData?.razorpay_signature } )
           .then((res) => {
-            const emailSent = !!res?.data?.emailSent;
-            const downloadUrl = res?.data?.downloadUrl;
-
             // If server accepted payment update, show success immediately.
             setShowPayment(true);
             setshowPaymentStatus(true);
             refreshUserAndResolvePaymentStatus();
 
-            if (emailSent) {
-              Alert.alert("Payment successful", "Invoice has been sent to your email.");
-            } else if (downloadUrl) {
-              console.log("Invoice download URL:", downloadUrl);
-              Alert.alert(
-                "Payment successful",
-                `Invoice email could not be sent. You can download your bill from: ${downloadUrl}`
-              );
-            } else {
-              Alert.alert(
-                "Payment successful",
-                "Invoice email could not be sent. Please contact support."
-              );
-            }
-          })
+            // Success modal will be shown by setShowPayment(true) above
+            // No additional Alert needed per user request
+            })
           .catch(async () => {
             // Fallback: payment may already be captured and user updated by backend/webhook.
             const isPaid = await resolvePaymentActivation();
             setShowPayment(true);
             setshowPaymentStatus(isPaid);
 
-            if (isPaid) {
-              Alert.alert(
-                "Payment successful",
-                "Payment is active. Invoice email status is unavailable right now."
-              );
-            } else {
+            if (!isPaid) {
               Alert.alert(
                 "Payment pending",
                 "Payment completed on Razorpay, but activation is still processing. Please wait and try again."
@@ -399,7 +355,6 @@ const Plans = ({ navigation }: any) => {
           });
 
         setLoading(false);
-        navigation.navigate("BottomBar", { screen: "Home" });
       }).catch((error: any) => {
         console.error("Razorpay checkout failed", error);
         setLoading(false);
@@ -447,7 +402,7 @@ const Plans = ({ navigation }: any) => {
         Theme.COLORS.four,
         Theme.COLORS.five,
       ]}
-      style={styles.container}
+            style={styles.container}
       start={{ x: 1, y: 0 }}
       end={{ x: 0, y: 1 }}
     >
@@ -457,8 +412,7 @@ const Plans = ({ navigation }: any) => {
           paddingTop: Top,
           paddingRight: insets.right,
           paddingBottom: insets.bottom,
-          paddingLeft: insets.left,
-        }}
+          paddingLeft: insets.left } }
       >
         {/* Close Button */}
         <View
@@ -466,8 +420,7 @@ const Plans = ({ navigation }: any) => {
             width: "90%",
             display: "flex",
             flexDirection: "row",
-            justifyContent: "flex-end",
-          }}
+            justifyContent: "flex-end" } }
         >
           <TouchableOpacity onPress={Navigate}>
             <FontAwesomeIcon icon={faCircleXmark} size={wp(8)} color={Theme.COLORS.grey01} />
@@ -480,12 +433,13 @@ const Plans = ({ navigation }: any) => {
             <ScrollView style={{ paddingHorizontal: wp(2) }}>
               {plans.map((data: any, index: number) => {
                 return (
-                  <View key={index} style={styles.cardContainer}>
+                  <View key={index}
+            style={styles.cardContainer}>
                     <View style={{ alignItems: "center" }}>
                       <View style={{ display: "flex", flexDirection: "row" }}>
                         <Image
                           source={{ uri: data.img }}
-                          style={{ width: 70, height: 70 }}
+            style={{ width: 70, height: 70 }}
                         />
                         <Text style={styles.features}>{data.title}</Text>
                       </View>
@@ -496,14 +450,12 @@ const Plans = ({ navigation }: any) => {
                           display: "flex",
                           flexDirection: "row",
                           gap: wp(2),
-                          margin: wp(1),
-                        }}
+                          margin: wp(1) } }
                       >
                         <View
                           style={{
                             width: wp(14),
-                            justifyContent: "flex-start",
-                          }}
+                            justifyContent: "flex-start" } }
                         >
                           {data.discountApplicable && (
                             <>
@@ -511,8 +463,7 @@ const Plans = ({ navigation }: any) => {
                                 style={{
                                   color: "#FFFFFF",
                                   textDecorationLine: "line-through",
-                                  fontSize: wp(4),
-                                }}
+                                  fontFamily: 'AppFont-Regular', fontSize: wp(4) } }
                               >
                                 {"\u20B9"}
                                 {data.prices.price}
@@ -520,8 +471,7 @@ const Plans = ({ navigation }: any) => {
                               <Text
                                 style={{
                                   marginVertical: wp(1.2),
-                                  color: "#002B7B",
-                                }}
+                                  color: "#002B7B" } }
                               >
                                 {data.prices.offer}
                                 {"% off"}
@@ -530,7 +480,7 @@ const Plans = ({ navigation }: any) => {
                           )}
                         </View>
                         <View>
-                          <Text style={{ color: "#FFFFFF", fontSize: wp(5) }}>
+                          <Text style={{ color: "#FFFFFF", fontFamily: 'AppFont-Regular', fontSize: wp(5) }}>
                             {"\u20B9"}
                             {data.discountApplicable
                               ? data.prices.discountPrice
@@ -545,21 +495,19 @@ const Plans = ({ navigation }: any) => {
                         {data.desc.map((desc: any, i: number) => (
                           <View
                             key={i}
-                            style={{
+            style={{
                               display: "flex",
                               flexDirection: "row",
-                              justifyContent: "flex-start",
-                            }}
+                              justifyContent: "flex-start" } }
                           >
                             <Image
                               source={check}
-                              style={{ width: 20, height: 20, margin: wp(1) }}
+            style={{ width: 20, height: 20, margin: wp(1) }}
                             />
                             <Text
                               style={{
                                 color: "#FFFFFF",
-                                marginVertical: hp(0.6),
-                              }}
+                                marginVertical: hp(0.6) } }
                             >
                               {desc.desc}
                             </Text>
@@ -574,6 +522,7 @@ const Plans = ({ navigation }: any) => {
                         openOrderSummary(plans[index]);
                       }}
                       text={"Subscribe Now"}
+                      textStyle={{ fontWeight: "bold" }}
                     />
                   </View>
                 );
@@ -588,15 +537,13 @@ const Plans = ({ navigation }: any) => {
                   maxWidth="304"
                   maxH="420"
                   style={{
-                    backgroundColor: "#FFF",
-                  }}
+                    backgroundColor: "#FFF" } }
                 >
                   <Modal.CloseButton style={{ padding: 9 }} />
                   <Modal.Header
                     style={{
                       backgroundColor: "transparent",
-                      paddingBottom: hp(2),
-                    }}
+                      paddingBottom: hp(2) } }
                   >
                     <View style={styles.emojiContainer}>
                       <Text>Order Summary</Text>
@@ -608,8 +555,7 @@ const Plans = ({ navigation }: any) => {
                         display: "flex",
                         flexDirection: "row",
                         justifyContent: "space-between",
-                        marginVertical: hp(0.5),
-                      }}
+                        marginVertical: hp(0.5) } }
                     >
                       <Text>Sub Total</Text>
                       <Text>
@@ -624,8 +570,7 @@ const Plans = ({ navigation }: any) => {
                         display: "flex",
                         flexDirection: "row",
                         justifyContent: "space-between",
-                        marginVertical: hp(0.5),
-                      }}
+                        marginVertical: hp(0.5) } }
                     >
                       <Text>Gst ({order.gst}%) </Text>
                       <Text>
@@ -638,8 +583,7 @@ const Plans = ({ navigation }: any) => {
                         display: "flex",
                         flexDirection: "row",
                         justifyContent: "space-between",
-                        marginVertical: hp(0.5),
-                      }}
+                        marginVertical: hp(0.5) } }
                     >
                       <Text>Total Amount</Text>
                       <Text>{"\u20B9"} {originalAmount}</Text>
@@ -650,8 +594,7 @@ const Plans = ({ navigation }: any) => {
                           display: "flex",
                           flexDirection: "row",
                           justifyContent: "space-between",
-                          marginVertical: hp(0.5),
-                        }}
+                          marginVertical: hp(0.5) } }
                       >
                         <Text>Coupon Discount</Text>
                         <Text>{"\u20B9"} {verifiedCoupon.discountAmount}</Text>
@@ -662,8 +605,7 @@ const Plans = ({ navigation }: any) => {
                         display: "flex",
                         flexDirection: "row",
                         justifyContent: "space-between",
-                        marginVertical: hp(0.5),
-                      }}
+                        marginVertical: hp(0.5) } }
                     >
                       <Text>Payable Amount</Text>
                       <Text>{"\u20B9"} {payableAmount}</Text>
@@ -672,7 +614,7 @@ const Plans = ({ navigation }: any) => {
                     <View style={styles.couponContainer}>
                       <TouchableOpacity
                         style={styles.couponToggleRow}
-                        onPress={() => {
+            onPress={() => {
                           const nextChecked = !couponChecked;
                           setCouponChecked(nextChecked);
 
@@ -700,12 +642,12 @@ const Plans = ({ navigation }: any) => {
                               setCouponError("");
                               setVerifiedCoupon(null);
                             }}
-                            style={styles.couponInput}
+            style={styles.couponInput}
                           />
                           <TouchableOpacity
                             style={styles.verifyButton}
                             disabled={couponLoading}
-                            onPress={verifyCoupon}
+            onPress={verifyCoupon}
                           >
                             <Text style={styles.verifyButtonText}>
                               {couponLoading ? "Verifying..." : "Verify Coupon"}
@@ -726,6 +668,7 @@ const Plans = ({ navigation }: any) => {
                       <SubscribeBtn
                         disable={loading || couponLoading}
                         text={"Continue"}
+                        textStyle={{ fontWeight: "bold" }}
                         onPress={() => createOrder(order._id)}
                       />
                     </View>
@@ -751,7 +694,7 @@ const Plans = ({ navigation }: any) => {
                       }
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
-                      style={styles.paymentStatusCard}
+            style={styles.paymentStatusCard}
                     >
                       <View
                         style={[
@@ -782,7 +725,7 @@ const Plans = ({ navigation }: any) => {
                             ? styles.paymentSuccessButton
                             : styles.paymentFailureButton,
                         ]}
-                        onPress={closePaymentModal}
+            onPress={closePaymentModal}
                       >
                         <Text style={styles.paymentStatusButtonText}>
                           {showPaymentStatus ? "Continue" : "Try Again"}
@@ -805,14 +748,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-  },
-  Img: {
+    justifyContent: "center" }, Img: {
     width: "100%",
     height: "100%",
-    resizeMode: "stretch",
-  },
-  cardContainer: {
+    resizeMode: "stretch" }, cardContainer: {
     borderWidth: wp(0.3),
     borderRadius: wp(2),
     borderColor: "#D3D3D3",
@@ -822,66 +761,44 @@ const styles = StyleSheet.create({
     marginVertical: hp(2),
     padding: wp(4),
     backgroundColor: "rgba(47, 47, 47, 0.4)",
-    opacity: 34,
-  },
-  features: {
-    color: "#FFFFFF",
-    fontSize: wp(4.5),
+    opacity: 34 }, features: {
+     color: "#FFFFFF",
+    fontFamily: 'AppFont-Regular', fontSize: wp(4.5),
     marginVertical: hp(2),
-    marginHorizontal: wp(3),
-  },
+    marginHorizontal: wp(3) },
   premimum: {
-    color: "#D5D5D5",
-    fontSize: wp(4),
-  },
+     color: "#D5D5D5",
+    fontFamily: 'AppFont-Regular', fontSize: wp(4) },
   pointsCard: {
     borderColor: "black",
     display: "flex",
     paddingVertical: wp(3),
     width: "80%",
     backgroundColor: "#D9D9D9",
-    borderBottomEndRadius: wp(9),
-  },
-  rateContainer: {
+    borderBottomEndRadius: wp(9) }, rateContainer: {
     backgroundColor: "rgba(0, 0, 0, 0.55)",
-    width: "80%",
-  },
-  totalAmnt: {
+    width: "80%" }, totalAmnt: {
     display: "flex",
     flexDirection: "row",
-    justifyContent: "flex-end",
-  },
-  emojiContainer: {
+    justifyContent: "flex-end" }, emojiContainer: {
     display: "flex",
     flexDirection: "row",
     justifyContent: "space-around",
-    gap: 15,
-  },
-  summaryRow: {
+    gap: 15 }, summaryRow: {
     display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: hp(0.5),
-  },
-  line: {
+    marginVertical: hp(0.5) }, line: {
     height: 1,
     backgroundColor: "#000",
     width: "100%",
-    marginVertical: 10,
-  },
-  couponContainer: {
-    marginBottom: hp(1.5),
-  },
-  couponToggleRow: {
+    marginVertical: 10 }, couponContainer: {
+    marginBottom: hp(1.5) }, couponToggleRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: hp(1),
-  },
-  couponLabel: {
-    fontSize: wp(3.8),
-    fontWeight: "700",
-    color: "#222",
-  },
+    marginBottom: hp(1) }, couponLabel: {
+     fontFamily: 'AppFont-Regular', fontSize: wp(3.8),
+        color: "#222" },
   checkbox: {
     width: 20,
     height: 20,
@@ -891,59 +808,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: wp(2),
-    backgroundColor: "#FFF",
-  },
-  checkboxChecked: {
-    backgroundColor: Theme.COLORS.one,
-  },
-  checkboxTick: {
-    color: "#FFF",
-    fontWeight: "700",
-  },
+    backgroundColor: "#FFF" }, checkboxChecked: {
+    backgroundColor: Theme.COLORS.one }, checkboxTick: {
+     color: "#FFF"},
   couponInput: {
+    
     borderWidth: 1,
     borderColor: "#D3D3D3",
     borderRadius: 8,
+    textAlign: "center",
+    alignContent: "center",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginBottom: hp(1),
-  },
-  verifyButton: {
+    marginBottom: hp(1) }, verifyButton: {
     backgroundColor: Theme.COLORS.one,
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: "center",
-    marginBottom: hp(1),
-  },
-  verifyButtonText: {
-    color: "#FFF",
-    fontWeight: "700",
-  },
+    marginBottom: hp(1) }, verifyButtonText: {
+     color: "#FFF",
+     fontFamily: 'AppFont-Bold'},
   couponError: {
-    color: "#C62828",
-    marginBottom: hp(1),
-  },
+     color: "#C62828",
+    marginBottom: hp(1) },
   couponSummary: {
     backgroundColor: "#F7F7F7",
     borderRadius: 8,
-    padding: 10,
-  },
-  couponSuccessText: {
-    color: Theme.COLORS.one,
-    fontWeight: "700",
-    marginBottom: hp(0.8),
-  },
+    padding: 10 }, couponSuccessText: {
+     color: Theme.COLORS.one,
+        marginBottom: hp(0.8) },
   paymentModalContent: {
     backgroundColor: "transparent",
     borderWidth: 0,
     shadowOpacity: 0,
-    elevation: 0,
-  },
-  paymentModalCloseButton: {
+    elevation: 0 }, paymentModalCloseButton: {
     padding: 10,
-    zIndex: 2,
-  },
-  paymentStatusCard: {
+    zIndex: 2 }, paymentStatusCard: {
     borderRadius: 24,
     paddingHorizontal: wp(6),
     paddingTop: hp(3),
@@ -951,54 +852,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.7)",
-    overflow: "hidden",
-  },
-  paymentStatusIconWrap: {
+    overflow: "hidden" }, paymentStatusIconWrap: {
     width: wp(20),
     height: wp(20),
     borderRadius: wp(10),
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: hp(2),
-  },
-  paymentSuccessIconWrap: {
-    backgroundColor: "rgba(33, 163, 0, 0.12)",
-  },
-  paymentFailureIconWrap: {
-    backgroundColor: "rgba(246, 86, 93, 0.12)",
-  },
-  paymentStatusTitle: {
-    fontSize: wp(6),
-    fontWeight: "800",
-    color: Theme.COLORS.one,
+    marginBottom: hp(2) }, paymentSuccessIconWrap: {
+    backgroundColor: "rgba(33, 163, 0, 0.12)" }, paymentFailureIconWrap: {
+    backgroundColor: "rgba(246, 86, 93, 0.12)" }, paymentStatusTitle: {
+     fontFamily: 'AppFont-Bold', fontSize: wp(6),
+        color: Theme.COLORS.one,
     marginBottom: hp(1),
-    textAlign: "center",
-  },
+    textAlign: "center" },
   paymentStatusSubtitle: {
-    fontSize: wp(3.8),
+     fontFamily: 'AppFont-Regular', fontSize: wp(3.8),
     lineHeight: wp(5.4),
     color: Theme.COLORS.grey,
     textAlign: "center",
-    marginBottom: hp(2.2),
-  },
+    marginBottom: hp(2.2) },
   paymentStatusButton: {
     minWidth: wp(38),
     borderRadius: 18,
     paddingVertical: hp(1.4),
     paddingHorizontal: wp(5),
-    alignItems: "center",
-  },
-  paymentSuccessButton: {
-    backgroundColor: Theme.COLORS.primary06,
-  },
-  paymentFailureButton: {
-    backgroundColor: Theme.COLORS.error01,
-  },
-  paymentStatusButtonText: {
-    color: "#FFF",
-    fontWeight: "800",
-    fontSize: wp(4),
-  },
-});
+    alignItems: "center" }, paymentSuccessButton: {
+    backgroundColor: Theme.COLORS.primary06 }, paymentFailureButton: {
+    backgroundColor: Theme.COLORS.error01 }, paymentStatusButtonText: {
+     color: "#FFF",
+        fontFamily: 'AppFont-Bold', fontSize: wp(4), fontWeight: 'bold' } });
 
 export default Plans;
