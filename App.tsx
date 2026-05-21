@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "react-native-gesture-handler";
 import { Image, LogBox, StyleSheet, Text, TextInput, Platform, Animated } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -29,6 +29,8 @@ import Plans from "./src/pages/Plans";
 import Test from "./src/screens/Test";
 import Default from "./src/pages/Default";
 import ResetPassword from "./src/pages/ResetPassword";
+import ClassSelection from "./src/pages/ClassSelection";
+import NotificationHandler from "./src/components/NotificationHandler";
 
 // Create a custom Gluestack config to force our bundled font globally
 const customConfig = {
@@ -163,6 +165,7 @@ export default function App() {
               <StatusBar
                 style={appState.indicatorColor}
               />
+              <NotificationHandler />
               <Stack.Navigator initialRouteName="DefaultScreen">
                 <Stack.Screen
                   name="DefaultScreen"
@@ -180,6 +183,11 @@ export default function App() {
                     options={{ headerShown: false }}
                     component={SignUp}
                   />
+                  {/* <Stack.Screen
+                    name="ClassSelection"
+                    options={{ headerShown: false }}
+                    component={ClassSelection}
+                  /> */}
                   <Stack.Screen
                     options={{
                       headerShown: false,

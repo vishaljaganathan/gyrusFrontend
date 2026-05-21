@@ -1,6 +1,10 @@
-import React, { useContext, useEffect, useMemo, useState, useCallback } from 'react';
-import { View,  StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Platform, TouchableOpacity, Image } from 'react-native'
+import React, { useContext, useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { View, StyleSheet, ActivityIndicator, RefreshControl, Platform, TouchableOpacity, Image, Animated, Easing, Share, Alert } from 'react-native'
+import ViewShot from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
+import { Ionicons } from '@expo/vector-icons';
 import { CustomText as Text } from '../components/CustomText';
+import { CustomVerticalScrollbar } from '../components/CustomVerticalScrollbar';
 
 
 
@@ -20,34 +24,86 @@ const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? 25 : 40;
 
 
 const GyrusNEETAnalytics = () => {
-  const { userData, setUserData } = useContext(ThemeContext);
+  const { userData, setUserData, setAppState } = useContext(ThemeContext);
   const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  
+  const scrollRef = useRef<any>(null);
+  const viewShotRef = useRef<any>(null);
+  const [isSharing, setIsSharing] = useState(false);
+
 
   const fetchUser = async () => {
     setLoading(true);
     try {
       const res = await axiosInstance.get('authentication/user');
       if (res?.data) setUserData(res.data);
-    } catch {} finally {
+    } catch { } finally {
       setLoading(false);
     }
   };
 
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
   useFocusEffect(
     useCallback(() => {
       fetchUser();
+
+      // Ensure the page starts at the top when focused
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({ y: 0, animated: false });
+      }
+
+      progressAnim.setValue(0);
+      Animated.timing(progressAnim, {
+        toValue: 1,
+        duration: 2500,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+        useNativeDriver: false,
+      }).start();
     }, [])
   );
-
   
+  const getStdLabel = (val?: string) => {
+    if (!val) return "";
+    const mapping: any = {
+      "XI": "11th",
+      "XII": "12th",
+      "C": "Crash course",
+      "R": "Repeater course"
+    };
+    return mapping[val] || val;
+  };
+
+
 
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchUser();
     setRefreshing(false);
+  };
+
+  const handleShare = async () => {
+    try {
+      setIsSharing(true);
+      // Wait for state to update and branding to show
+      setTimeout(async () => {
+        if (viewShotRef.current) {
+          const uri = await viewShotRef.current.capture();
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(uri);
+          } else {
+            const message = `Check out my Gyrus NEET Detailed Analytics! 📊\nOverall Average: ${overallStats.avgScore}%\nJoin me on Gyrus NEET!`;
+            await Share.share({ message });
+          }
+        }
+        setIsSharing(false);
+      }, 500);
+    } catch (error) {
+      console.error('Error sharing analytics:', error);
+      setIsSharing(false);
+      Alert.alert("Error", "Failed to capture or share analytics image.");
+    }
   };
 
   const subjectData = useMemo(() => {
@@ -65,14 +121,15 @@ const GyrusNEETAnalytics = () => {
       physics: '#2979FF',
       chemistry: '#C45EFF',
       botany: '#239229',
-      zoology: '#10b981'};
+      zoology: '#10b981'
+    };
 
     const extractStats = (sub: any) => {
       const scoresArr = Array.isArray(sub.scores)
         ? sub.scores
         : typeof sub.scores === 'string'
-        ? JSON.parse(sub.scores || '[]')
-        : [];
+          ? JSON.parse(sub.scores || '[]')
+          : [];
       let correct = typeof sub.correct === 'number' ? sub.correct : 0;
       let wrong = typeof sub.wrong === 'number' ? sub.wrong : 0;
       let reward = typeof sub.rewardPoints === 'number' ? sub.rewardPoints : Number(sub.reward || 0) || 0;
@@ -100,15 +157,15 @@ const GyrusNEETAnalytics = () => {
 
     return subs.map((key) => {
       const neetSub = userData[neetFieldMap[key]] || {};
-      const indSub  = userData[key] || {};
+      const indSub = userData[key] || {};
       const neetStats = extractStats(neetSub);
-      const indStats  = extractStats(indSub);
+      const indStats = extractStats(indSub);
 
       const correct = neetStats.correct + indStats.correct;
-      const wrong   = neetStats.wrong   + indStats.wrong;
-      const reward  = neetStats.reward  + indStats.reward;
-      const streak  = (neetSub.streak || 0) + (indSub.streak || 0);
-      const total   = correct + wrong;
+      const wrong = neetStats.wrong + indStats.wrong;
+      const reward = neetStats.reward + indStats.reward;
+      const streak = (neetSub.streak || 0) + (indSub.streak || 0);
+      const total = correct + wrong;
       const progress = total > 0 ? Math.round((correct / total) * 100) : 0;
       const color = colorMap[key as keyof typeof colorMap];
       return {
@@ -119,7 +176,8 @@ const GyrusNEETAnalytics = () => {
         failed: wrong < 0 ? 0 : wrong,
         reward,
         streak,
-        color};
+        color
+      };
     });
   }, [userData]);
 
@@ -137,14 +195,16 @@ const GyrusNEETAnalytics = () => {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <HeaderBar />
-      <ScrollView
+      <CustomVerticalScrollbar
+        ref={scrollRef}
         style={styles.scroll}
+        indicatorColor="hsla(185, 100%, 93%, 1.00)"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        
+
         {!userData?.analyticsEnabledAt && (
-          <View style={[styles.sectionBox, { marginHorizontal: 16, backgroundColor: '#FEF9E7' }]}> 
-            <Text style={{ fontFamily: 'AppFont-Bold', fontSize: 16,  color: COLORS.one, marginBottom: 6 }}>New: Test Analytics</Text>
+          <View style={[styles.sectionBox, { marginHorizontal: 16, backgroundColor: '#FEF9E7' }]}>
+            <Text style={{ fontFamily: 'AppFont-Bold', fontSize: 16, color: COLORS.one, marginBottom: 6 }}>New: Test Analytics</Text>
             <Text style={{ color: COLORS.one, textAlign: 'justify' }}>This analytics feature is new. Your analytics will start at 0 when you submit tests from now on. Take a subject wise test to enable tracking for your subjects.</Text>
           </View>
         )}
@@ -164,24 +224,31 @@ const GyrusNEETAnalytics = () => {
               <FontAwesomeIcon icon={faAward} color={COLORS.light} size={40}  />
             </View>
           </View> */}
-           <View style={styles.statsRow}>
-          <View style={[styles.statsCard, { marginRight: 4 }]}> 
-            <Text style={styles.statsValue}>{overallStats.avgScore}%</Text>
-            <Text style={styles.statsLabel}>Average Score</Text>
+          <View style={styles.statsRow}>
+            <View style={[styles.statsCard, { marginRight: 4 }]}>
+              <Text style={styles.statsValue}>{overallStats.avgScore}%</Text>
+              <Text style={styles.statsLabel}>Average Score</Text>
+            </View>
+            <View style={[styles.statsCard, { marginLeft: 4 }]}>
+              <Text style={styles.statsValue}>{overallStats.bestScore}%</Text>
+              <Text style={styles.statsLabel}>Best Score</Text>
+            </View>
           </View>
-          <View style={[styles.statsCard, { marginLeft: 4 }]}> 
-            <Text style={styles.statsValue}>{overallStats.bestScore}%</Text>
-            <Text style={styles.statsLabel}>Best Score</Text>
-          </View>
-        </View>
         </LinearGradient>
 
         {loading && <ActivityIndicator style={{ margin: 20 }} color={COLORS.primary03} />}
 
-       
 
-        <View style={styles.sectionBox}>
-          <Text style={styles.sectionTitle}>Detailed Analysis</Text>
+
+        <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }} style={[styles.sectionBox, { backgroundColor: isSharing ? '#f8fafc' : COLORS.light }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Detailed Analytics</Text>
+            {!isSharing && (
+              <TouchableOpacity onPress={handleShare} style={styles.shareBtn}>
+                <Ionicons name="share-social-outline" size={24} color={COLORS.primary03} />
+              </TouchableOpacity>
+            )}
+          </View>
           {subjectData.map((sub, idx) => (
             <View
               key={idx}
@@ -195,7 +262,8 @@ const GyrusNEETAnalytics = () => {
                   shadowOpacity: 0.12,
                   shadowRadius: 12,
                   elevation: 6,
-                  backgroundColor: '#ffffff'},
+                  backgroundColor: '#ffffff'
+                },
               ]}
             >
               <View style={styles.subjectRow}>
@@ -208,7 +276,16 @@ const GyrusNEETAnalytics = () => {
               </View>
               <View style={[styles.progressBarBg, { position: 'relative' }]}>
                 <View style={styles.progressBarTrack} />
-                <View style={[styles.progressBarFill, { width: `${sub.score}%`, backgroundColor: sub.color, position: 'absolute', left: 0, top: 0 }]} />
+                <Animated.View style={[styles.progressBarFill, {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', `${sub.score}%`]
+                  }),
+                  backgroundColor: sub.color,
+                  position: 'absolute',
+                  left: 0,
+                  top: 0
+                }]} />
               </View>
               {/* <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
                 <Text style={styles.progressLabel}>{sub.progress}% Accuracy</Text>
@@ -229,7 +306,20 @@ const GyrusNEETAnalytics = () => {
               </View>
             </View>
           ))}
-        </View>
+
+          {isSharing && (
+            <View style={styles.shareBranding}>
+              <Image source={require('../assets/appLogo.png')} style={styles.shareLogo} />
+              <View>
+                <Text style={styles.shareAppName}>Gyrus NEET</Text>
+                <Text style={styles.shareUserName}>
+                  {`${userData?.firstName || ''} ${userData?.lastName || ''}`.trim() || userData?.name || 'User'}
+                  {userData?.std ? ` - ${getStdLabel(userData.std)}` : ''}
+                </Text>
+              </View>
+            </View>
+          )}
+        </ViewShot>
 
         {(() => {
           const totalQuestions = subjectData.reduce((s, c) => s + (c.completed + c.failed), 0);
@@ -237,42 +327,52 @@ const GyrusNEETAnalytics = () => {
 
           const best = subjectData.reduce((p, c) => (c.score > p.score ? c : p), subjectData[0]);
           const worst = subjectData.reduce((p, c) => (c.score < p.score ? c : p), subjectData[0]);
-          
+
           const others = subjectData.filter((s) => s.subject !== best.subject && s.subject !== worst.subject);
-          
+
           const totalCorrect = subjectData.reduce((s, c) => s + c.completed, 0);
           const totalWrong = subjectData.reduce((s, c) => s + c.failed, 0);
           const totalReward = subjectData.reduce((s, c) => s + (Number(c.reward) || 0), 0);
-          
+
           return (
             <View style={styles.sectionBox}>
               <Text style={styles.sectionTitle}>Key Highlights</Text>
               <View style={styles.highlightCard}>
                 <Text style={styles.highlightText}>
-                  <Text style={{ color: best.color}}>{best.subject}</Text> is your strongest subject with <Text style={{  color: best.color }}>{best.score}%</Text> accuracy.
+                  <Text style={{ color: best.color }}>{best.subject}</Text> is your strongest subject with <Text style={{ color: best.color }}>{best.score}%</Text> accuracy.
                 </Text>
               </View>
               <View style={styles.highlightCard}>
                 <Text style={styles.highlightText}>
-                  Consider focusing on <Text style={{ color: worst.color}}>{worst.subject}</Text> to improve performance (scored <Text style={{  color: worst.color }}>{worst.score}%</Text>).
+                  Consider focusing on <Text style={{ color: worst.color }}>{worst.subject}</Text> to improve performance (scored <Text style={{ color: worst.color }}>{worst.score}%</Text>).
                 </Text>
               </View>
               {others.map((o, i) => (
                 <View key={i} style={styles.highlightCard}>
                   <Text style={styles.highlightText}>
-                    <Text style={{ color: o.color}}>{o.subject}</Text> is performing around average with <Text style={{  color: o.color }}>{o.score}%</Text> accuracy.
+                    <Text style={{ color: o.color }}>{o.subject}</Text> is performing around average with <Text style={{ color: o.color }}>{o.score}%</Text> accuracy.
                   </Text>
                 </View>
               ))}
               <View style={styles.highlightCard}>
-                <Text style={styles.highlightText}>Total questions attempted: <Text style={{  color: '#6898ff' }}>{totalQuestions}</Text></Text>
-                <Text style={styles.highlightText}>Total correct: <Text style={{  color: COLORS.primary08 }}>{totalCorrect}</Text> — Total incorrect: <Text style={{  color: '#FF7676' }}>{totalWrong}</Text></Text>
-                <Text style={styles.highlightText}>Total reward points earned: <Text style={{  color: 'rgba(0, 71, 76,0.7)'}}>{totalReward}</Text></Text>
+                <Text style={styles.highlightText}>Total questions attempted: <Text style={{ color: '#6898ff' }}>{totalQuestions}</Text></Text>
+                <Text style={styles.highlightText}>Total correct: <Text style={{ color: COLORS.primary08 }}>{totalCorrect}</Text> — Total incorrect: <Text style={{ color: '#FF7676' }}>{totalWrong}</Text></Text>
+                <Text style={styles.highlightText}>Total reward points earned: <Text style={{ color: 'rgba(0, 71, 76,0.7)' }}>{totalReward}</Text></Text>
               </View>
+
+              <TouchableOpacity
+                style={[styles.focusButton, { backgroundColor: worst.color }]}
+                onPress={() => {
+                  setAppState((prev: any) => ({ ...prev, home: worst.subject.toLowerCase() }));
+                  navigation.navigate("BottomBar", { screen: "Home" });
+                }}
+              >
+                <Text style={styles.focusButtonText}>Practice {worst.subject}</Text>
+              </TouchableOpacity>
             </View>
           );
         })()}
-      </ScrollView>
+      </CustomVerticalScrollbar>
     </SafeAreaView>
   );
 };
@@ -286,20 +386,21 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     margin: 16,
     marginBottom: 8,
-    opacity: 0.95},
+    opacity: 0.95
+  },
   headerTextContainer: { alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  headerTitle: { color: COLORS.light, fontFamily: 'AppFont-Bold', fontSize: 28,  marginBottom: 4, textAlign: 'center' },
+  headerTitle: { color: COLORS.light, fontFamily: 'AppFont-Bold', fontSize: 28, marginBottom: 4, textAlign: 'center' },
   headerSubtitle: { color: COLORS.light80, fontFamily: 'AppFont-Bold', fontSize: 14, textAlign: 'center' },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 16, marginTop: 12, marginBottom: 8 },
   statsCard: { flex: 1, backgroundColor: 'rgba(45, 44, 44, 0.5)', borderRadius: 18, padding: 16, marginHorizontal: 4, alignItems: 'center', overflow: 'hidden' },
-  statsValue: { color: COLORS.light, fontFamily: 'AppFont-Bold', fontSize: 24,  marginBottom: 2 },
+  statsValue: { color: COLORS.light, fontFamily: 'AppFont-Bold', fontSize: 24, marginBottom: 2 },
   statsLabel: { color: COLORS.light80, fontFamily: 'AppFont-Bold', fontSize: 13 },
   sectionBox: { backgroundColor: COLORS.light, borderRadius: 24, padding: 16, margin: 16, marginBottom: 8 },
-  sectionTitle: { fontFamily: 'AppFont-Bold', fontSize: 20,  color: COLORS.primary03, marginBottom: 12 },
+  sectionTitle: { fontFamily: 'AppFont-Bold', fontSize: 20, color: COLORS.primary03, marginBottom: 12 },
   subjectCard: { backgroundColor: COLORS.secondary04, borderRadius: 16, padding: 12, marginBottom: 12 },
   subjectRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   subjectDot: { width: 12, height: 12, borderRadius: 6, marginRight: 8 },
-  subjectName: { fontFamily: 'AppFont-Bold', fontSize: 16,  color: COLORS.grey, flex: 1 },
+  subjectName: { fontFamily: 'AppFont-Bold', fontSize: 16, color: COLORS.grey, flex: 1 },
   subjectScore: { fontFamily: 'AppFont-Bold', fontSize: 18 },
   subjectScoreSmall: { fontFamily: 'AppFont-Bold', fontSize: 14 },
   subjectScoreLabel: { fontFamily: 'AppFont-Bold', fontSize: 12, color: COLORS.two },
@@ -309,10 +410,60 @@ const styles = StyleSheet.create({
   progressLabel: { fontFamily: 'AppFont-Regular', fontSize: 12, color: COLORS.two, textAlign: 'right' },
   statsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   statsGridCard: { backgroundColor: COLORS.light, borderRadius: 10, borderWidth: 1, padding: 12, paddingVertical: 14, minHeight: 68, flex: 1, alignItems: 'center', marginHorizontal: 2 },
-  statsGridValue: { fontFamily: 'AppFont-Regular', fontSize: 18,  marginBottom: 2, color: COLORS.two },
-  statsGridLabel: { fontFamily: 'AppFont-Bold', fontSize: 12,  color: COLORS.one, alignItems: 'center', textAlign: 'center' },
+  statsGridValue: { fontFamily: 'AppFont-Regular', fontSize: 18, marginBottom: 2, color: COLORS.two },
+  statsGridLabel: { fontFamily: 'AppFont-Bold', fontSize: 12, color: COLORS.one, alignItems: 'center', textAlign: 'center' },
   timeInfo: { fontFamily: 'AppFont-Regular', fontSize: 13, color: COLORS.two, marginTop: 4, textAlign: 'center' },
   highlightCard: { borderRadius: 12, padding: 10, marginBottom: 6 },
-  highlightText: { fontFamily: 'AppFont-Regular', fontSize: 15, color: COLORS.grey }});
+  highlightText: { fontFamily: 'AppFont-Regular', fontSize: 15, color: COLORS.grey },
+  focusButton: {
+    width: '80%',
+    alignSelf: 'center',
+    marginTop: 12,
+    borderRadius: 50,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  focusButtonText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: 16,
+    color: '#ffffff',
+  },
+  shareBtn: {
+    padding: 8,
+    // backgroundColor: 'rgba(10, 184, 173, 0.1)',
+    borderRadius: 10,
+  },
+  shareBranding: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    backgroundColor: 'rgba(10, 184, 173, 0.05)',
+    padding: 12,
+    borderRadius: 12,
+  },
+  shareLogo: {
+    width: 40,
+    height: 40,
+    resizeMode: 'contain',
+    marginRight: 12,
+  },
+  shareAppName: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: 18,
+    color: COLORS.primary03,
+  },
+  shareUserName: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: 14,
+    color: COLORS.grey,
+  }
+});
 
 export default GyrusNEETAnalytics;

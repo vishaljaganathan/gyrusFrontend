@@ -37,6 +37,7 @@ const Plans = ({ navigation }: any) => {
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState("");
   const [verifiedCoupon, setVerifiedCoupon] = useState<any>(null);
+  const [useRedeemedPoints, setUseRedeemedPoints] = useState(false);
 
   const [order, setOrder] = useState({
     _id: "",
@@ -110,6 +111,7 @@ const Plans = ({ navigation }: any) => {
   const closeOrderSummary = () => {
     setShowOrder(false);
     resetCouponState();
+    setUseRedeemedPoints(false);
   };
 
   const closePaymentModal = () => {
@@ -122,7 +124,12 @@ const Plans = ({ navigation }: any) => {
   };
 
   const originalAmount = Number(order.amount || 0);
-  const payableAmount = verifiedCoupon?.finalAmount ?? originalAmount;
+  const payableAmountBeforeRewards = verifiedCoupon?.finalAmount ?? originalAmount;
+  const rewardPercentage = Number(userData?.availableDiscountPercentage || 0);
+  const rewardDiscountValue = (useRedeemedPoints && rewardPercentage > 0)
+    ? Math.floor((payableAmountBeforeRewards * rewardPercentage) / 100)
+    : 0;
+  const finalPayableAmount = payableAmountBeforeRewards - rewardDiscountValue;
 
   const verifyCoupon = () => {
     const normalizedCouponCode = couponCode.trim().toUpperCase();
@@ -207,7 +214,8 @@ const Plans = ({ navigation }: any) => {
     axiosInstance
       .post("authentication/create-order", {
         planId,
-        couponCode: verifiedCoupon?.couponCode || undefined } )
+        couponCode: verifiedCoupon?.couponCode || undefined,
+        useRedeemedPoints: useRedeemedPoints } )
       .then((orderResponse) => {
         const orderData = orderResponse?.data;
 
@@ -215,7 +223,8 @@ const Plans = ({ navigation }: any) => {
           axiosInstance
             .put("authentication/payment/update", {
               planId,
-              couponCode: verifiedCoupon?.couponCode || undefined } )
+              couponCode: verifiedCoupon?.couponCode || undefined,
+              useRedeemedPoints: useRedeemedPoints } )
             .then((res) => {
               const emailSent = !!res?.data?.emailSent;
               const downloadUrl = res?.data?.downloadUrl;
@@ -242,7 +251,7 @@ const Plans = ({ navigation }: any) => {
           openRazorpay(
             orderData.orderId,
             orderData.key,
-            Number(orderData.amount || payableAmount),
+            Number(orderData.amount || finalPayableAmount),
             verifiedCoupon?.couponCode || undefined
           );
         } else {
@@ -304,7 +313,7 @@ const Plans = ({ navigation }: any) => {
       return;
     }
 
-    const amountInPaise = Math.round(Number(payableOverride ?? payableAmount) * 100);
+    const amountInPaise = Math.round(Number(payableOverride ?? finalPayableAmount) * 100);
 
     const options = {
       key: razorpayKey,
@@ -328,6 +337,7 @@ const Plans = ({ navigation }: any) => {
           .put("authentication/payment/update", {
             planId: order._id,
             couponCode: appliedCouponCode,
+            useRedeemedPoints: useRedeemedPoints,
             razorpay_payment_id: paymentData?.razorpay_payment_id,
             razorpay_order_id: paymentData?.razorpay_order_id,
             razorpay_signature: paymentData?.razorpay_signature } )
@@ -586,8 +596,24 @@ const Plans = ({ navigation }: any) => {
                         marginVertical: hp(0.5) } }
                     >
                       <Text>Total Amount</Text>
-                      <Text>{"\u20B9"} {originalAmount}</Text>
+                      <Text>{"\u20B9"} {payableAmountBeforeRewards}</Text>
                     </View>
+
+                    {/* Reward Discount Section */}
+                    {rewardPercentage > 0 && (
+                      <TouchableOpacity 
+                        onPress={() => setUseRedeemedPoints(!useRedeemedPoints)}
+                        style={styles.rewardCheckboxContainer}
+                      >
+                        <View style={[styles.rewardCheckbox, useRedeemedPoints && styles.rewardCheckboxActive]}>
+                          {useRedeemedPoints && <FontAwesomeIcon icon={faCircleCheck} size={14} color="#FFF" />}
+                        </View>
+                        <Text style={styles.rewardCheckboxLabel}>
+                          Use {rewardPercentage}% Reward Discount (-{"\u20B9"}{rewardDiscountValue})
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
                     {verifiedCoupon ? (
                       <View
                         style={{
@@ -600,6 +626,21 @@ const Plans = ({ navigation }: any) => {
                         <Text>{"\u20B9"} {verifiedCoupon.discountAmount}</Text>
                       </View>
                     ) : null}
+
+                    {useRedeemedPoints && rewardDiscountValue > 0 ? (
+                      <View
+                        style={{
+                          display: "flex",
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          marginVertical: hp(0.5) } }
+                      >
+                        <Text style={{ color: '#028464' }}>Reward Discount ({rewardPercentage}%)</Text>
+                        <Text style={{ color: '#028464' }}>- {"\u20B9"} {rewardDiscountValue}</Text>
+                      </View>
+                    ) : null}
+
+                    <View style={styles.line} />
                     <View
                       style={{
                         display: "flex",
@@ -607,8 +648,8 @@ const Plans = ({ navigation }: any) => {
                         justifyContent: "space-between",
                         marginVertical: hp(0.5) } }
                     >
-                      <Text>Payable Amount</Text>
-                      <Text>{"\u20B9"} {payableAmount}</Text>
+                      <Text style={{ fontWeight: 'bold' }}>Final Amount</Text>
+                      <Text style={{ fontWeight: 'bold' }}>{"\u20B9"} {finalPayableAmount}</Text>
                     </View>
                     <View style={styles.line} />
                     <View style={styles.couponContainer}>
@@ -880,6 +921,36 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.COLORS.primary06 }, paymentFailureButton: {
     backgroundColor: Theme.COLORS.error01 }, paymentStatusButtonText: {
      color: "#FFF",
-        fontFamily: 'AppFont-Bold', fontSize: wp(4), fontWeight: 'bold' } });
+    fontFamily: 'AppFont-Bold', fontSize: wp(4), fontWeight: 'bold' },
+  rewardCheckboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#dcfce7',
+  },
+  rewardCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#16a34a',
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rewardCheckboxActive: {
+    backgroundColor: '#16a34a',
+  },
+  rewardCheckboxLabel: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: 13,
+    color: '#166534',
+    flex: 1,
+  },
+});
 
 export default Plans;

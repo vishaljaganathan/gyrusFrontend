@@ -6,6 +6,7 @@ import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
 
 import { Modal } from "@gluestack-ui/themed-native-base";
 import { LinearGradient } from 'expo-linear-gradient';
+import TestButton from './TestButton';
 
 
 
@@ -56,20 +57,6 @@ export default function LogoutPopup({ visible, onClose, onLogout }: LogoutPopupP
   );
 }
 
-const TestButton = ({ onPress, colors, text }: any) => {
-  return (
-    <TouchableOpacity onPress={onPress}>
-      <LinearGradient
-        style={[styles.card, styles.shadow]}
-        colors={colors}
-        start={{ x: 0.6, y: 0.3 }}
-        end={{ x: 0.6, y: 0 }}
-      >
-        <Text style={styles.buttonTxt}>{text}</Text>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-};
 
 const styles = StyleSheet.create({
   modalContent: {
@@ -121,24 +108,4 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: wp(35),
     maxWidth: wp(40)},
-  card: {
-    backgroundColor: "white",
-    borderRadius: 22,
-    height: hp(4),
-    width: wp(35),
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: 'center'},
-  shadow: {
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84},
-  buttonTxt: {
-     // Use Bold for buttons
-    fontFamily: 'AppFont-Bold', fontSize: wp(4),
-    textTransform: "uppercase",
-        color: COLORS.light,
-    letterSpacing: wp(0.3),
-    textAlign: "center"}});
+});

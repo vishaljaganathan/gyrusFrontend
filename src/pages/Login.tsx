@@ -8,6 +8,7 @@ import { COLORS } from "../styles/themes";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp } from "react-native-responsive-screen";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useMutation } from "@tanstack/react-query";
 import { postRequest } from "../config/Requests";
 import { LoginFields } from "../service/FormFeilds";
@@ -203,13 +204,9 @@ const Login = ({ navigation }: { navigation: any }) => {
   const [isPasswordSecure, setIsPasswordSecure] = useState(true);
 
   return (
+    <SafeAreaView style={styles.safeContainer} edges={["top", "bottom"]}>
     <LinearGradient
-      colors={[
-        COLORS.primary01,
-        COLORS.primary02,
-        COLORS.primary03,
-        COLORS.primary05,
-      ]}
+      colors={["#028464", "#0AB7AD", "#0B7960"]}
             style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -315,20 +312,26 @@ const Login = ({ navigation }: { navigation: any }) => {
                 If you don't have an account?{" "}
                 <Text
                   style={styles.signUpLinkText}
-            onPress={() => navigation.replace("SignUp")} // Replace to avoid stacking
+                  onPress={() => navigation.replace("SignUp")} // Use replace to prevent page looping
                 >
                   Sign Up
                 </Text>
               </Text>
             </View>
           </View>
+
         </Animated.View>
       </View>
     </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#014b51ff",
+  },
   container: {
     flex: 1 }, loginContainer: {
     flex: 1,
@@ -342,19 +345,21 @@ const styles = StyleSheet.create({
     marginBottom: hp(2) }, logoImage: {
     width: wp(37),
     height: hp(17),
-    resizeMode: "contain" }, formContainer: {
-    backgroundColor: COLORS.primary05,
+    resizeMode: "contain" }, 
+    formContainer: {
+    backgroundColor: "rgba(0, 0, 0, 0.30)",
     width: "100%",
     paddingHorizontal: wp(6),
     paddingVertical: hp(4),
     borderRadius: wp(4),
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: "rgba(0, 0, 0, 0.30)",
     shadowOffset: {
-      width: 0,
-      height: 4 }, shadowOpacity: 0.3,
+    width: 0,
+    height: 4 }, shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 8 }, signInTitle: { fontFamily: 'AppFont-Bold', fontSize: wp(6),
+   }, 
+    signInTitle: { fontFamily: 'AppFont-Bold', fontSize: wp(6),
         color: COLORS.colorWhite,
     marginBottom: hp(2),
     textAlign: "center"},

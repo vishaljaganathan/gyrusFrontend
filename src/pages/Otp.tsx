@@ -11,8 +11,9 @@ import { useMutation } from "@tanstack/react-query";
 import Animated, { ZoomInLeft } from "react-native-reanimated";
 import GradientButton from "../components/GradientButton";
 import {
-  heightPercentageToDP,
-  widthPercentageToDP } from "react-native-responsive-screen";
+  heightPercentageToDP as hp,
+  widthPercentageToDP as wp } from "react-native-responsive-screen";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 
 
@@ -119,14 +120,9 @@ const Otp = ({ navigation, route }: { navigation: any; route: any }) => {
   };
 
   return (
-    <>
+    <SafeAreaView style={styles.safeContainer} edges={["top", "bottom"]}>
       <LinearGradient
-        colors={[
-          COLORS.primary01,
-          COLORS.primary02,
-          COLORS.primary03,
-          COLORS.primary05,
-        ]}
+        colors={["#028464", "#0AB7AD", "#0B7960"]}
         style={styles.container}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -138,132 +134,152 @@ const Otp = ({ navigation, route }: { navigation: any; route: any }) => {
             justifyContent: "center"
           }}
         >
-          <Text
+          <View
             style={{
-              color: "white",
-              textAlign: "center",
-              width: widthPercentageToDP(90),
-              fontFamily: 'AppFont-Bold',
-              fontSize: widthPercentageToDP(5),
-              marginBottom: 10
+              backgroundColor: "rgba(0, 0, 0, 0.35)",
+              margin: wp(1),
+              paddingHorizontal: wp(4),
+              paddingTop: wp(6),
+              paddingBottom: wp(6),
+              borderRadius: wp(3),
+              alignItems: 'center'
             }}
           >
-            Verification Code
-          </Text>
-          <Text
-            style={{
-              color: "white",
-              textAlign: "center",
-              width: widthPercentageToDP(90),
-              fontFamily: 'AppFont-Regular',
-              fontSize: widthPercentageToDP(4),
-              marginTop: widthPercentageToDP(2)
-            }}
-          >
-            Please Enter the OTP sent to {phoneNo ? `+91 ${phoneNo}` : "your registered Mobile Number"} to Verify your account
-          </Text>
-
-          {msgHint && (
-            <Text style={{ color: COLORS.secondary04, marginTop: 10, textAlign: 'center', width: '90%' }}>
-              {msgHint}
-            </Text>
-          )}
-
-          <View style={{ width: "85%", marginTop: 20 }}>
-            <OtpInput
-              numberOfDigits={6}
-              focusColor="green"
-              autoFocus={true}
-              hideStick={true}
-              blurOnFilled={true}
-              disabled={false}
-              type="numeric"
-              secureTextEntry={false}
-              focusStickBlinkingDuration={500}
-              onFocus={() => console.log("Focused")}
-              onBlur={() => console.log("Blurred")}
-              onTextChange={(code) => {
-                console.log("[OTP] Text changed:", code);
-                setOtp(code);
+            <Text
+              style={{
+                color: "white",
+                textAlign: "center",
+                width: wp(90),
+                fontFamily: 'AppFont-Bold',
+                fontSize: wp(5),
+                marginBottom: 10
               }}
-              textInputProps={{
-                accessibilityLabel: "One-Time Password"
-              }}
-              textProps={{
-                accessibilityRole: "text",
-                accessibilityLabel: "OTP digit",
-                allowFontScaling: false
-              }}
-              theme={{
-                containerStyle: styles.otpContainer,
-                pinCodeTextStyle: styles.pinCodeText
-              }}
-            />
-          </View>
-
-          <GradientButton
-            onPress={() => {
-              const validationUrl = `authentication${operation ? "/forgot" : ""}/otp/${id}`;
-              console.log("[OTP] Validating with URL:", validationUrl, "Payload:", { otp: `${otp}` });
-              createPostMutation.mutate({
-                URL: validationUrl,
-                payload: { otp: `${otp}` }
-              });
-            }}
-            disable={otp.length == 6 ? false : true}
-            loading={createPostMutation.isPending}
-            Text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Validate Otp</Text>}
-          />
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 20 }}>
-            <TouchableOpacity 
-              onPress={handleResend}
-              disabled={!canResend || resendMutation.isPending}
-              style={{ opacity: canResend ? 1 : 0.6 }}
             >
-              <Text
-                style={{
-                  color: COLORS.colorWhite,
-                  fontFamily: 'AppFont-Bold',
-                  fontSize: heightPercentageToDP(2),
-                  textDecorationLine: canResend ? 'underline' : 'none'
-                }}
-              >
-                {resendMutation.isPending ? "Sending..." : "Resend OTP"}
-              </Text>
-            </TouchableOpacity>
-            {!canResend && !resendMutation.isPending && (
-              <Text
-                style={{
-                  color: COLORS.colorWhite,
-                  fontFamily: 'AppFont-Regular',
-                  fontSize: heightPercentageToDP(1.8),
-                  marginLeft: 10
-                }}
-              >
-                in {formatTime(timer)}
+              Verification Code
+            </Text>
+            <Text
+              style={{
+                color: "white",
+                textAlign: "center",
+                width: wp(90),
+                fontFamily: 'AppFont-Regular',
+                fontSize: wp(4),
+                marginTop: wp(2)
+              }}
+            >
+              Please Enter the OTP sent to {phoneNo ? `+91 ${phoneNo}` : "your registered Mobile Number"} to Verify your account
+            </Text>
+
+            {msgHint && (
+              <Text style={{ color: COLORS.secondary04, marginTop: 10, textAlign: 'center', width: '90%' }}>
+                {msgHint}
               </Text>
             )}
-          </View>
 
-          <Text
-            style={{
-              color: COLORS.secondary02,
-              fontFamily: 'AppFont-Bold',
-              fontSize: heightPercentageToDP(2),
-              marginTop: 20
-            }}
-            onPress={() => navigation.replace("Login")}
-          >
-            Back to Login
-          </Text>
+            <View style={{ width: "85%", marginTop: 20, marginBottom: 30, alignSelf: 'center' }}>
+              <OtpInput
+                numberOfDigits={6}
+                focusColor="green"
+                autoFocus={true}
+                hideStick={true}
+                blurOnFilled={true}
+                disabled={false}
+                type="numeric"
+                secureTextEntry={false}
+                focusStickBlinkingDuration={500}
+                onFocus={() => console.log("Focused")}
+                onBlur={() => console.log("Blurred")}
+                onTextChange={(code) => {
+                  console.log("[OTP] Text changed:", code);
+                  setOtp(code);
+                }}
+                textInputProps={{
+                  accessibilityLabel: "One-Time Password"
+                }}
+                textProps={{
+                  accessibilityRole: "text",
+                  accessibilityLabel: "OTP digit",
+                  allowFontScaling: false
+                }}
+                theme={{
+                  containerStyle: styles.otpContainer,
+                  pinCodeTextStyle: styles.pinCodeText,
+                  pinCodeContainerStyle: styles.pinCodeContainer,
+                  focusedPinCodeContainerStyle: styles.activePinCodeContainer,
+                }}
+              />
+            </View>
+
+            <GradientButton
+              onPress={() => {
+                const validationUrl = `authentication${operation ? "/forgot" : ""}/otp/${id}`;
+                console.log("[OTP] Validating with URL:", validationUrl, "Payload:", { otp: `${otp}` });
+                createPostMutation.mutate({
+                  URL: validationUrl,
+                  payload: { otp: `${otp}` }
+                });
+              }}
+              disable={otp.length == 6 ? false : true}
+              loading={createPostMutation.isPending}
+              Text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Validate Otp</Text>}
+            />
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20 }}>
+              <TouchableOpacity 
+                onPress={handleResend}
+                disabled={!canResend || resendMutation.isPending}
+                style={{ opacity: canResend ? 1 : 0.6 }}
+              >
+                <Text
+                  style={{
+                    color: COLORS.colorWhite,
+                    fontFamily: 'AppFont-Bold',
+                    textAlign: 'center',
+                    fontSize: hp(2),
+                    textDecorationLine: canResend ? 'underline' : 'none'
+                  }}
+                >
+                  {resendMutation.isPending ? "Sending..." : "Resend OTP"}
+                </Text>
+              </TouchableOpacity>
+              {!canResend && !resendMutation.isPending && (
+                <Text
+                  style={{
+                    color: COLORS.colorWhite,
+                    fontFamily: 'AppFont-Regular',
+                    fontSize: hp(1.8),
+                    marginLeft: 10
+                  }}
+                >
+                  in {formatTime(timer)}
+                </Text>
+              )}
+            </View>
+
+            <Text
+              style={{
+                color: COLORS.secondary02,
+                fontFamily: 'AppFont-Bold',
+                fontSize: hp(2),
+                marginTop: 20,
+                textAlign: 'center'
+              }}
+              onPress={() => navigation.replace("Login")}
+            >
+              Back to Login
+            </Text>
+          </View>
         </View>
       </LinearGradient>
-    </>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#014b51ff",
+  },
   container: {
     flex: 1,
     alignItems: "center",
@@ -274,22 +290,18 @@ const styles = StyleSheet.create({
     height: "100%",
     resizeMode: "stretch"
   },
-  borderStyleBase: {
-    width: 30,
-    height: 45
+  pinCodeContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 8,
+    width: wp(12),
+    height: wp(14),
   },
-  borderStyleHighLighted: {
-    borderColor: "#03DAC6"
-  },
-  underlineStyleBase: {
-    width: 40,
-    height: 45,
+  activePinCodeContainer: {
+    borderColor: '#d2eadeac',
     borderWidth: 2,
-    borderColor: COLORS.light,
-    borderRadius: 7
-  },
-  underlineStyleHighLighted: {
-    borderColor: "#03DAC6"
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   otpContainer: {
     margin: 10

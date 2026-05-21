@@ -1,8 +1,10 @@
 import { getTestStrategy } from '../services/testStrategies/index';
 import StartButton from './StartButton';
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { View,  Image, StyleSheet, ScrollView, Dimensions, ActivityIndicator, TouchableOpacity, Pressable } from "react-native"
+import { View,  Image, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Pressable } from "react-native"
 import { CustomText as Text } from './CustomText';
+import { CustomVerticalScrollbar } from './CustomVerticalScrollbar';
+import { ScrollView } from 'react-native';
 
 import { COLORS } from "../styles/themes";
 import { useNavigation } from "@react-navigation/native";
@@ -18,7 +20,7 @@ import SingleStage from "./SingleStage";
 
 
 
-const Arrows = ({ subName, track }: { track: any; subName: string }) => {
+const Arrows = ({ subName, track, onScorePress }: { track: any; subName: string; onScorePress?: (score: any, index: number) => void }) => {
   const [stageTrack, setStageTrack] = useState([]);
   const [loading, setLoading] = useState(false);
   const [testSize, setTestSize] = useState<number | null>(null);
@@ -272,7 +274,7 @@ const Arrows = ({ subName, track }: { track: any; subName: string }) => {
         flex: 1,
         height: "auto" } }
     >
-      <ScrollView ref={scrollBottomRef}>
+      <CustomVerticalScrollbar ref={scrollBottomRef} indicatorColor="hsla(185, 100%, 93%, 1.00)">
         <View
           style={{
             height: "auto" } }
@@ -354,10 +356,11 @@ const Arrows = ({ subName, track }: { track: any; subName: string }) => {
 
               return (
                 <SingleStage
-                  key={index}
+                  key={`${data.date}_${data.score}_${index}`}
                   id={index}
                   score={data}
                   start={StartTest}
+                  onScorePress={onScorePress}
                   loading={loading}
                   questionCount={questionCount}
                   label={setLabel}
@@ -377,7 +380,7 @@ const Arrows = ({ subName, track }: { track: any; subName: string }) => {
             </View>
           )}
         </View>
-      </ScrollView>
+      </CustomVerticalScrollbar>
     </View>
   );
 };

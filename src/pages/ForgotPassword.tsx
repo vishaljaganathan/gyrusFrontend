@@ -13,6 +13,7 @@ import {
   heightPercentageToDP as hp } from "react-native-responsive-screen";
 import { moderateScale } from "../styles/Responsive";
 import { AxiosError } from "axios";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 
 
@@ -56,14 +57,9 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
   });
 
   return (
-    <>
+    <SafeAreaView style={styles.safeContainer} edges={["top", "bottom"]}>
       <LinearGradient
-        colors={[
-          COLORS.primary01,
-          COLORS.primary02,
-          COLORS.primary03,
-          COLORS.primary05,
-        ]}
+        colors={["#028464", "#0AB7AD", "#0B7960"]}
             style={styles.container}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -76,7 +72,7 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
         >
           <View
             style={{
-              backgroundColor: COLORS.primary05,
+              backgroundColor: "rgba(0, 0, 0, 0.35)",
               margin: wp(1),
               paddingHorizontal: wp(4),
               paddingTop: wp(9),
@@ -153,11 +149,15 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
           </View>
         </View>
       </LinearGradient>
-    </>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#014b51ff",
+  },
   container: {
     flex: 1,
     alignItems: "center",

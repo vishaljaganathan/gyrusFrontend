@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useContext, useMemo } from "react";
-import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert , KeyboardAvoidingView, Platform, ScrollView} from 'react-native'
+import { View, StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator, Modal, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
+import { SafeAreaView } from "react-native-safe-area-context";
 import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../styles/themes";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp } from "react-native-responsive-screen";
+  heightPercentageToDP as hp
+} from "react-native-responsive-screen";
 import { createSignUpFields } from "../service/FormFeilds";
 import { postRequest } from "../config/Requests";
 import { useMutation } from "@tanstack/react-query";
@@ -23,7 +25,8 @@ import { AxiosError } from "axios";
 
 
 
-const SignUp = ({ navigation }: { navigation: any }) => {
+const SignUp = ({ navigation, route }: { navigation: any, route: any }) => {
+  const selectedStd = route?.params?.selectedStd;
   const logo = require("../assets/appLogo.png");
   const [page, setPage] = useState(0);
   const [isValid, setIsValid] = useState(false);
@@ -43,9 +46,9 @@ const SignUp = ({ navigation }: { navigation: any }) => {
       if (data.status == 201) {
         setLoading(false);
         setSignUpData(data.data);
-        navigation.navigate("Otp", { 
-          id: data.data._id, 
-          phoneNo: variable.payload.phoneNo 
+        navigation.navigate("Otp", {
+          id: data.data._id,
+          phoneNo: variable.payload.phoneNo
         }); // Use navigation prop
       }
     },
@@ -72,7 +75,8 @@ const SignUp = ({ navigation }: { navigation: any }) => {
         formik.resetForm({
           values: formik.values,
           isValid: false,
-          dirty: false } );
+          dirty: false
+        });
       }
     },
     onError(error: AxiosError, variables, context) {
@@ -108,11 +112,11 @@ const SignUp = ({ navigation }: { navigation: any }) => {
       if (!values.std) {
         errors.std = "Standard is required";
       }
-      
+
       if (!values.schoolName) {
         errors.schoolName = "School name is required";
       }
-      
+
       if (!values.schoolPin) {
         errors.schoolPin = "School pincode is required";
       } else if (!/^\d{6}$/.test(String(values.schoolPin))) {
@@ -142,10 +146,11 @@ const SignUp = ({ navigation }: { navigation: any }) => {
       } else if (values.phoneNo.length <= 9) {
         errors.phoneNo = "Phone number minimum length 10";
       }
+      const trimmedEmail = (values.email || '').toString().trim();
       if (!values.email) {
         errors.email = "Email is required";
       } else if (
-        !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(values.email)
+        !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(trimmedEmail)
       ) {
         errors.email = "Invalid email address";
       }
@@ -167,11 +172,12 @@ const SignUp = ({ navigation }: { navigation: any }) => {
       email: "",
       phoneNo: "",
       state: "",
-      std: "",
+      std: selectedStd || "",
       targetYear: "",
       password: "",
       schoolName: "",
-      schoolPin: "" }, validate: validate,
+      schoolPin: ""
+    }, validate: validate,
     onSubmit: (values) => {
       if (page == 0) {
         setLoading(true);
@@ -179,7 +185,9 @@ const SignUp = ({ navigation }: { navigation: any }) => {
           URL: "authentication/validate",
           payload: {
             phoneNo: formik.values.phoneNo,
-            email: formik.values.email } });
+            email: String(formik.values.email || "").trim()
+          }
+        });
       } else {
         // Hard guard: never allow submitting with an invalid pincode.
         const schoolPin = String(values.schoolPin || "");
@@ -191,6 +199,9 @@ const SignUp = ({ navigation }: { navigation: any }) => {
 
         setLoading(true);
         const { confirmPassword, ...newUserData }: any = values;
+        if (newUserData.email) {
+          newUserData.email = String(newUserData.email).trim();
+        }
         createPostMutation.mutate({
           URL: "authentication/register",
           payload: newUserData
@@ -202,224 +213,229 @@ const SignUp = ({ navigation }: { navigation: any }) => {
   const initialButtonState = {
     disable: !formik.isValid || !formik.dirty,
     colors: [COLORS.button_disable01, COLORS.button_disable02],
-    isValid: formik.isValid };
+    isValid: formik.isValid
+  };
 
   const neetDateFromState = appState?.neetDate || userData?.examDate;
   const signUpFields = useMemo(
-    () => createSignUpFields(neetDateFromState),
+    () => {
+      const fields = createSignUpFields(neetDateFromState);
+      return fields;
+    },
     [neetDateFromState]
   );
 
   return (
-    <LinearGradient
-      colors={[
-        COLORS.primary01,
-        COLORS.primary02,
-        COLORS.primary03,
-        COLORS.primary05,
-      ]}
-      style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <KeyboardAvoidingView
-        // Use `padding` on both platforms to avoid Android 'height' causing
-        // continuous layout/resize loops on some devices when the keyboard toggles.
-        behavior={'padding'}
-        style={styles.keyboardContainer}
+    <SafeAreaView style={styles.safeContainer} edges={["top", "bottom"]}>
+      <LinearGradient
+        colors={["#028464", "#0AB7AD", "#0B7960"]}
+        style={styles.container}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
-        <ScrollView 
-          // Avoid vertically centering content with `justifyContent: 'center'`
-          // because small height changes (keyboard, measurement) can cause
-          // a re-layout loop for some devices. Keep items top-aligned and
-          // rely on padding to position content.
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          // Use `padding` on both platforms to avoid Android 'height' causing
+          // continuous layout/resize loops on some devices when the keyboard toggles.
+          behavior={'padding'}
+          style={styles.keyboardContainer}
         >
-          <View style={styles.signUpContainer}>
-            <Animated.View entering={ZoomInDown} style={styles.animatedContainer}>
-              {/* Logo Section */}
-              <View style={styles.logoContainer}>
-                <Image source={logo} style={styles.logoImage} />
-              </View>
+          <ScrollView
+            // Avoid vertically centering content with `justifyContent: 'center'`
+            // because small height changes (keyboard, measurement) can cause
+            // a re-layout loop for some devices. Keep items top-aligned and
+            // rely on padding to position content.
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.signUpContainer}>
+              <Animated.View entering={ZoomInDown} style={styles.animatedContainer}>
+                {/* Logo Section */}
+                <View style={styles.logoContainer}>
+                  <Image source={logo} style={styles.logoImage} />
+                </View>
 
-              {/* Sign Up Form Section */}
-              <View style={styles.formContainer}>
-                <Text style={styles.signUpTitle}>Sign Up</Text>
+                {/* Sign Up Form Section */}
+                <View style={styles.formContainer}>
+                  <Text style={styles.signUpTitle}>Sign Up</Text>
 
-                {/* Progress Indicator */}
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View style={[
-                      styles.progressStep,
-                      { backgroundColor: page === 0 ? COLORS.colorWhite : 'rgba(255,255,255,0.3)' }
-                    ]} />
-                    <View style={[
-                      styles.progressStep,
-                      { backgroundColor: page === 1 ? COLORS.colorWhite : 'rgba(255,255,255,0.3)' }
-                    ]} />
+                  {/* Progress Indicator */}
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBar}>
+                      <View style={[
+                        styles.progressStep,
+                        { backgroundColor: page === 0 ? COLORS.colorWhite : 'rgba(255,255,255,0.3)' }
+                      ]} />
+                      <View style={[
+                        styles.progressStep,
+                        { backgroundColor: page === 1 ? COLORS.colorWhite : 'rgba(255,255,255,0.3)' }
+                      ]} />
+                    </View>
+                  </View>
+
+                  {/* Input Fields */}
+                  <View style={styles.inputsContainer}>
+                    {signUpFields[page].map((data: any, index: number) => {
+                      const isPhone = data.id === "phoneNo";
+                      const isPinLike =
+                        data.id === "schoolPin" ||
+                        data.id === "schoolPincode";
+                      const numericMaxLen = isPhone ? 10 : isPinLike ? 6 : undefined;
+                      const isPassword = data.id === "password";
+                      const isConfirmPassword = data.id === "confirmPassword";
+                      const isPasswordField = isPassword || isConfirmPassword;
+
+                      return (
+                        <View key={data.idx} style={styles.inputWrapper}>
+                          {/* Text Input Field */}
+                          {data.fieldType === "input" && (
+                            <View style={styles.inputFieldContainer}>
+                              <TextInput
+                                style={[
+                                  styles.textInput,
+                                  isPasswordField && styles.passwordInput,
+                                ]}
+                                onChangeText={(Text) => {
+                                  if (isPhone || isPinLike) {
+                                    const digitsOnly = String(Text || "").replace(/\D/g, "");
+                                    const clipped = numericMaxLen
+                                      ? digitsOnly.slice(0, numericMaxLen)
+                                      : digitsOnly;
+                                    formik.setFieldValue(`${data.id}`, clipped);
+                                    return;
+                                  }
+                                  formik.setFieldValue(`${data.id}`, Text);
+                                }}
+                                onBlur={formik.handleBlur(`${data.id}`)}
+                                value={String(formik.values?.[`${data.id}`] ?? "")}
+                                placeholder={data.placeholderName}
+                                placeholderTextColor="#999"
+                                secureTextEntry={
+                                  isPasswordField
+                                    ? isPassword
+                                      ? !showPassword
+                                      : !showConfirmPassword
+                                    : false
+                                }
+                                maxLength={numericMaxLen}
+                                keyboardType={
+                                  isPhone || isPinLike ? "number-pad" : "default"
+                                }
+                              />
+                              {isPasswordField && (
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    if (isPassword) {
+                                      setShowPassword(!showPassword);
+                                    } else {
+                                      setShowConfirmPassword(!showConfirmPassword);
+                                    }
+                                  }} style={styles.eyeIconContainer}
+                                >
+                                  <Icon
+                                    name={
+                                      isPassword
+                                        ? showPassword
+                                          ? "eye-off"
+                                          : "eye"
+                                        : showConfirmPassword
+                                          ? "eye-off"
+                                          : "eye"
+                                    }
+                                    size={20}
+                                    color="#666"
+                                  />
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          )}
+
+                          {/* Dropdown Field */}
+                          {data.fieldType === "select" && (
+                            <Dropdown
+                              style={styles.dropdown}
+                              placeholderStyle={styles.placeholderStyle}
+                              selectedTextStyle={styles.selectedTextStyle}
+                              inputSearchStyle={styles.inputSearchStyle}
+                              itemTextStyle={{ fontFamily: 'AppFont-Regular' }}
+                              data={data.label}
+                              labelField={"label"}
+                              valueField={"value"}
+                              maxHeight={300}
+                              placeholder={data.placeholderName}
+                              value={formik.values[`${data.id}`]}
+                              onChange={(item) => {
+                                formik.setFieldValue(`${data.id}`, item.value);
+                              }}
+                            />
+                          )}
+
+                          {/* Date Input Field */}
+                          {data.fieldType === "date" && (
+                            <View style={styles.dateInputWrapper}>
+                              <DateInput formik={formik} />
+                            </View>
+                          )}
+
+                          {/* Error Messages */}
+                          {formik.errors[data.id] && formik.touched[data.id] && (
+                            <Text style={styles.errorText}>
+                              {formik.errors[`${data.id}`]}
+                            </Text>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+
+                  {/* Login Error Message */}
+                  {loginMsg.length > 0 && (
+                    <Text style={styles.loginErrorText}>{loginMsg}</Text>
+                  )}
+
+                  {/* Sign Up Button */}
+                  <View style={styles.buttonContainer}>
+                    <GradientButton
+                      onPress={formik.handleSubmit}
+                      disable={initialButtonState.disable}
+                      colors={initialButtonState.colors}
+                      loading={loading}
+                      Text={<Text style={{ fontFamily: 'AppFont-Bold' }}>{page === 0 ? "Next" : "Sign Up"}</Text>}
+                    />
+                  </View>
+
+                  {/* Sign In Link */}
+                  <View style={styles.signInLinkContainer}>
+                    <Text style={styles.signInText}>
+                      Do you have an account?{" "}
+                      <Text
+                        style={styles.signInLinkText}
+                        onPress={() => navigation.replace("Login")}
+                      >
+                        Sign In
+                      </Text>
+                    </Text>
                   </View>
                 </View>
-
-                {/* Input Fields */}
-                <View style={styles.inputsContainer}>
-                  {signUpFields[page].map((data: any, index: number) => {
-                    const isPhone = data.id === "phoneNo";
-                    const isPinLike =
-                      data.id === "schoolPin" ||
-                      data.id === "schoolPincode";
-                    const numericMaxLen = isPhone ? 10 : isPinLike ? 6 : undefined;
-                    const isPassword = data.id === "password";
-                    const isConfirmPassword = data.id === "confirmPassword";
-                    const isPasswordField = isPassword || isConfirmPassword;
-
-                    return (
-                      <View key={data.idx} style={styles.inputWrapper}>
-                        {/* Text Input Field */}
-                        {data.fieldType === "input" && (
-                          <View style={styles.inputFieldContainer}>
-                            <TextInput
-                              style={[
-                                styles.textInput,
-                                isPasswordField && styles.passwordInput,
-                              ]}
-                              onChangeText={(Text) => {
-                                if (isPhone || isPinLike) {
-                                  const digitsOnly = String(Text || "").replace(/\D/g, "");
-                                  const clipped = numericMaxLen
-                                    ? digitsOnly.slice(0, numericMaxLen)
-                                    : digitsOnly;
-                                  formik.setFieldValue(`${data.id}`, clipped);
-                                  return;
-                                }
-                                formik.setFieldValue(`${data.id}`, Text);
-                              }}
-                              onBlur={formik.handleBlur(`${data.id}`)}
-                              value={String(formik.values?.[`${data.id}`] ?? "")}
-                              placeholder={data.placeholderName}
-                              placeholderTextColor="#999"
-                              secureTextEntry={
-                                isPasswordField
-                                  ? isPassword
-                                    ? !showPassword
-                                    : !showConfirmPassword
-                                  : false
-                              }
-                              maxLength={numericMaxLen}
-                              keyboardType={
-                                isPhone || isPinLike ? "number-pad" : "default"
-                              }
-                            />
-                            {isPasswordField && (
-                              <TouchableOpacity
-                                onPress={() => {
-                                  if (isPassword) {
-                                    setShowPassword(!showPassword);
-                                  } else {
-                                    setShowConfirmPassword(!showConfirmPassword);
-                                  }
-                                }} style={styles.eyeIconContainer}
-                              >
-                                <Icon
-                                  name={
-                                    isPassword
-                                      ? showPassword
-                                        ? "eye-off"
-                                        : "eye"
-                                      : showConfirmPassword
-                                      ? "eye-off"
-                                      : "eye"
-                                  }
-                                  size={20}
-                                  color="#666"
-                                />
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        )}
-
-                        {/* Dropdown Field */}
-                        {data.fieldType === "select" && (
-                          <Dropdown
-                            style={styles.dropdown}
-                            placeholderStyle={styles.placeholderStyle}
-                            selectedTextStyle={styles.selectedTextStyle}
-                            inputSearchStyle={styles.inputSearchStyle}
-                            itemTextStyle={{ fontFamily: 'AppFont-Regular' }}
-                            data={data.label}
-                            labelField={"label"}
-                            valueField={"value"}
-                            maxHeight={300}
-                            placeholder={data.placeholderName}
-                            value={formik.values[`${data.id}`]}
-                            onChange={(item) => {
-                              formik.setFieldValue(`${data.id}`, item.value);
-                            }}
-                          />
-                        )}
-
-                        {/* Date Input Field */}
-                        {data.fieldType === "date" && (
-                          <View style={styles.dateInputWrapper}>
-                            <DateInput formik={formik} />
-                          </View>
-                        )}
-
-                        {/* Error Messages */}
-                        {formik.errors[data.id] && formik.touched[data.id] && (
-                          <Text style={styles.errorText}>
-                            {formik.errors[`${data.id}`]}
-                          </Text>
-                        )}
-                      </View>
-                    );
-                  })}
-                </View>
-
-                {/* Login Error Message */}
-                {loginMsg.length > 0 && (
-                  <Text style={styles.loginErrorText}>{loginMsg}</Text>
-                )}
-
-                {/* Sign Up Button */}
-                <View style={styles.buttonContainer}>
-                  <GradientButton
-                    onPress={formik.handleSubmit}
-                    disable={initialButtonState.disable}
-                    colors={initialButtonState.colors}
-                    loading={loading}
-                    Text={<Text style={{ fontFamily: 'AppFont-Bold' }}>{page === 0 ? "Next" : "Sign Up"}</Text>}
-                  />
-                </View>
-
-                {/* Sign In Link */}
-                <View style={styles.signInLinkContainer}>
-                  <Text style={styles.signInText}>
-                    Do you have an account?{" "}
-                    <Text
-                      style={styles.signInLinkText}
-                      onPress={() => navigation.replace("Login")} // Replace to avoid stacking
-                    >
-                      Sign In
-                    </Text>
-                  </Text>
-                </View>
-              </View>
-            </Animated.View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+              </Animated.View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#014b51ff",
+  },
   container: { flex: 1 },
   keyboardContainer: { flex: 1 },
   scrollContainer: {
     flexGrow: 1,
-    // Avoid centering to prevent layout loops when keyboard toggles
+    justifyContent: 'center',
     paddingTop: hp(2),
     paddingBottom: hp(2),
   },
@@ -432,47 +448,59 @@ const styles = StyleSheet.create({
   animatedContainer: {
     width: "100%",
     maxWidth: 450,
-    alignItems: "center" }, logoContainer: {
+    alignItems: "center"
+  }, logoContainer: {
     alignItems: "center",
-    marginBottom: hp(2) }, logoImage: {
+    marginBottom: hp(2)
+  }, logoImage: {
     width: 150,
     height: 120,
-    resizeMode: "contain" }, formContainer: {
-    backgroundColor: COLORS.primary05,
+    resizeMode: "contain"
+  }, formContainer: {
+    backgroundColor: "rgba(0, 0, 0, 0.30)",
     width: "100%",
     paddingHorizontal: wp(6),
     paddingVertical: hp(3),
     borderRadius: wp(4),
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: "rgba(0, 0, 0, 0.30)",
     shadowOffset: {
       width: 0,
-      height: 4 }, shadowOpacity: 0.3,
+      height: 4
+    }, shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 8 }, signUpTitle: {
+  }, signUpTitle: {
     fontFamily: 'AppFont-Bold', fontSize: wp(6),
-        color: COLORS.colorWhite,
+    color: COLORS.colorWhite,
     marginBottom: hp(2),
-    textAlign: "center" },
+    textAlign: "center"
+  },
   progressContainer: {
     width: "100%",
     alignItems: "center",
-    marginBottom: hp(2.5) }, progressBar: {
+    marginBottom: hp(2.5)
+  }, progressBar: {
     flexDirection: "row",
     width: wp(20),
-    justifyContent: "space-between" }, progressStep: {
+    justifyContent: "space-between"
+  }, progressStep: {
     width: wp(8),
     height: hp(0.5),
-    borderRadius: wp(1) }, progressText: {
+    borderRadius: wp(1)
+  }, progressText: {
     fontFamily: 'AppFont-Regular', fontSize: wp(3.2),
     color: "rgba(255,255,255,0.8)",
-    textAlign: "center" },
+    textAlign: "center"
+  },
   inputsContainer: {
     width: "100%",
-    marginBottom: hp(1) }, inputWrapper: {
-    marginBottom: hp(1.5) }, inputFieldContainer: {
+    marginBottom: hp(1)
+  }, inputWrapper: {
+    marginBottom: hp(1.5)
+  }, inputFieldContainer: {
     position: "relative",
-    width: "100%" }, textInput: {
+    width: "100%"
+  }, textInput: {
     fontFamily: 'AppFont-Regular', fontSize: moderateScale(12),
     width: "100%",
     height: hp(6),
@@ -481,7 +509,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    color: "#333" },
+    color: "#333"
+  },
   passwordInput: {
     paddingRight: wp(12), // Extra padding for eye icon
   },
@@ -492,61 +521,80 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(4),
     borderRadius: wp(2),
     borderWidth: 1,
-    borderColor: "#e0e0e0" }, dateInputWrapper: {
+    borderColor: "#e0e0e0"
+  }, dateInputWrapper: {
     width: "100%",
     height: hp(6), // Same height as other inputs
   },
-  placeholderStyle: { fontFamily: 'AppFont-Regular',
-     fontSize: moderateScale(12),
-     textAlign: 'left',
-    color: "#999" },
-  selectedTextStyle: { fontFamily: 'AppFont-Regular',
-     fontSize: moderateScale(12),
-     textAlign: 'left',
-    color: "#333" },
+  placeholderStyle: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: moderateScale(12),
+    textAlign: 'left',
+    color: "#999"
+  },
+  selectedTextStyle: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: moderateScale(12),
+    textAlign: 'left',
+    color: "#333"
+  },
   errorText: {
-     fontFamily: 'AppFont-Regular', fontSize: hp(1.4),
+    fontFamily: 'AppFont-Regular', fontSize: hp(1.4),
     color: "#FFEA00",
     marginTop: hp(0.5),
-    marginLeft: wp(1) },
+    marginLeft: wp(1)
+  },
   loginErrorText: {
-     fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
+    fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
     color: "#FFEA00",
     textAlign: "center",
-    marginBottom: hp(1) },
+    marginBottom: hp(1)
+  },
   buttonContainer: {
     width: "100%",
-    marginBottom: hp(2) }, signInLinkContainer: {
-    alignItems: "center" }, signInText: {
-     color: COLORS.colorWhite,
+    marginBottom: hp(2)
+  }, signInLinkContainer: {
+    alignItems: "center"
+  }, signInText: {
+    color: COLORS.colorWhite,
     fontFamily: 'AppFont-Regular', fontSize: wp(3.8),
     textAlign: "center",
-    lineHeight: wp(5) },
+    lineHeight: wp(5)
+  },
   signInLinkText: {
-     color: COLORS.colorWhite,
-    fontFamily: 'AppFont-Regular', fontSize: wp(3.8)},
+    color: COLORS.colorWhite,
+    fontFamily: 'AppFont-Regular', fontSize: wp(3.8)
+  },
   validation: {
-     fontFamily: 'AppFont-Regular', fontSize: hp(2),
-        color: COLORS.answer_wrong01,
+    fontFamily: 'AppFont-Regular', fontSize: hp(2),
+    color: COLORS.answer_wrong01,
     textAlign: "left",
-    width: "100%" },
+    width: "100%"
+  },
   disabledDropdown: {
-    backgroundColor: "#f0f0f0" }, toggleButton: {
-     marginTop: 15,
-    color: "blue" },
+    backgroundColor: "#f0f0f0"
+  }, toggleButton: {
+    marginTop: 15,
+    color: "blue"
+  },
   icon: {
-    marginRight: 5 }, iconStyle: {
+    marginRight: 5
+  }, iconStyle: {
     width: 20,
-    height: 20 }, inputSearchStyle: { 
-     height: 40,
+    height: 20
+  }, inputSearchStyle: {
+    height: 40,
     fontFamily: 'AppFont-Regular', fontSize: 16,
-    backgroundColor: "#FFFFFF" },
+    backgroundColor: "#FFFFFF"
+  },
   eyeIconContainer: {
     position: "absolute",
     right: 10,
     top: 0,
     bottom: 0,
     justifyContent: "center",
-    alignItems: "center" } });
+    alignItems: "center"
+  }
+});
 
 export default SignUp;

@@ -17,6 +17,10 @@ interface ThemeContextType {
   setSignUpData: React.Dispatch<React.SetStateAction<any>>;
   appState: any;
   setAppState: React.Dispatch<React.SetStateAction<any>>;
+  notificationRefreshTrigger: number;
+  setNotificationRefreshTrigger: React.Dispatch<React.SetStateAction<number>>;
+  unreadNotificationCount: number;
+  setUnreadNotificationCount: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export const ThemeContext = createContext<ThemeContextType>({
@@ -25,7 +29,12 @@ export const ThemeContext = createContext<ThemeContextType>({
   signUpData: {},
   setSignUpData: () => {},
   appState: {},
-  setAppState: () => { } });
+  setAppState: () => { },
+  notificationRefreshTrigger: 0,
+  setNotificationRefreshTrigger: () => { },
+  unreadNotificationCount: 0,
+  setUnreadNotificationCount: () => { }
+});
 
 interface ThemeProviderProps {
   children: ReactNode; // `children` can be any valid React element or nodes
@@ -78,6 +87,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       subject: "",
       correctQtsId: [],
       wrongQtsId: [] } });
+
+  const [notificationRefreshTrigger, setNotificationRefreshTrigger] = useState(0);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   useEffect(() => {
     const loadAppState = async () => {
@@ -145,8 +157,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       signUpData,
       setSignUpData,
       appState,
-      setAppState } ),
-    [userData, signUpData, appState]
+      setAppState,
+      notificationRefreshTrigger,
+      setNotificationRefreshTrigger,
+      unreadNotificationCount,
+      setUnreadNotificationCount } ),
+    [userData, signUpData, appState, notificationRefreshTrigger, unreadNotificationCount]
   );
 
   return (

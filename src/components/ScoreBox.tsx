@@ -128,7 +128,11 @@ const ScoreBox = (props: any) => {
         </View>
       )}
       {props.score != "" && (
-        <View style={[styles.rectangleScoreParent, returnSide(props.id, 2)]}>
+        <TouchableOpacity 
+          activeOpacity={0.8}
+          onPress={() => props.onScorePress && props.onScorePress(props.score, props.id)}
+          style={[styles.rectangleScoreParent, returnSide(props.id, 2)]}
+        >
           <LinearGradient
             style={[styles.groupChild1, styles.groupChildPosition2]}
             locations={[0, 0.49, 1]}
@@ -169,7 +173,7 @@ const ScoreBox = (props: any) => {
           <View style={[styles.groupChild8, styles.groupChildBgOg]} />
           <View style={[styles.groupChild9, styles.groupChildBgOg]} />
           <View style={[styles.groupChild10, styles.groupChildBgOg]} />
-        </View>
+        </TouchableOpacity>
       )}
     </>
   );

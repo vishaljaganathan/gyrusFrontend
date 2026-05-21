@@ -101,11 +101,9 @@ const RewardsIcon = ({ color, size = 28 }: any) => (
 const NotificationIcon = ({ color, size = 28 }: any) => (
   <Svg width={size} height={size} viewBox="0 0 40 40" fill="none">
     <Path
-      d="M33.25 10.2916C33.25 13.3475 30.7642 15.8333 27.7083 15.8333C24.6525 15.8333 22.1667 13.3475 22.1667 10.2916C22.1667 7.2358 24.6525 4.74997 27.7083 4.74997C30.7642 4.74997 33.25 7.2358 33.25 10.2916ZM30.0833 18.6675C29.2917 18.8733 28.5 19 27.7083 19C25.4 18.9958 23.1875 18.077 21.5552 16.4447C19.923 14.8125 19.0042 12.5999 19 10.2916C19 7.96413 19.9183 5.8583 21.375 4.2908C21.0877 3.93857 20.7254 3.65489 20.3145 3.46041C19.9036 3.26594 19.4546 3.16557 19 3.16663C17.2583 3.16663 15.8333 4.59163 15.8333 6.3333V6.79247C11.1308 8.1858 7.91667 12.5083 7.91667 17.4166V26.9166L4.75 30.0833V31.6666H33.25V30.0833L30.0833 26.9166V18.6675ZM19 36.4166C20.7575 36.4166 22.1667 35.0075 22.1667 33.25H15.8333C15.8333 34.0898 16.167 34.8953 16.7608 35.4891C17.3547 36.083 18.1601 36.4166 19 36.4166Z"
+      d="M20 36.6667C22.2091 36.6667 24 34.8758 24 32.6667H16C16 34.8758 17.7909 36.6667 20 36.6667ZM31.6667 26V16C31.6667 10.0167 27.6833 5.01667 21.6667 3.83333V2.66667C21.6667 1.75 20.9167 1 20 1C19.0833 1 18.3333 1.75 18.3333 2.66667V3.83333C12.3167 5.01667 8.33333 10.0167 8.33333 16V26L5 29.3333V31H35V29.3333L31.6667 26Z"
       fill={color}
-      stroke="2"
     />
-    {/* Add more SVG paths as needed */}
   </Svg>
 );
 
@@ -192,7 +190,7 @@ const MagnifyIcon: React.FC<{
 };
 
 const BottomBar: React.FC = () => {
-  const { userData } = useContext(ThemeContext);
+  const { userData, unreadNotificationCount } = useContext(ThemeContext);
   const [showSubscriptionModal, setShowSubscriptionModal] = React.useState(false);
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -249,13 +247,28 @@ const BottomBar: React.FC = () => {
     return { height, paddingBottom: androidNavigationPadding };
   }, [insets.bottom]);
 
-  const renderTabIcon = (focused: boolean, icon: React.ReactNode) => (
+  const renderTabIcon = (focused: boolean, icon: React.ReactNode, showDot?: boolean) => (
     <View
       style={{
         alignItems: "center",
         justifyContent: "center"}}
     >
       <MagnifyIcon focused={focused}>{icon}</MagnifyIcon>
+      {showDot && (
+        <View 
+          style={{
+            position: 'absolute',
+            top: 1,
+            right: 3,
+            width: wp(2.5),
+            height: wp(2.5),
+            borderRadius: wp(1.25),
+            backgroundColor: '#F2C112',
+            borderWidth: 1,
+            borderColor: COLORS.secondary01,
+          }}
+        />
+      )}
     </View>
   );
 
@@ -382,7 +395,7 @@ const BottomBar: React.FC = () => {
             component={Notification}
             options={{
               tabBarIcon: ({ color, focused }) =>
-                renderTabIcon(focused, <NotificationIcon color={color} size={iconSize} />)}}
+                renderTabIcon(focused, <NotificationIcon color={color} size={iconSize} />, unreadNotificationCount > 0)}}
           />
           <Tab.Screen
             name={"Profile"}

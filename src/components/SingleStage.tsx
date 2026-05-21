@@ -119,7 +119,7 @@ const ArrowSvg = (props: any) => {
   );
 };
 
-const SingleStage = ({ id, score, start, loading, questionCount, label, showNumber, isLatest }: any) => {
+const SingleStage = ({ id, score, start, loading, questionCount, label, showNumber, isLatest, onScorePress }: any) => {
   return (
     <View style={styles.container}>
       {/* Slanted arrow body */}
@@ -141,6 +141,7 @@ const SingleStage = ({ id, score, start, loading, questionCount, label, showNumb
         id={id}
         score={score}
         start={start}
+        onScorePress={onScorePress}
         loading={loading}
         questionCount={questionCount}
         label={label}

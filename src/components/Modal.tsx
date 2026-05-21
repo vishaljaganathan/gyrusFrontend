@@ -1,6 +1,7 @@
-import React, { useContext, useState, useEffect } from "react";
-import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Alert } from 'react-native'
-import { Ionicons as Icon } from '@expo/vector-icons';
+import React, { useContext, useState, useEffect, useRef } from "react";
+import { View, StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator, Alert, Animated, Easing } from 'react-native'
+import { Svg, Path, Rect, Defs, LinearGradient, Stop, Mask } from "react-native-svg";
+import { Ionicons } from '@expo/vector-icons';
 import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
 
 import { Center, Modal } from "@gluestack-ui/themed-native-base";
@@ -21,6 +22,8 @@ import { setSecureStorage } from '../config/SecureStore';
 
 
 
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
+
 const ModalBox = ({
   showModal,
   modelData,
@@ -29,9 +32,37 @@ const ModalBox = ({
   report,
   streakData } : ModalProps) => {
   const StreaksImage = require("../assets/stricks.png");
-  const SleepyImage = require("../assets/sleepyface.png");
+  const SleepyImage = { uri: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f634/512.gif" };
   const themeContext = useContext(ThemeContext);
   const { userData, setAppState, appState } = themeContext;
+
+  // Pulse Animations
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const ekgAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (showModal && showEmoji) {
+      // Heartbeat pulse animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.2, duration: 300, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.0, duration: 200, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.4, duration: 300, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.0, duration: 1200, useNativeDriver: true }),
+        ])
+      ).start();
+
+      // Continuous EKG sweep animation
+      Animated.loop(
+        Animated.timing(ekgAnim, {
+          toValue: 1,
+          duration: 4000,
+          easing: Easing.linear,
+          useNativeDriver: false
+        })
+      ).start();
+    }
+  }, [showModal, showEmoji]);
   const navigation: any = useNavigation();
   const initialSel = React.useMemo(() => {
     const target = String(appState?.home || "").toLowerCase();
@@ -89,23 +120,71 @@ const ModalBox = ({
                 onPress={() => setShowModal(false)}
                 style={{ position: 'absolute', top: 10, right: 10, zIndex: 10 }}
               >
-                <Icon name="close" size={24} color="#fff" />
+                <Ionicons name="close" size={24} color="#fff" />
               </TouchableOpacity>
 
               <View style={ModalStyle.emojiContainer}>
-                <View style={ModalStyle.streakContainer}>
-                  <Image source={StreaksImage}
-            style={ModalStyle.streakImage} />
-                  <Text style={ModalStyle.streakText}>
-                    {streakData?.active}
-                  </Text>
+                {/* Active Streak Row */}
+                <View style={ModalStyle.streakRow}>
+                  <View style={ModalStyle.iconContainer}>
+                    <View style={{ width: 80, height: 40 }}>
+                      <Svg width="80" height="40" viewBox="0 0 80 40">
+                        <Defs>
+                          <LinearGradient id="pulseGradModal" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <Stop offset="0%" stopColor="white" stopOpacity="0" />
+                            <Stop offset="50%" stopColor="white" stopOpacity="0.1" />
+                            <Stop offset="90%" stopColor="white" stopOpacity="1" />
+                            <Stop offset="100%" stopColor="white" stopOpacity="0" />
+                          </LinearGradient>
+                          <Mask id="pulseMaskModal">
+                            <AnimatedRect
+                              x={ekgAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [-80, 80]
+                              })}
+                              y="0"
+                              width="80"
+                              height="40"
+                              fill="url(#pulseGradModal)"
+                            />
+                          </Mask>
+                        </Defs>
+                        <Path
+                          d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
+                          fill="none"
+                          stroke="#00B712"
+                          strokeWidth="1.2"
+                          opacity={0.15}
+                        />
+                        <Path
+                          d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
+                          fill="none"
+                          stroke="#00B712"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          mask="url(#pulseMaskModal)"
+                        />
+                      </Svg>
+                    </View>
+                  </View>
+                  <View style={ModalStyle.numberContainer}>
+                    <Text style={ModalStyle.streakText}>
+                      {streakData?.active || 0}
+                    </Text>
+                  </View>
                 </View>
-                <View style={ModalStyle.sleepyContainer}>
-                  <Image source={SleepyImage}
-            style={ModalStyle.sleepyImage} />
-                  <Text style={ModalStyle.streakText}>
-                    {Math.max(0, Math.abs(Number(streakData?.inactive) || 0))}
-                  </Text>
+
+                {/* Inactive Streak Row */}
+                <View style={ModalStyle.streakRow}>
+                  <View style={ModalStyle.iconContainer}>
+                    <Image source={SleepyImage} style={ModalStyle.sleepyImage} />
+                  </View>
+                  <View style={ModalStyle.numberContainer}>
+                    <Text style={ModalStyle.streakText}>
+                      {Math.max(0, Math.abs(Number(streakData?.inactive) || 0))}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </Modal.Body>
@@ -270,17 +349,29 @@ const ModalStyle = StyleSheet.create({
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
+    paddingTop: 30,
+    paddingBottom: 10,
+    gap: 30 }, 
+  streakRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 10,
-    gap: 10 }, streakContainer: {
-    flexDirection: "row",
+    width: '100%',
+    gap: wp(10),
+  },
+  iconContainer: {
+    width: wp(30),
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 20,
-    gap: 100 }, sleepyContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+  },
+  numberContainer: {
+    width: wp(20),
+    alignItems: "flex-start",
     justifyContent: "center",
-    gap: 100 }, streakImage: {
+    paddingLeft: wp(2),
+  },
+  streakImage: {
     width: 40,
     height: hp(4),
     resizeMode: "contain" }, sleepyImage: {
@@ -356,14 +447,11 @@ const ModalStyle = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: wp(3),
     marginTop: 12 }, neetDate: {
-    fontFamily: 'AppFont-Regular', fontSize: 22,
-    color: COLORS.primary09,
-        marginTop: 6,
-    textShadowColor: "black",
-    textShadowRadius: 0.5,
-    textShadowOffset: { width: 1, height: 1 }},
+    fontFamily: 'AppFont-Bold', fontSize: 30,
+    color: COLORS.secondary06,
+        marginTop: 6},
   neetDateText: {
-     fontFamily: 'AppFont-Regular', fontSize: 16,
+     fontFamily: 'AppFont-Regular', fontSize: 18,
     color: '#2b2b2bff',
     textAlign: 'center',
     lineHeight: 20,

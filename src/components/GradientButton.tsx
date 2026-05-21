@@ -18,9 +18,10 @@ const GradientButton = ({
   renderIcon,
   disable,
   loading,
+  activeOpacity,
   textStyle}: any) => {
   return (
-    <TouchableOpacity onPress={onPress}>
+    <TouchableOpacity onPress={onPress} activeOpacity={activeOpacity}>
       {/* <LinearGradient style={[styles.card, styles.elevation]}
             colors={colors}  start={{ x: 0.6, y: 0.9}}
         end={{ x: 0.6, y: 0}} > */}

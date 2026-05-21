@@ -1,6 +1,7 @@
 
 import React, { useState, useContext } from "react";
 import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
+import { SafeAreaView } from "react-native-safe-area-context";
 import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../styles/themes";
@@ -89,22 +90,18 @@ const ResetPassword = ({ navigation, route }: { navigation: any; route: any }) =
   });
 
   return (
-    <LinearGradient
-      colors={[
-        COLORS.primary01,
-        COLORS.primary02,
-        COLORS.primary03,
-        COLORS.primary05,
-      ]}
-      style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
+    <SafeAreaView style={styles.safeContainer} edges={["top", "bottom"]}>
+      <LinearGradient
+        colors={["#028464", "#0AB7AD", "#0B7960"]}
+        style={styles.container}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
       <View style={styles.LoginContainer}>
         <Animated.View entering={ZoomInLeft} style={{ alignItems: "center" }}>
           <View
             style={{
-              backgroundColor: COLORS.primary05,
+              backgroundColor: "rgba(0, 0, 0, 0.35)",
               margin: wp(1),
               paddingHorizontal: wp(4),
               paddingTop: wp(6),
@@ -220,11 +217,16 @@ const ResetPassword = ({ navigation, route }: { navigation: any; route: any }) =
           </View>
         </Animated.View>
       </View>
-    </LinearGradient>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#014b51ff",
+  },
   container: {
     flex: 1,
     alignItems: "center",

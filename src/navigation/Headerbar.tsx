@@ -1,5 +1,7 @@
-import React, { useContext, useEffect, useState } from "react";
-import { View,  StyleSheet, Pressable, Image } from "react-native"
+import React, { useContext, useEffect, useState, useCallback, useRef } from "react";
+import { View, StyleSheet, Pressable, Image, Animated, Easing } from "react-native"
+import { Svg, Path, Rect, Defs, LinearGradient, Stop, Mask } from "react-native-svg";
+import { Ionicons } from '@expo/vector-icons';
 import { CustomText as Text } from '../components/CustomText';
 import { axiosInstance } from "../config/indeceptor";
 import ModalBox from "../components/Modal";
@@ -10,10 +12,13 @@ import {
   heightPercentageToDP as hp} from "react-native-responsive-screen";
 import { ThemeContext } from "../service/authContext";
 import { moderateScale } from "../styles/Responsive";
+import { useFocusEffect } from "@react-navigation/native";
 
 
 
 
+
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 const HeaderBar = () => {
   const [modelData, setModelData] = useState<PopupModal[]>([]);
@@ -21,10 +26,37 @@ const HeaderBar = () => {
   const [showEmoji, setshowEmoji] = useState(false);
   const [streakData, setStreakData] = useState({ active: 0, inactive: 0 });
 
+  // Pulse Animations
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const ekgAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Heartbeat pulse animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.2, duration: 300, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.0, duration: 200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.4, duration: 300, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.0, duration: 1200, useNativeDriver: true }),
+      ])
+    ).start();
+
+    // Continuous EKG sweep animation
+    Animated.loop(
+      Animated.timing(ekgAnim, {
+        toValue: 1,
+        duration: 4000,
+        easing: Easing.linear,
+        useNativeDriver: false
+      })
+    ).start();
+  }, []);
+
   const Botany = require("../assets/botany.png");
   const Silver = require("../assets/Silver.png");
   const streak = require("../assets/stricks.png");
-  const stethoscope = require("../assets/stethoscope.png");
+  const inactiveStreak = { uri: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f634/512.gif" };
+  const stethoscope = { uri: "https://fonts.gstatic.com/s/e/notoemoji/latest/1fa7a/512.gif" };
   const noto_stethoscope = require("../assets/noto_stethoscope.png");
   const chemistry = require("../assets/chemistry.png");
   const physics = require("../assets/physics.png");
@@ -32,10 +64,22 @@ const HeaderBar = () => {
   const DayBg = require("../assets/daybg.png");
 
   const themeContext = useContext(ThemeContext);
-  const { userData, appState, setAppState } = themeContext;
+  const { userData, setUserData, appState, setAppState } = themeContext;
 
   const FALLBACK_NEET_DATE = "2026-05-03";
   const [neetDate, setNeetDate] = useState<string>(FALLBACK_NEET_DATE);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      axiosInstance.get("authentication/user").then((res) => {
+        if (res?.data && isMounted) {
+          setUserData(res.data);
+        }
+      }).catch(() => {});
+      return () => { isMounted = false; };
+    }, [])
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -156,10 +200,12 @@ const HeaderBar = () => {
         setModelData([
           {
             id: 1,
-            img: userData?.planId?.img
+            img: (userData?.planValid && userData?.planId?.img)
               ? { uri: userData?.planId?.img }
               : Silver,
-            title: userData?.planId?.name,
+            title: (userData?.isTrial && userData?.planValid) 
+              ? "7-Day Gold Trial" 
+              : (userData?.planValid ? userData?.planId?.name : "Silver"),
             plan: userData?.planValid,
             expiryDate: userData?.planExpiry},
         ]);
@@ -212,10 +258,53 @@ const HeaderBar = () => {
         {/* Streak Section */}
         <Pressable onPress={() => handleClick(0)} style={HeaderMenuStyle.menuItem}>
           <View style={HeaderMenuStyle.itemContainer}>
-            <Image source={streak} style={HeaderMenuStyle.icon} />
-            {/* <Text style={HeaderMenuStyle.Text}>
-              {userData?.active?.days || 0} Active / {userData?.inActive || 0} Inactive
-            </Text> */}
+            { (userData?.active?.updatedAt && new Date(userData.active.updatedAt).toDateString() === new Date().toDateString()) ? (
+                  <View style={{ width: 80, height: 40 }}>
+                    <Svg width="80" height="40" viewBox="0 0 80 40">
+                      <Defs>
+                        <LinearGradient id="pulseGradModal" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <Stop offset="0%" stopColor="white" stopOpacity="0" />
+                          <Stop offset="50%" stopColor="white" stopOpacity="0.1" />
+                          <Stop offset="90%" stopColor="white" stopOpacity="1" />
+                          <Stop offset="100%" stopColor="white" stopOpacity="0" />
+                        </LinearGradient>
+                        <Mask id="pulseMaskModal">
+                          <AnimatedRect
+                            x={ekgAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [-80, 80]
+                            })}
+                            y="0"
+                            width="80"
+                            height="40"
+                            fill="url(#pulseGradModal)"
+                          />
+                        </Mask>
+                      </Defs>
+                      <Path
+                        d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
+                        fill="none"
+                        stroke="#00B712"
+                        strokeWidth="2"
+                        opacity={0.15}
+                      />
+                      <Path
+                        d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
+                        fill="none"
+                        stroke="#00B712"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        mask="url(#pulseMaskModal)"
+                      />
+                    </Svg>
+                  </View>
+            ) : (
+              <Image 
+                source={inactiveStreak} 
+                style={HeaderMenuStyle.icon} 
+              />
+            )}
           </View>
         </Pressable>
 
@@ -234,7 +323,7 @@ const HeaderBar = () => {
           <View style={HeaderMenuStyle.itemContainer}>
             <Image
               source={
-                userData?.planId?.img ? { uri: userData?.planId?.img } : Silver
+                (userData?.planValid && userData?.planId?.img) ? { uri: userData?.planId?.img } : Silver
               }
               style={HeaderMenuStyle.icon}
             />
