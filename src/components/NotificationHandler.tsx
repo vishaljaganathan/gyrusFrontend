@@ -8,10 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { axiosInstance } from '../config/indeceptor';
 import GlobalNotificationModal from './GlobalNotificationModal';
 import PracticeReminderModal from './PracticeReminderModal';
-import { scheduleInactivityReminder } from '../service/NotificationService';
 
 // Configure how notifications are handled when the app is foregrounded
-/*
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -21,7 +19,6 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
-*/
 
 const NotificationHandler = () => {
   const { userData, setNotificationRefreshTrigger, setUnreadNotificationCount, notificationRefreshTrigger } = useContext(ThemeContext);
@@ -97,21 +94,16 @@ const NotificationHandler = () => {
       // Set up 15-second polling interval
       const intervalId = setInterval(checkNewNotifications, 15000);
       
-      /*
       registerForPushNotificationsAsync().then(token => {
         if (token) {
-          console.log("[NotificationHandler] Token:", token);
-          axiosInstance.put('authentication/user', {
-            notificationId: {
-                token: token,
-                platform: Platform.OS
-            }
+          console.log("[NotificationHandler] Native Push Token:", token);
+          axiosInstance.put('authentication/push-token', {
+            pushToken: token
           }).catch(err => {
-            console.error("[NotificationHandler] Failed to update token in backend:", err);
+            console.error("[NotificationHandler] Failed to update push token in backend:", err);
           });
         }
       });
-      */
 
       return () => {
         clearInterval(intervalId);
@@ -120,17 +112,20 @@ const NotificationHandler = () => {
   }, [userData?._id, lastSeenId, notificationRefreshTrigger]);
 
   useEffect(() => {
+    // Dismiss all active notifications from the tray on startup/mount
+    Notifications.dismissAllNotificationsAsync().catch(() => {});
+
     // Force cancel all previously scheduled push notifications that might still exist on the device.
     Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
 
-    /*
     // Listen for notifications that arrive while the app is foregrounded
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       console.log("[NotificationHandler] Received in foreground:", notification);
       
       const data = notification.request.content.data;
       if (data?.type === 'reminder') {
-        setShowPracticeModal(true);
+        // Do not show the modal inside the app
+        console.log("[NotificationHandler] Practice reminder received, only showing in notification bar");
       } else {
         setNotification(notification);
         setNotificationRefreshTrigger(prev => prev + 1);
@@ -143,8 +138,14 @@ const NotificationHandler = () => {
       const data = response.notification.request.content.data;
       console.log("[NotificationHandler] User interacted:", data);
       
+      // Dismiss all remaining notifications from the notification tray
+      Notifications.dismissAllNotificationsAsync().catch((err) => {
+        console.error("[NotificationHandler] Failed to dismiss notifications:", err);
+      });
+      
       if (data?.type === 'reminder') {
-        setShowPracticeModal(true);
+        // Do not show the modal inside the app when clicked
+        console.log("[NotificationHandler] Practice reminder clicked");
       } else {
         setNotification(response.notification);
         setShowModal(true);
@@ -155,7 +156,6 @@ const NotificationHandler = () => {
       if (notificationListener.current) notificationListener.current.remove();
       if (responseListener.current) responseListener.current.remove();
     };
-    */
   }, []);
 
   async function registerForPushNotificationsAsync() {
@@ -181,11 +181,9 @@ const NotificationHandler = () => {
     }
     
     try {
-      token = (await Notifications.getExpoPushTokenAsync({
-        projectId: Constants.expoConfig?.extra?.eas?.projectId,
-      })).data;
+      token = (await Notifications.getDevicePushTokenAsync()).data;
     } catch (e) {
-      console.error("[NotificationHandler] Error getting token:", e);
+      console.error("[NotificationHandler] Error getting native token:", e);
     }
 
     return token;

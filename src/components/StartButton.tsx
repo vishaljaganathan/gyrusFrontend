@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
 import { CustomText as Text, CustomTextInput as TextInput, CustomBoldText } from './CustomText';
+import { ShineText } from './ShineText';
 
 import {
   widthPercentageToDP as wp,
@@ -40,7 +41,14 @@ const StartButton = ({
         {loading ? (
           <ActivityIndicator size="small" color="#FFFFFF" />
         ) : (
-          <CustomBoldText style={styles.buttonTxt}>{label}</CustomBoldText>
+          <ShineText 
+            text={label} 
+            fontSize={wp(4.2)} 
+            width={wp(40)} 
+            height={wp(4.2) * 1.5} 
+            marginBottom={0}
+            gradientId="start-button-shine"
+          />
         )}
       </LinearGradient>
     </TouchableOpacity>

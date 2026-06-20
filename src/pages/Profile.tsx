@@ -31,6 +31,7 @@ import { getRequest, putRequest, postRequest } from "../config/Requests";
 import { useMutation } from "@tanstack/react-query";
 import LogoutPopup from "../components/LogoutPopup";
 import { Ionicons } from '@expo/vector-icons';
+import { ShineText } from "../components/ShineText";
 
 
 
@@ -429,7 +430,16 @@ const Profile = ({ navigation }: { navigation: any }) => {
                     </TouchableOpacity>
                   </View>
 
-                  <Text style={styles.displayUserName}>{userData?.firstName} {userData?.lastName}</Text>
+                  <ShineText
+                    text={`${userData?.firstName || ''} ${userData?.lastName || ''}`.trim() || 'User Name'}
+                    fontSize={wp(7)}
+                    width={wp(80)}
+                    height={wp(7) * 1.5}
+                    marginBottom={hp(1)}
+                    isReverse={false}
+                    align="left"
+                    gradientId="profile-username-shine"
+                  />
                   
                   <View style={styles.badgeRow}>
                     {/* <View style={styles.badgeItem}>

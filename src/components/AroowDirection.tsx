@@ -73,10 +73,8 @@ const Arrows = ({ subName, track, onScorePress }: { track: any; subName: string;
 
   const getDerivedNextSizeFromProgress = (subjectState: any, subject: string, trackLength?: number): number | null => {
     const backendIdx = normalizeNonNegativeInt(subjectState?.setIndex);
-    // Use track length as a fallback or override if index is stale
-    const idx = (backendIdx !== null && backendIdx >= (trackLength || 0)) 
-      ? backendIdx 
-      : (trackLength !== undefined ? trackLength : backendIdx);
+    // The backend setIndex is the absolute source of truth. We only fall back to track length if setIndex is missing.
+    const idx = backendIdx !== null ? backendIdx : (trackLength !== undefined ? trackLength : null);
 
     console.log(`[AroowDirection] getDerived: sub=${subject}, backendIdx=${backendIdx}, trackLen=${trackLength}, chosenIdx=${idx}`);
 
@@ -294,10 +292,8 @@ const Arrows = ({ subName, track, onScorePress }: { track: any; subName: string;
                 // Get current setIndex from backend (determines which test we're on in the pattern)
                 const backendSetIndex = normalizeNonNegativeInt(userData[appState.home]?.setIndex);
                 
-                // Use the track prop length which is highly reliable
-                const currentSetIndex = (backendSetIndex !== null && backendSetIndex >= track.length) 
-                  ? backendSetIndex 
-                  : track.length;
+                // The backend setIndex is the absolute source of truth. We only fall back to track length if setIndex is missing.
+                const currentSetIndex = backendSetIndex !== null ? backendSetIndex : track.length;
                 
                 // Use liveNextSize as the baseline for the current test
                 // Locked cards show NEXT test sizes from the pattern (going forward)

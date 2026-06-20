@@ -140,7 +140,7 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
                 style={{
                   color: "#ffffff",
                   fontFamily: 'AppFont-Bold', fontSize: hp(2),
-                                    textAlign: "center" } }
+                  textAlign: "center"} }
             onPress={() => navigation.replace("Login")} // Replace to avoid stacking
               >
                 Back

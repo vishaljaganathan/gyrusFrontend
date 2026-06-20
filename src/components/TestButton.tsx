@@ -21,9 +21,9 @@ const TestButton: React.FC<TestButtonProps> = ({
   style
 }) => {
   return (
-    <TouchableOpacity onPress={onPress} disabled={disable} style={style}>
+    <TouchableOpacity onPress={onPress} disabled={disable}>
       <Lin
-        style={[styles.card, styles.shadow]}
+        style={[styles.card, styles.shadow, style]}
         colors={colors}
         start={{ x: 0.6, y: 0.3 }}
         end={{ x: 0.6, y: 0 }}

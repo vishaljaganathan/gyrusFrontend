@@ -15,11 +15,8 @@ const TesterMcqSearch = () => {
   const [mcqId, setMcqId] = useState("");
 
   const isTester = useMemo(() => {
-    return (
-      String(userData?.accType || "")
-        .trim()
-        .toLowerCase() === "tester"
-    );
+    const role = String(userData?.accType || "").trim().toLowerCase();
+    return role === "tester" || role === "tct" || role === "teacher come tester";
   }, [userData?.accType]);
 
   const onSearch = () => {
@@ -46,7 +43,7 @@ const TesterMcqSearch = () => {
 
         {!isTester ? (
           <Text style={styles.warn}>
-            This section is only for tester accounts.
+            This section is only for tester and TCT accounts.
           </Text>
         ) : (
           <>

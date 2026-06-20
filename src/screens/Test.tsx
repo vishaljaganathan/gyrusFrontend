@@ -18,6 +18,7 @@ const SimpleProgressBar = ({ progress = 0, height = 16, style = {} }) => {
 };
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { SafeAreaView } from "react-native-safe-area-context";
 
 
@@ -81,7 +82,7 @@ const Test = (props: any) => {
     setSignUpData,
     appState,
     setAppState } = context;
-  const isTesterBuildUser = String(userData?.accType || '').trim().toLowerCase() === 'tester';
+  const isTesterBuildUser = ['tester', 'tct', 'teacher come tester'].includes(String(userData?.accType || '').trim().toLowerCase());
   const showTestMeta = isReviewMode || isTesterBuildUser;
 
   const [finalData, setFinalData] = useState<any>({
@@ -148,6 +149,15 @@ const Test = (props: any) => {
   const [arrNum, setArrNum] = useState(0); // Define state for `arrNum`
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitFailed, setSubmitFailed] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(!!state.isConnected);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Sanitize test size for display and logic
   const rawTestType = Number(props.route.params?.params?.type) || 20;
@@ -636,55 +646,29 @@ const Test = (props: any) => {
         <View
           style={{
             flexDirection: "row",
-            flexWrap: "wrap",
             justifyContent: "center",
             alignItems: "center",
             marginTop: hp(3),
-            columnGap: wp(2),
-            width: "100%",
-            rowGap: hp(1)
+            width: "100%"
           }}
         >
-          <View style={{ flex: 1, minWidth: wp(35), maxWidth: wp(40) }}>
-            <TestButton
-              onPress={() => {
-                if (!testStarted) {
-                  // Allow test to start for crash users even if MCQs are empty or mock
-                  if (MCQs.length === 0) {
-                    // Show fallback message but allow start
-                    Alert.alert('Notice', 'No real questions found. You will get mock questions.');
-                  }
-                  setTestStarted(true);
+          <TestButton
+            onPress={() => {
+              if (!testStarted) {
+                // Allow test to start for crash users even if MCQs are empty or mock
+                if (MCQs.length === 0) {
+                  // Show fallback message but allow start
+                  Alert.alert('Notice', 'No real questions found. You will get mock questions.');
                 }
-                setShowPopup(false);
-              }}
-              colors={loadingQuestions ? ["#CCCCCC", "#E0E0E0"] : ["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-              text={<Text style={{ fontFamily: 'AppFont-Bold' }}>{loadingQuestions ? "Loading..." : "Continue"}</Text>}
-              disable={loadingQuestions}
-            />
-          </View>
-          <View style={{ flex: 1, minWidth: wp(35), maxWidth: wp(40) }}>
-            <TestButton
-              onPress={() => {
-                setShowPopup(false);
-                setShowRetry(false);
-                setShowSuccess(false);
-                setMCQs([]);
-                setMCQ({});
-                setMCQIdx(0);
-                setSelectedIdx(undefined);
-                setShowAnswer(false);
-                setArrNum(0);
-                if (navigation && typeof navigation.canGoBack === 'function' && navigation.canGoBack()) {
-                  navigation.goBack();
-                } else if (navigation && typeof navigation.navigate === 'function') {
-                  navigation.navigate("BottomBar", { screen: "Home" });
-                }
-              }}
-              colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-              text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Go Back</Text>}
-            />
-          </View>
+                setTestStarted(true);
+              }
+              setShowPopup(false);
+            }}
+            colors={loadingQuestions ? ["#CCCCCC", "#E0E0E0"] : ["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
+            text={<Text style={{ fontFamily: 'AppFont-Bold',fontSize:wp(4.5) }}>{loadingQuestions ? "Loading..." : "Continue"}</Text>}
+            disable={loadingQuestions}
+            style={{ width: wp(55), height: hp(5), borderRadius: 28 }}
+          />
         </View>
       </View>
     );
@@ -706,24 +690,19 @@ const Test = (props: any) => {
         setIsSubmitting(false);
         return;
       }
-      const passMark = Math.ceil(setSize / 2);
+      const effectiveSize = Math.min(setSize, MCQs.length > 0 ? MCQs.length : setSize);
+      const passMark = Math.ceil(effectiveSize / 2);
       const passed = correctQtsIds.length >= passMark;
 
       // Persist score for the result modal (we reset correct/wrong arrays shortly after to preload next set)
       setSubmittedScore(correctQtsIds.length);
       setSubmittedWrong(wrongQtsIds.length);
-      setSubmittedTotal(setSize);
+      setSubmittedTotal(effectiveSize);
 
       const totalAnswered = correctQtsIds.length + wrongQtsIds.length;
-      const answeredAll = totalAnswered >= setSize;
+      const answeredAll = totalAnswered >= effectiveSize;
 
-      // If the user failed, DO NOT advance and DO NOT submit.
-      if (!passed) {
-        setIsSubmitting(false);
-        setShowRetry(true);
-        setResultShown(true);
-        return;
-      }
+
 
       // Calculate progression for next set using frontend strategy
       let nextCycle = cycleIndex;
@@ -777,10 +756,14 @@ const Test = (props: any) => {
       console.log('[Test.tsx] SubmitTest - SENDING PAYLOAD:', submitPayload);
 
       setIsSubmitting(true);
+      AsyncStorage.setItem('pending_test_submit', JSON.stringify(submitPayload)).catch(err => {
+        console.error('[Test.tsx] Error saving pending test to AsyncStorage:', err);
+      });
 
       axiosInstance
         .post("/authentication/test/submit", submitPayload)
         .then((res: any) => {
+          AsyncStorage.removeItem('pending_test_submit').catch(() => {});
           if (res && res.data) {
             console.log('[Test.tsx] Received updated user from backend:', {
               hasData: !!res.data,
@@ -844,6 +827,13 @@ const Test = (props: any) => {
               .catch(() => {});
           }, 500);
 
+          if (!passed) {
+            setShowRetry(true);
+            setResultShown(true);
+            setIsSubmitting(false);
+            return;
+          }
+
           console.log('[Test.tsx] UPDATING STATE after submission:', {
             oldCycleIndex: cycleIndex,
             oldSetIndexInCycle: setIndexInCycle,
@@ -887,6 +877,7 @@ const Test = (props: any) => {
           const status = err?.response?.status;
           Alert.alert('Error', serverMsg ? String(serverMsg) : `Failed to submit test results${status ? ` (HTTP ${status})` : ''}.`);
           setIsSubmitting(false);
+          setSubmitFailed(true);
         });
     } catch (error) {
       console.error('[Test.tsx] Unexpected error in SubmitTest:', error);
@@ -1096,8 +1087,8 @@ const Test = (props: any) => {
               ) : null}
               {MCQs && MCQs.length > 0 && <SplitStringValues centerTable={true} MCQ={MCQs[MCQIdx % MCQs.length]} keyName={"question"} />}
               {showTestMeta && String(MCQs?.[MCQIdx % MCQs.length]?.answer ?? '').trim() ? (
-                <View style={{ width: '100%', alignItems: 'flex-end', marginTop: hp(0.5), marginBottom: hp(1) }}>
-                  <Text style={{ color: '#C6CDD0', fontFamily: 'AppFont-Regular', fontSize: hp(1.9), textAlign: 'right',marginRight:wp(2) }}>
+                <View style={{ width: '100%', alignItems: 'flex-start', marginTop: hp(0.5), marginBottom: hp(1), paddingHorizontal: wp(2) }}>
+                  <Text style={{ color: '#C6CDD0', fontFamily: 'AppFont-Regular', fontSize: hp(1.9), textAlign: 'left'}}>
                     The correct option is {String(MCQs?.[MCQIdx % MCQs.length]?.answer).trim()}
                   </Text>
                 </View>
@@ -1179,6 +1170,32 @@ const Test = (props: any) => {
               <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Regular', fontSize: hp(2) }}>Submitting your test!!</Text>
               <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Regular', fontSize: hp(1.6), marginTop: hp(1) }}>Please wait a moment.</Text>
             </View>
+          ) : submitFailed ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, paddingTop: hp(15), paddingHorizontal: wp(5) }}>
+              <Text style={{ color: '#F2C112', fontFamily: 'AppFont-Bold', fontSize: hp(2.4), textAlign: 'center', marginBottom: hp(1) }}>Submission Failed</Text>
+              <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Regular', fontSize: hp(1.8), textAlign: 'center', marginBottom: hp(3), lineHeight: hp(2.5) }}>
+                We could not submit your test results due to an internet connection issue. Please reconnect and try again.
+              </Text>
+              <TouchableOpacity
+                disabled={!isConnected}
+                onPress={() => {
+                  setSubmitFailed(false);
+                  SubmitTest();
+                }}
+                style={{
+                  backgroundColor: isConnected ? '#0AB8AD' : '#888888',
+                  paddingVertical: hp(1.5),
+                  paddingHorizontal: wp(8),
+                  borderRadius: hp(1),
+                  elevation: isConnected ? 3 : 0,
+                  opacity: isConnected ? 1 : 0.6
+                }}
+              >
+                <Text style={{ color: '#FFF', fontFamily: 'AppFont-Bold', fontSize: hp(1.8) }}>
+                  {isConnected ? "Retry Submission" : "No Internet Connection"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <></>
           )}
@@ -1193,7 +1210,7 @@ const Test = (props: any) => {
           justifyContent: "space-evenly"
         }}
       >
-        {(!isSubmitting && !submitTest) && (
+        {(!isSubmitting && !submitTest && !submitFailed) && (
           <View>
             <CheckButton
               onPress={() => {
@@ -1263,6 +1280,44 @@ const Test = (props: any) => {
             backgroundColor: "rgba(47, 47, 47, 0.9)"
           }}
         >
+          <TouchableOpacity
+            onPress={() => {
+              setShowPopup(false);
+              setShowRetry(false);
+              setShowSuccess(false);
+              setMCQs([]);
+              setMCQ({});
+              setMCQIdx(0);
+              setSelectedIdx(undefined);
+              setShowAnswer(false);
+              setArrNum(0);
+              answeredQuestionKeysRef.current = new Set();
+              if (navigation && typeof navigation.reset === 'function') {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'BottomBar' }]
+                });
+              } else if (navigation && typeof navigation.navigate === 'function') {
+                navigation.navigate("BottomBar", { screen: "Home" });
+              }
+            }}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            style={{
+              position: "absolute",
+              top: 10,
+              right: 15,
+              zIndex: 9999
+            }}
+          >
+            <CustomBoldText
+              style={{
+                color: "#0AB8AD",
+                fontSize: 28
+              }}
+            >
+              ×
+            </CustomBoldText>
+          </TouchableOpacity>
           <Modal.Body style={{ width: "100%", paddingHorizontal: 0 }}>
             <View
               style={{
@@ -1322,10 +1377,10 @@ const Test = (props: any) => {
               setShowAnswer(false);
               setArrNum(0);
               answeredQuestionKeysRef.current = new Set();
-              if (navigation && typeof navigation.canGoBack === 'function' && navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
+              if (navigation && typeof navigation.reset === 'function') {
                 navigation.reset({ index: 0, routes: [{ name: 'BottomBar' }] });
+              } else if (navigation && typeof navigation.navigate === 'function') {
+                navigation.navigate("BottomBar", { screen: "Home" });
               }
             }}
             result={props.route.params.params.type}

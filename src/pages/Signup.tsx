@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useContext, useMemo } from "react";
+import { ShineText } from "../components/ShineText";
 import { View, StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator, Modal, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
@@ -257,7 +258,10 @@ const SignUp = ({ navigation, route }: { navigation: any, route: any }) => {
 
                 {/* Sign Up Form Section */}
                 <View style={styles.formContainer}>
-                  <Text style={styles.signUpTitle}>Sign Up</Text>
+                  <ShineText 
+                    text="Sign Up" 
+                    gradientId="signup-header-shine"
+                  />
 
                   {/* Progress Indicator */}
                   <View style={styles.progressContainer}>
@@ -408,12 +412,12 @@ const SignUp = ({ navigation, route }: { navigation: any, route: any }) => {
                   <View style={styles.signInLinkContainer}>
                     <Text style={styles.signInText}>
                       Do you have an account?{" "}
-                      <Text
-                        style={styles.signInLinkText}
-                        onPress={() => navigation.replace("Login")}
-                      >
-                        Sign In
-                      </Text>
+                    </Text>
+                    <Text
+                      style={styles.signInLinkText}
+                      onPress={() => navigation.replace("Login")}
+                    >
+                      Sign In
                     </Text>
                   </View>
                 </View>
@@ -554,7 +558,9 @@ const styles = StyleSheet.create({
     width: "100%",
     marginBottom: hp(2)
   }, signInLinkContainer: {
-    alignItems: "center"
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center"
   }, signInText: {
     color: COLORS.colorWhite,
     fontFamily: 'AppFont-Regular', fontSize: wp(3.8),
@@ -563,7 +569,8 @@ const styles = StyleSheet.create({
   },
   signInLinkText: {
     color: COLORS.colorWhite,
-    fontFamily: 'AppFont-Regular', fontSize: wp(3.8)
+    fontFamily: 'AppFont-Bold', fontSize: wp(3.8),
+    textDecorationLine: "underline"
   },
   validation: {
     fontFamily: 'AppFont-Regular', fontSize: hp(2),

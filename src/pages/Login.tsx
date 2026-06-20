@@ -1,13 +1,15 @@
 import { ThemeContext } from '../service/authContext';
+import { ShineText } from "../components/ShineText";
 
 import React, { useState, useContext } from "react";
-import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert , Platform} from 'react-native'
+import { View, StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator, Modal, Alert, Platform } from 'react-native'
 import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../styles/themes";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp } from "react-native-responsive-screen";
+  heightPercentageToDP as hp
+} from "react-native-responsive-screen";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMutation } from "@tanstack/react-query";
 import { postRequest } from "../config/Requests";
@@ -85,8 +87,10 @@ const Login = ({ navigation }: { navigation: any }) => {
               setUserData(res.data);
               navigation.reset({
                 index: 0,
-                routes: [{ name: 'BottomBar' }] } );
-            } })
+                routes: [{ name: 'BottomBar' }]
+              });
+            }
+          })
           .catch((err) => {
             if (err.status == 401) {
               navigation.navigate("Login"); // Use navigation prop
@@ -94,7 +98,7 @@ const Login = ({ navigation }: { navigation: any }) => {
           });
       }
     },
-  onError: (error: AxiosError, variable, context) => {
+    onError: (error: AxiosError, variable, context) => {
       setLoading(false);
       console.error("Login error:", error);
 
@@ -110,7 +114,7 @@ const Login = ({ navigation }: { navigation: any }) => {
 
       // Handle server errors with response
       let Error: any = error.response?.data;
-      
+
       // Extract message safely (backend sometimes sends { message: { message: "..." } })
       let displayMessage = "An error occurred. Please try again.";
       if (typeof Error?.message === 'string') {
@@ -130,7 +134,7 @@ const Login = ({ navigation }: { navigation: any }) => {
       } else if (statusCode == 406) {
         const otpUserId = Error.id || Error._id || Error.data?.id || Error.data?._id;
         console.log("[Login] 406 Error - Navigating to Otp with id:", otpUserId);
-        navigation.navigate("Otp", { 
+        navigation.navigate("Otp", {
           id: otpUserId,
           phoneNo: variable.payload.phoneNo,
           msgHint: displayMessage
@@ -162,10 +166,11 @@ const Login = ({ navigation }: { navigation: any }) => {
   const formik: any = useFormik({
     initialValues: {
       phoneNo: "",
-      password: "" }, validate: validate,
+      password: ""
+    }, validate: validate,
     onSubmit: async (values) => {
       setLoading(true);
-      
+
       // Get unique device identifier with persistence fallback
       let deviceId = "";
       try {
@@ -180,7 +185,7 @@ const Login = ({ navigation }: { navigation: any }) => {
         if (!deviceId || deviceId === "" || deviceId === "null") {
           const { getSecureStorage, setSecureStorage: storeSS } = require("../config/SecureStore");
           const uuid = require("react-native-uuid").default;
-          
+
           let storedId = await getSecureStorage("persistent_device_id");
           if (!storedId) {
             storedId = uuid.v4().toString();
@@ -199,130 +204,137 @@ const Login = ({ navigation }: { navigation: any }) => {
         URL: "authentication/log-in",
         payload: {
           ...values,
-          deviceId } }); } });
+          deviceId
+        }
+      });
+    }
+  });
 
   const [isPasswordSecure, setIsPasswordSecure] = useState(true);
 
   return (
     <SafeAreaView style={styles.safeContainer} edges={["top", "bottom"]}>
-    <LinearGradient
-      colors={["#028464", "#0AB7AD", "#0B7960"]}
-            style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <View style={styles.loginContainer}>
-        <Animated.View entering={ZoomInLeft}
+      <LinearGradient
+        colors={["#028464", "#0AB7AD", "#0B7960"]}
+        style={styles.container}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.loginContainer}>
+          <Animated.View entering={ZoomInLeft}
             style={styles.animatedContainer}>
-          {/* Logo Section */}
-          <View style={styles.logoContainer}>
-            <Image source={logo}
-            style={styles.logoImage} />
-          </View>
+            {/* Logo Section */}
+            <View style={styles.logoContainer}>
+              <Image source={logo}
+                style={styles.logoImage} />
+            </View>
 
-          {/* Login Form Section */}
-          <View style={styles.formContainer}>
-            <Text style={styles.signInTitle}>Sign In</Text>
+            {/* Login Form Section */}
+            <View style={styles.formContainer}>
+              <ShineText 
+                text="Sign In" 
+                gradientId="login-header-shine"
+              />
 
-            {/* Input Fields */}
-            <View style={styles.inputsContainer}>
-              {LoginFields.map((data: any, index) => {
-                return (
-                  <View key={data.idx}
-            style={styles.inputWrapper}>
-                    <View style={styles.inputFieldContainer}>
-                      <TextInput
-                        style={[
-                          styles.textInput,
-                          data.id === "password" && styles.passwordInput,
-                        ]}
-                        keyboardType={data.phonePad ? "numeric" : "default"}
-                        placeholder={data.placeholderName}
-                        placeholderTextColor="#999"
-                        secureTextEntry={
-                          data.id === "password" ? !showPassword : false
-                        }
-                        maxLength={data.id === "phoneNo" ? 10 : undefined}
-                        onChangeText={(Text) => {
-                          if (data.id === "phoneNo") {
-                            formik.setFieldValue("phoneNo", Text.replace(/[^0-9]/g, ""));
-                          } else {
-                            formik.setFieldValue(data.id, Text);
+              {/* Input Fields */}
+              <View style={styles.inputsContainer}>
+                {LoginFields.map((data: any, index) => {
+                  return (
+                    <View key={data.idx}
+                      style={styles.inputWrapper}>
+                      <View style={styles.inputFieldContainer}>
+                        <TextInput
+                          style={[
+                            styles.textInput,
+                            data.id === "password" && styles.passwordInput,
+                          ]}
+                          keyboardType={data.phonePad ? "numeric" : "default"}
+                          placeholder={data.placeholderName}
+                          placeholderTextColor="#999"
+                          secureTextEntry={
+                            data.id === "password" ? !showPassword : false
                           }
-                        }}
-                        onBlur={formik.handleBlur(`${data.id}`)}
-                        value={formik.values[`${data.id}`]}
-                      />
-                      {data.id === "password" && (
-                        <TouchableOpacity
-                          onPress={togglePasswordVisibility}
-            style={styles.eyeIconContainer}
-                        >
-                          <Icon
-                            name={showPassword ? "eye-off" : "eye"}
-                            size={20}
-                            color="#666"
-                          />
-                        </TouchableOpacity>
+                          maxLength={data.id === "phoneNo" ? 10 : undefined}
+                          onChangeText={(Text) => {
+                            if (data.id === "phoneNo") {
+                              formik.setFieldValue("phoneNo", Text.replace(/[^0-9]/g, ""));
+                            } else {
+                              formik.setFieldValue(data.id, Text);
+                            }
+                          }}
+                          onBlur={formik.handleBlur(`${data.id}`)}
+                          value={formik.values[`${data.id}`]}
+                        />
+                        {data.id === "password" && (
+                          <TouchableOpacity
+                            onPress={togglePasswordVisibility}
+                            style={styles.eyeIconContainer}
+                          >
+                            <Icon
+                              name={showPassword ? "eye-off" : "eye"}
+                              size={20}
+                              color="#666"
+                            />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      {/* Error Messages */}
+                      {formik.errors[data.id] && formik.touched[data.id] && (
+                        <Text style={styles.errorText}>
+                          {formik.errors[`${data.id}`]}
+                        </Text>
                       )}
                     </View>
+                  );
+                })}
+              </View>
 
-                    {/* Error Messages */}
-                    {formik.errors[data.id] && formik.touched[data.id] && (
-                      <Text style={styles.errorText}>
-                        {formik.errors[`${data.id}`]}
-                      </Text>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
+              {/* Login Error Message */}
+              {loginMsg.length > 0 && (
+                <Text style={styles.loginErrorText}>{loginMsg}</Text>
+              )}
 
-            {/* Login Error Message */}
-            {loginMsg.length > 0 && (
-              <Text style={styles.loginErrorText}>{loginMsg}</Text>
-            )}
+              {/* Forgot Password Link */}
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Fpassword")} // Use navigation prop
+                style={styles.forgotPasswordContainer}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password</Text>
+              </TouchableOpacity>
 
-            {/* Forgot Password Link */}
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Fpassword")} // Use navigation prop
-              style={styles.forgotPasswordContainer}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password</Text>
-            </TouchableOpacity>
+              {/* Sign In Button */}
+              <View style={styles.buttonContainer}>
+                <GradientButton
+                  onPress={formik.handleSubmit}
+                  disable={!formik.isValid}
+                  loading={loading}
+                  colors={
+                    !formik.isValid
+                      ? [COLORS.button_enable01, COLORS.button_enable02]
+                      : [COLORS.button_disable01, COLORS.button_disable02]
+                  }
+                  Text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Sign In</Text>}
+                />
+              </View>
 
-            {/* Sign In Button */}
-            <View style={styles.buttonContainer}>
-              <GradientButton
-                onPress={formik.handleSubmit}
-            disable={!formik.isValid}
-                loading={loading}
-            colors={
-                  !formik.isValid
-                    ? [COLORS.button_enable01, COLORS.button_enable02]
-                    : [COLORS.button_disable01, COLORS.button_disable02]
-                }
-            Text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Sign In</Text>}
-              />
-            </View>
-
-            {/* Sign Up Link */}
-            <View style={styles.signUpLinkContainer}>
-              <Text style={styles.signUpText}>
-                If you don't have an account?{" "}
-                <Text
-                  style={styles.signUpLinkText}
-                  onPress={() => navigation.replace("SignUp")} // Use replace to prevent page looping
-                >
-                  Sign Up
+              {/* Sign Up Link */}
+              <View style={styles.signUpLinkContainer}>
+                <Text style={styles.signUpText}>
+                  If you don't have an account?{" "}
+                  <Text
+                    style={styles.signUpLinkText}
+                    onPress={() => navigation.replace("SignUp")} // Use replace to prevent page looping
+                  >
+                    Sign Up
+                  </Text>
                 </Text>
-              </Text>
+              </View>
             </View>
-          </View>
 
-        </Animated.View>
-      </View>
-    </LinearGradient>
+          </Animated.View>
+        </View>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
@@ -333,20 +345,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#014b51ff",
   },
   container: {
-    flex: 1 }, loginContainer: {
+    flex: 1
+  }, loginContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: wp(5) }, animatedContainer: {
+    paddingHorizontal: wp(5)
+  }, animatedContainer: {
     width: "100%",
     maxWidth: wp(90),
-    alignItems: "center" }, logoContainer: {
+    alignItems: "center"
+  }, logoContainer: {
     alignItems: "center",
-    marginBottom: hp(2) }, logoImage: {
+    marginBottom: hp(2)
+  }, logoImage: {
     width: wp(37),
     height: hp(17),
-    resizeMode: "contain" }, 
-    formContainer: {
+    resizeMode: "contain"
+  },
+  formContainer: {
     backgroundColor: "rgba(0, 0, 0, 0.30)",
     width: "100%",
     paddingHorizontal: wp(6),
@@ -355,21 +372,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     shadowColor: "rgba(0, 0, 0, 0.30)",
     shadowOffset: {
-    width: 0,
-    height: 4 }, shadowOpacity: 0.3,
+      width: 0,
+      height: 4
+    }, shadowOpacity: 0.3,
     shadowRadius: 6,
-   }, 
-    signInTitle: { fontFamily: 'AppFont-Bold', fontSize: wp(6),
-        color: COLORS.colorWhite,
+  },
+  signInTitle: {
+    fontFamily: 'AppFont-Bold', fontSize: wp(6),
+    color: COLORS.colorWhite,
     marginBottom: hp(2),
-    textAlign: "center"},
+    textAlign: "center"
+  },
   inputsContainer: {
     width: "100%",
-    marginBottom: hp(1) }, inputWrapper: {
-    marginBottom: hp(2) }, inputFieldContainer: {
+    marginBottom: hp(1)
+  }, inputWrapper: {
+    marginBottom: hp(2)
+  }, inputFieldContainer: {
     position: "relative",
-    width: "100%" }, textInput: {
-     fontFamily: 'AppFont-Regular', fontSize: moderateScale(12),
+    width: "100%"
+  }, textInput: {
+    fontFamily: 'AppFont-Regular', fontSize: moderateScale(12),
     width: "100%",
     height: hp(6),
     borderRadius: wp(2),
@@ -377,7 +400,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    color: "#333" },
+    color: "#333"
+  },
   passwordInput: {
     paddingRight: wp(12), // Extra padding for eye icon
   },
@@ -386,34 +410,45 @@ const styles = StyleSheet.create({
     right: wp(3),
     top: "50%",
     transform: [{ translateY: -12 }],
-    padding: wp(1) }, errorText: {
-     fontFamily: 'AppFont-Regular', fontSize: hp(1.4),
+    padding: wp(1)
+  }, errorText: {
+    fontFamily: 'AppFont-Regular', fontSize: hp(1.4),
     color: "#FFEA00",
     marginTop: hp(0.5),
-    marginLeft: wp(1) },
+    marginLeft: wp(1)
+  },
   loginErrorText: {
-     fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
+    fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
     color: "#FFEA00",
     textAlign: "center",
-    marginBottom: hp(1) },
+    marginBottom: hp(1)
+  },
   forgotPasswordContainer: {
     alignSelf: "flex-end",
-    marginBottom: hp(3) }, forgotPasswordText: {
-     fontFamily: 'AppFont-Regular', fontSize: hp(1.6),
+    marginBottom: hp(3)
+  }, forgotPasswordText: {
+    fontFamily: 'AppFont-Regular', fontSize: hp(1.6),
     color: "#FFEFFF",
-    textDecorationLine: "underline" },
+    textDecorationLine: "underline"
+  },
   buttonContainer: {
     fontFamily: 'AppFont-Bold',
     width: "100%",
-    marginBottom: hp(2) }, signUpLinkContainer: {
+    marginBottom: hp(2)
+  }, signUpLinkContainer: {
     alignItems: "center",
-    marginTop: hp(1) }, signUpText: {
-     color: COLORS.colorWhite,
+    marginTop: hp(1)
+  }, signUpText: {
+    color: COLORS.colorWhite,
     fontFamily: 'AppFont-Regular', fontSize: wp(3.8),
     textAlign: "center",
-    lineHeight: wp(5) },
+    lineHeight: wp(5)
+  },
   signUpLinkText: {
-     color: COLORS.colorWhite,
-    fontFamily: 'AppFont-Regular', fontSize: wp(3.8)} });
+    color: COLORS.colorWhite,
+    fontFamily: 'AppFont-Bold', fontSize: wp(3.8),
+    textDecorationLine: "underline"
+  }
+});
 
 export default Login;

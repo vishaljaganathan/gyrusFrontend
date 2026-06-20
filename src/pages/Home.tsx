@@ -42,6 +42,56 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [milestoneValue, setMilestoneValue] = useState(0);
 
+  const [goldPlan, setGoldPlan] = useState<any>({
+    title: "EXCLUSIVE GOLD PLAN OFFER",
+    prices: { price: 1000, discountPrice: 800, offer: 20 },
+    discountApplicable: true,
+    gst: 18
+  });
+
+  useEffect(() => {
+    axiosInstance.get("authentication/plans")
+      .then(res => {
+        if (res.data && Array.isArray(res.data)) {
+          const gold = res.data.find((p: any) => p.title && p.title.toLowerCase().includes("gold"));
+          if (gold) {
+            setGoldPlan(gold);
+          } else if (res.data.length > 0) {
+            setGoldPlan(res.data[0]);
+          }
+        }
+      })
+      .catch(err => console.log("Failed to fetch plans for subscription modal", err));
+  }, []);
+
+  useEffect(() => {
+    const syncOfflineTest = async () => {
+      try {
+        const pendingStr = await AsyncStorage.getItem('pending_test_submit');
+        if (pendingStr) {
+          const payload = JSON.parse(pendingStr);
+          console.log('[Home.tsx] Found pending offline test submission:', payload);
+          axiosInstance.post("/authentication/test/submit", payload)
+            .then(async (res) => {
+              console.log('[Home.tsx] Offline test submitted successfully!');
+              await AsyncStorage.removeItem('pending_test_submit');
+              if (res.data) {
+                setUserData(res.data);
+              }
+              Alert.alert('Offline Test Synced', 'Your completed test results have been successfully synced!');
+            })
+            .catch(err => {
+              console.log('[Home.tsx] Failed to sync offline test (still offline?):', err);
+            });
+        }
+      } catch (err) {
+        console.error('[Home.tsx] Error syncing offline test:', err);
+      }
+    };
+
+    syncOfflineTest();
+  }, []);
+
   const [isSharingAnalytics, setIsSharingAnalytics] = useState(false);
   const viewShotRefAnalytics = useRef<any>(null);
 
@@ -106,7 +156,8 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
   };
 
   const isTester = useMemo(() => {
-    return String(userData?.accType || "").trim().toLowerCase() === "tester";
+    const role = String(userData?.accType || "").trim().toLowerCase();
+    return role === "tester" || role === "tct" || role === "teacher come tester";
   }, [userData?.accType]);
 
   useEffect(() => {
@@ -213,6 +264,7 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
           colors={["#028464", "#0AB7AD", "#0B7960"]}
         >
           <HeaderBar />
+          <Text style={styles.watermarkText}>{appState.home?.toUpperCase()}</Text>
           {!appState.internetStatus && <Wrapper />}
           {appState.internetStatus && (
             <Arrows
@@ -544,6 +596,25 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
                   ? "This feature is for premium users. You can try it for free for 7 days!" 
                   : "This feature is available for subscribed users. Please consider upgrading to enjoy full access."}
               </Text>
+
+              {userData?.trialUsed && (
+                <View style={styles.discountCard}>
+                  <Text style={styles.discountCardTitle}>EXCLUSIVE GOLD PLAN OFFER</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginVertical: 4 }}>
+                    <Text style={styles.discountPriceText}>
+                      {"\u20B9"}{goldPlan.discountApplicable ? Number(goldPlan.prices?.discountPrice || 0) : Number(goldPlan.prices?.price || 0)}
+                    </Text>
+                    {goldPlan.discountApplicable && (
+                      <>
+                        <Text style={styles.originalPriceText}>{"\u20B9"}{Number(goldPlan.prices?.price || 0)}</Text>
+                        <Text style={styles.offerBadgeText}>{Number(goldPlan.prices?.offer || 0)}% OFF</Text>
+                      </>
+                    )}
+                  </View>
+                  <Text style={styles.gstText}>+ {goldPlan.gst || 18}% GST</Text>
+                </View>
+              )}
+
               <View style={styles.subModalActions}>
                 <LinearGradient
                   colors={["#00b7c2", "rgba(197, 255, 244, 0.5)"]}
@@ -567,7 +638,7 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
                 </LinearGradient>
               </View>
               <TouchableOpacity style={styles.maybeLaterBtn} onPress={() => setShowSubscriptionModal(false)}>
-                <Text style={styles.maybeLaterTxt}>Maybe later</Text>
+                <Text style={[styles.maybeLaterTxt]}>Maybe later</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -808,7 +879,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#b45309',
   },
-  subModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
+  subModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center' },
   subModalBox: {
     width: '88%',
     alignItems: 'center',
@@ -822,15 +893,65 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
   },
-  subModalContent: { width: '100%', backgroundColor: '#dce9f0', borderRadius: 12, paddingTop: 32, paddingBottom: 18, paddingHorizontal: 16, position: 'relative' },
-  subModalTitle: { fontFamily: 'AppFont-Regular', fontSize: 20, color: '#1e293b', textAlign: 'center', marginTop: 4, marginBottom: 8 },
-  subModalBody: { fontFamily: 'AppFont-Regular', fontSize: 15, color: '#64748b', textAlign: 'center', marginBottom: 16 },
+  subModalContent: {
+    width: '100%',
+    backgroundColor: '#00474c', // App theme dark green/teal
+    borderRadius: 16,
+    paddingTop: 32,
+    paddingBottom: 18,
+    paddingHorizontal: 16,
+    position: 'relative',
+    borderWidth: 1.5,
+    borderColor: '#0AB8AD', // App theme teal border
+  },
+  subModalTitle: { fontFamily: 'AppFont-Bold', fontSize: 22, color: '#FFF', textAlign: 'center', marginTop: 4, marginBottom: 8 },
+  subModalBody: { fontFamily: 'AppFont-Regular', fontSize: 14, color: 'rgba(255, 255, 255, 0.7)', textAlign: 'center', marginBottom: 16, lineHeight: 20 },
+  discountCard: {
+    backgroundColor: 'rgba(40, 63, 56, 0.6)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#0AB8AD',
+    alignItems: 'center',
+    marginVertical: 12,
+    width: '100%',
+  },
+  discountCardTitle: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: 13,
+    color: '#0AB8AD',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  discountPriceText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: 26,
+    color: '#FFF',
+  },
+  originalPriceText: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textDecorationLine: 'line-through',
+  },
+  offerBadgeText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: 14,
+    color: '#F2C112',
+  },
+  gstText: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: -2,
+    marginBottom: 6,
+  },
   subModalActions: { alignItems: 'center' },
   upgradeGradient: { width: '100%', borderRadius: 8, overflow: 'hidden', marginBottom: 10 },
   upgradeInner: { paddingVertical: 12, alignItems: 'center' },
   upgradeTxt: { color: '#fff', fontFamily: 'AppFont-Bold', fontSize: 15 },
-  maybeLaterBtn: { width: '100%', borderRadius: 8, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(14, 13, 13, 0.04)' },
-  maybeLaterTxt: { color: '#101010', fontFamily: 'AppFont-Bold', fontSize: 15 },
+  maybeLaterBtn: { width: '100%', borderRadius: 8, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)' },
+  maybeLaterTxt: { color: 'rgba(255, 255, 255, 0.7)', fontFamily: 'AppFont-Regular', fontSize: 15 },
   shareBtnAnalytics: {
     padding: 10,
     backgroundColor: '#f1f5f9',
@@ -909,5 +1030,17 @@ const styles = StyleSheet.create({
     fontFamily: 'AppFont-Bold',
     fontSize: wp(4),
     color: '#FFFFFF',
+  },
+  watermarkText: {
+    position: 'absolute',
+    top: '50%',
+    alignSelf: 'center',
+    fontSize: wp(12),
+    fontFamily: 'AppFont-Bold',
+    color: 'rgba(215, 215, 215, 0.34)',
+    letterSpacing: 8,
+    textTransform: 'uppercase',
+    zIndex: 0,
+    pointerEvents: 'none',
   },
 });

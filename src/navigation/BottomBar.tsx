@@ -29,6 +29,7 @@ import { useSafeAreaInsets, initialWindowMetrics } from "react-native-safe-area-
 import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert , Animated, Platform} from 'react-native'
 import { CustomText as Text, CustomTextInput as TextInput, CustomAnimatedText } from '../components/CustomText';
 import { LinearGradient } from 'expo-linear-gradient';
+import { axiosInstance } from '../config/indeceptor';
 
 
 
@@ -192,6 +193,27 @@ const MagnifyIcon: React.FC<{
 const BottomBar: React.FC = () => {
   const { userData, unreadNotificationCount } = useContext(ThemeContext);
   const [showSubscriptionModal, setShowSubscriptionModal] = React.useState(false);
+  const [goldPlan, setGoldPlan] = React.useState<any>({
+    title: "EXCLUSIVE GOLD PLAN OFFER",
+    prices: { price: 1000, discountPrice: 800, offer: 20 },
+    discountApplicable: true,
+    gst: 18
+  });
+
+  React.useEffect(() => {
+    axiosInstance.get("authentication/plans")
+      .then(res => {
+        if (res.data && Array.isArray(res.data)) {
+          const gold = res.data.find((p: any) => p.title && p.title.toLowerCase().includes("gold"));
+          if (gold) {
+            setGoldPlan(gold);
+          } else if (res.data.length > 0) {
+            setGoldPlan(res.data[0]);
+          }
+        }
+      })
+      .catch(err => console.log("Failed to fetch plans for subscription modal", err));
+  }, []);
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const isPlanValid = !!userData?.planValid;
@@ -411,6 +433,25 @@ const BottomBar: React.FC = () => {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitleCenteredWhite}>Subscription required</Text>
               <Text style={styles.modalBodyCenteredWhite}>This feature is available for subscribed users. Please consider upgrading to enjoy full access.</Text>
+
+              {userData?.trialUsed && (
+                <View style={styles.discountCard}>
+                  <Text style={styles.discountCardTitle}>EXCLUSIVE GOLD PLAN OFFER</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginVertical: 4 }}>
+                    <Text style={styles.discountPriceText}>
+                      {"\u20B9"}{goldPlan.discountApplicable ? Number(goldPlan.prices?.discountPrice || 0) : Number(goldPlan.prices?.price || 0)}
+                    </Text>
+                    {goldPlan.discountApplicable && (
+                      <>
+                        <Text style={styles.originalPriceText}>{"\u20B9"}{Number(goldPlan.prices?.price || 0)}</Text>
+                        <Text style={styles.offerBadgeText}>{Number(goldPlan.prices?.offer || 0)}% OFF</Text>
+                      </>
+                    )}
+                  </View>
+                  <Text style={styles.gstText}>+ {goldPlan.gst || 18}% GST</Text>
+                </View>
+              )}
+
               <View style={styles.modalActionsColumn}>
                 <LinearGradient
                   colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
@@ -430,7 +471,7 @@ const BottomBar: React.FC = () => {
                 </LinearGradient>
               </View>
               <TouchableOpacity style={styles.maybeLaterBtn} onPress={() => setShowSubscriptionModal(false)}>
-                <Text style={[styles.maybeLaterTxt,{fontFamily: 'AppFont-Bold'}]}>Maybe later</Text>
+                <Text style={[styles.maybeLaterTxt]}>Maybe later</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -443,16 +484,14 @@ const BottomBar: React.FC = () => {
 export default React.memo(BottomBar);
 
 const styles = StyleSheet.create({
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center' },
   modalBox: {
     width: '88%',
-    // wrapper to provide space for the outside close button
     alignItems: 'center',
     borderRadius: 30,
     paddingTop: 28,
     paddingBottom: 18,
     paddingHorizontal: 18,
-    // elevation/shadow to match app card style
     elevation: 8,
     shadowColor: COLORS.dark,
     shadowOffset: { width: 0, height: 6 },
@@ -461,15 +500,65 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0)'
   },
-  modalContent: { width: '100%', backgroundColor: '#dce9f0', borderRadius: 12, paddingTop: 32, paddingBottom: 18, paddingHorizontal: 16, position: 'relative' },
-  modalTitleCenteredWhite: { fontFamily: 'AppFont-Regular', fontSize: 20,  color: COLORS.dark, textAlign: 'center', marginTop: 4, marginBottom: 8 },
-  modalBodyCenteredWhite: { fontFamily: 'AppFont-Regular', fontSize: 15, color: COLORS.grey, textAlign: 'center', marginBottom: 16 },
+  modalContent: {
+    width: '100%',
+    backgroundColor: '#00474c', // App theme dark green/teal
+    borderRadius: 16,
+    paddingTop: 32,
+    paddingBottom: 18,
+    paddingHorizontal: 16,
+    position: 'relative',
+    borderWidth: 1.5,
+    borderColor: '#0AB8AD', // App theme teal border
+  },
+  modalTitleCenteredWhite: { fontFamily: 'AppFont-Bold', fontSize: 22, color: '#FFF', textAlign: 'center', marginTop: 4, marginBottom: 8 },
+  modalBodyCenteredWhite: { fontFamily: 'AppFont-Regular', fontSize: 14, color: 'rgba(255, 255, 255, 0.7)', textAlign: 'center', marginBottom: 16, lineHeight: 20 },
+  discountCard: {
+    backgroundColor: 'rgba(40, 63, 56, 0.6)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#0AB8AD',
+    alignItems: 'center',
+    marginVertical: 12,
+    width: '100%',
+  },
+  discountCardTitle: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: 13,
+    color: '#0AB8AD',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  discountPriceText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: 26,
+    color: '#FFF',
+  },
+  originalPriceText: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textDecorationLine: 'line-through',
+  },
+  offerBadgeText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: 14,
+    color: '#F2C112',
+  },
+  gstText: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: -2,
+    marginBottom: 6,
+  },
   modalActionsColumn: { alignItems: 'center' },
   upgradeGradient: { width: '100%', borderRadius: 8, overflow: 'hidden', marginBottom: 10 },
   upgradeInner: { paddingVertical: 12, alignItems: 'center' },
-  upgradeTxt: { color: COLORS.one,  fontFamily: 'AppFont-Regular', fontSize: 15 },
-  maybeLaterBtn: { width: '100%', borderRadius: 8, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(14, 13, 13, 0.04)' },
-  maybeLaterTxt: { color: '#101010',  fontFamily: 'AppFont-Regular', fontSize: 15 },
+  upgradeTxt: { color: '#fff', fontFamily: 'AppFont-Bold', fontSize: 15 },
+  maybeLaterBtn: { width: '100%', borderRadius: 8, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.1)' },
+  maybeLaterTxt: { color: 'rgba(255, 255, 255, 0.7)', fontFamily: 'AppFont-Regular', fontSize: 15 },
   closeBtn: { position: 'absolute', right: 8, top: 8,bottom: 8 , width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   closeTxt: { color: '#121212', fontFamily: 'AppFont-Regular', fontSize: 20},
   modalButtonSecondary: { backgroundColor: 'transparent' },

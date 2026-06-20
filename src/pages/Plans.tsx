@@ -123,13 +123,32 @@ const Plans = ({ navigation }: any) => {
     }
   };
 
-  const originalAmount = Number(order.amount || 0);
-  const payableAmountBeforeRewards = verifiedCoupon?.finalAmount ?? originalAmount;
-  const rewardPercentage = Number(userData?.availableDiscountPercentage || 0);
-  const rewardDiscountValue = (useRedeemedPoints && rewardPercentage > 0)
-    ? Math.floor((payableAmountBeforeRewards * rewardPercentage) / 100)
+  const subTotal = Number(
+    order.discountApplicable
+      ? order.prices.discountPrice
+      : order.prices.price
+  );
+
+  const mrp = Number(order.prices?.price || subTotal);
+
+  const couponDiscountPercentage = verifiedCoupon
+    ? (Number(verifiedCoupon.discountAmount) / Number(verifiedCoupon.originalAmount))
     : 0;
-  const finalPayableAmount = payableAmountBeforeRewards - rewardDiscountValue;
+
+  const couponDiscountValue = verifiedCoupon
+    ? Math.round(mrp * couponDiscountPercentage * 100) / 100
+    : 0;
+
+  const rewardPercentage = Number(userData?.availableDiscountPercentage || 0);
+  const rewardPercentageUsed = Math.min(rewardPercentage, 50);
+  const rewardDiscountValue = (useRedeemedPoints && rewardPercentageUsed > 0)
+    ? Math.round(mrp * (rewardPercentageUsed / 100) * 100) / 100
+    : 0;
+
+  const taxableSubtotal = subTotal - couponDiscountValue - rewardDiscountValue;
+  const gstPrice = Math.round(subTotal * (Number(order.gst || 18) / 100) * 100) / 100;
+  const finalPayableAmount = Math.max(0, taxableSubtotal + gstPrice);
+  const displayTotalAmount = subTotal + gstPrice;
 
   const verifyCoupon = () => {
     const normalizedCouponCode = couponCode.trim().toUpperCase();
@@ -570,49 +589,9 @@ const Plans = ({ navigation }: any) => {
                       <Text>Sub Total</Text>
                       <Text>
                         {"\u20B9"}
-                        {order.discountApplicable
-                          ? order.prices.discountPrice
-                          : order.prices.price}
+                        {subTotal}
                       </Text>
                     </View>
-                    <View
-                      style={{
-                        display: "flex",
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        marginVertical: hp(0.5) } }
-                    >
-                      <Text>Gst ({order.gst}%) </Text>
-                      <Text>
-                        {"\u20B9"} {order.gstPrice}
-                      </Text>
-                    </View>
-                    <View style={styles.line} />
-                    <View
-                      style={{
-                        display: "flex",
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        marginVertical: hp(0.5) } }
-                    >
-                      <Text>Total Amount</Text>
-                      <Text>{"\u20B9"} {payableAmountBeforeRewards}</Text>
-                    </View>
-
-                    {/* Reward Discount Section */}
-                    {rewardPercentage > 0 && (
-                      <TouchableOpacity 
-                        onPress={() => setUseRedeemedPoints(!useRedeemedPoints)}
-                        style={styles.rewardCheckboxContainer}
-                      >
-                        <View style={[styles.rewardCheckbox, useRedeemedPoints && styles.rewardCheckboxActive]}>
-                          {useRedeemedPoints && <FontAwesomeIcon icon={faCircleCheck} size={14} color="#FFF" />}
-                        </View>
-                        <Text style={styles.rewardCheckboxLabel}>
-                          Use {rewardPercentage}% Reward Discount (-{"\u20B9"}{rewardDiscountValue})
-                        </Text>
-                      </TouchableOpacity>
-                    )}
 
                     {verifiedCoupon ? (
                       <View
@@ -622,8 +601,8 @@ const Plans = ({ navigation }: any) => {
                           justifyContent: "space-between",
                           marginVertical: hp(0.5) } }
                       >
-                        <Text>Coupon Discount</Text>
-                        <Text>{"\u20B9"} {verifiedCoupon.discountAmount}</Text>
+                        <Text style={{ color: '#028464' }}>Coupon Discount</Text>
+                        <Text style={{ color: '#028464' }}>- {"\u20B9"} {couponDiscountValue}</Text>
                       </View>
                     ) : null}
 
@@ -635,10 +614,48 @@ const Plans = ({ navigation }: any) => {
                           justifyContent: "space-between",
                           marginVertical: hp(0.5) } }
                       >
-                        <Text style={{ color: '#028464' }}>Reward Discount ({rewardPercentage}%)</Text>
+                        <Text style={{ color: '#028464' }}>Reward Discount ({rewardPercentageUsed}%)</Text>
                         <Text style={{ color: '#028464' }}>- {"\u20B9"} {rewardDiscountValue}</Text>
                       </View>
                     ) : null}
+
+                    <View
+                      style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        marginVertical: hp(0.5) } }
+                    >
+                      <Text>Gst ({order.gst}%) </Text>
+                      <Text>
+                        {"\u20B9"} {gstPrice}
+                      </Text>
+                    </View>
+
+                    {/* Reward Discount Selector Row */}
+                    {rewardPercentage > 0 && (
+                      <TouchableOpacity 
+                        onPress={() => {
+                          const nextVal = !useRedeemedPoints;
+                          setUseRedeemedPoints(nextVal);
+                          if (nextVal) {
+                            setCouponChecked(false);
+                            setCouponCode("");
+                            setCouponError("");
+                            setVerifiedCoupon(null);
+                            setCouponLoading(false);
+                          }
+                        }}
+                        style={styles.rewardCheckboxContainer}
+                      >
+                        <View style={[styles.rewardCheckbox, useRedeemedPoints && styles.rewardCheckboxActive]}>
+                          {useRedeemedPoints && <FontAwesomeIcon icon={faCircleCheck} size={14} color="#FFF" />}
+                        </View>
+                        <Text style={styles.rewardCheckboxLabel}>
+                          Use {rewardPercentageUsed}% Reward Discount (-{"\u20B9"}{rewardDiscountValue})
+                        </Text>
+                      </TouchableOpacity>
+                    )}
 
                     <View style={styles.line} />
                     <View
@@ -655,11 +672,13 @@ const Plans = ({ navigation }: any) => {
                     <View style={styles.couponContainer}>
                       <TouchableOpacity
                         style={styles.couponToggleRow}
-            onPress={() => {
+                        onPress={() => {
                           const nextChecked = !couponChecked;
                           setCouponChecked(nextChecked);
 
-                          if (!nextChecked) {
+                          if (nextChecked) {
+                            setUseRedeemedPoints(false);
+                          } else {
                             setCouponCode("");
                             setCouponError("");
                             setVerifiedCoupon(null);

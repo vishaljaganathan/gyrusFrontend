@@ -5,6 +5,7 @@ import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomText as Text } from '../components/CustomText';
 import { CustomVerticalScrollbar } from '../components/CustomVerticalScrollbar';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 
 
 
@@ -17,6 +18,11 @@ import { axiosInstance } from '../config/indeceptor';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faAward } from '@fortawesome/free-solid-svg-icons';
 import { COLORS, FONTS } from '../styles/themes';
+
+const Botany = require('../assets/botany.png');
+const chemistry = require('../assets/chemistry.png');
+const physics = require('../assets/physics.png');
+const zoology = require('../assets/zoology.png');
 
 const APP_FONT_FAMILY = 'AppFont-Regular';
 
@@ -335,41 +341,111 @@ const GyrusNEETAnalytics = () => {
           const totalReward = subjectData.reduce((s, c) => s + (Number(c.reward) || 0), 0);
 
           return (
-            <View style={styles.sectionBox}>
-              <Text style={styles.sectionTitle}>Key Highlights</Text>
-              <View style={styles.highlightCard}>
-                <Text style={styles.highlightText}>
-                  <Text style={{ color: best.color }}>{best.subject}</Text> is your strongest subject with <Text style={{ color: best.color }}>{best.score}%</Text> accuracy.
-                </Text>
-              </View>
-              <View style={styles.highlightCard}>
-                <Text style={styles.highlightText}>
-                  Consider focusing on <Text style={{ color: worst.color }}>{worst.subject}</Text> to improve performance (scored <Text style={{ color: worst.color }}>{worst.score}%</Text>).
-                </Text>
-              </View>
-              {others.map((o, i) => (
-                <View key={i} style={styles.highlightCard}>
+            <>
+              <View style={styles.sectionBox}>
+                <Text style={styles.sectionTitle}>Key Highlights</Text>
+                <View style={styles.highlightCard}>
                   <Text style={styles.highlightText}>
-                    <Text style={{ color: o.color }}>{o.subject}</Text> is performing around average with <Text style={{ color: o.color }}>{o.score}%</Text> accuracy.
+                    <Text style={{ color: best.color }}>{best.subject}</Text> is your strongest subject with <Text style={{ color: best.color }}>{best.score}%</Text> accuracy.
                   </Text>
                 </View>
-              ))}
-              <View style={styles.highlightCard}>
-                <Text style={styles.highlightText}>Total questions attempted: <Text style={{ color: '#6898ff' }}>{totalQuestions}</Text></Text>
-                <Text style={styles.highlightText}>Total correct: <Text style={{ color: COLORS.primary08 }}>{totalCorrect}</Text> — Total incorrect: <Text style={{ color: '#FF7676' }}>{totalWrong}</Text></Text>
-                <Text style={styles.highlightText}>Total reward points earned: <Text style={{ color: 'rgba(0, 71, 76,0.7)' }}>{totalReward}</Text></Text>
+                <View style={styles.highlightCard}>
+                  <Text style={styles.highlightText}>
+                    Consider focusing on <Text style={{ color: worst.color }}>{worst.subject}</Text> to improve performance (scored <Text style={{ color: worst.color }}>{worst.score}%</Text>).
+                  </Text>
+                </View>
+                {others.map((o, i) => (
+                  <View key={i} style={styles.highlightCard}>
+                    <Text style={styles.highlightText}>
+                      <Text style={{ color: o.color }}>{o.subject}</Text> is performing around average with <Text style={{ color: o.color }}>{o.score}%</Text> accuracy.
+                    </Text>
+                  </View>
+                ))}
+                <View style={styles.highlightCard}>
+                  <Text style={styles.highlightText}>Total questions attempted: <Text style={{ color: '#6898ff' }}>{totalQuestions}</Text></Text>
+                  <Text style={styles.highlightText}>Total correct: <Text style={{ color: COLORS.primary08 }}>{totalCorrect}</Text> — Total incorrect: <Text style={{ color: '#FF7676' }}>{totalWrong}</Text></Text>
+                  <Text style={styles.highlightText}>Total reward points earned: <Text style={{ color: 'rgba(0, 71, 76,0.7)' }}>{totalReward}</Text></Text>
+                </View>
               </View>
 
-              <TouchableOpacity
-                style={[styles.focusButton, { backgroundColor: worst.color }]}
-                onPress={() => {
-                  setAppState((prev: any) => ({ ...prev, home: worst.subject.toLowerCase() }));
-                  navigation.navigate("BottomBar", { screen: "Home" });
-                }}
-              >
-                <Text style={styles.focusButtonText}>Practice {worst.subject}</Text>
-              </TouchableOpacity>
-            </View>
+              <View style={styles.focusSectionCard}>
+                <View style={styles.focusLabelContainer}>
+                  <Text style={styles.focusLabelHeader}>FOCUS AREA RECOMMENDED</Text>
+                  <Text style={styles.focusLabelDescription}>
+                    You need to concentrate more on <Text style={{ color: worst.color }}>{worst.subject}</Text> compared to other subjects. Tap below to start practicing:
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={{
+                    width: '75%',
+                    alignSelf: 'center',
+                    marginTop: 12,
+                    borderRadius: 50,
+                    backgroundColor: 'transparent',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 6,
+                    elevation: 4,
+                  }}
+                  onPress={() => {
+                    setAppState((prev: any) => ({
+                      ...prev,
+                      home: worst.subject.toLowerCase(),
+                    }));
+                    navigation.navigate("BottomBar", { screen: "Home" });
+                  }}
+                >
+                  <LinearGradient
+                    colors={["#22E2D6", "#15BBB1", "#0D7F78"]}
+                    locations={[0, 0.4, 1]}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={{
+                      borderRadius: 50,
+                      paddingVertical: 14,
+                      paddingHorizontal: 20,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: wp(2.5),
+                    }}
+                  >
+                    {(() => {
+                      const getSubjectIcon = (sub: string) => {
+                        switch (sub?.toLowerCase()) {
+                          case "physics":
+                            return physics;
+                          case "chemistry":
+                            return chemistry;
+                          case "botany":
+                            return Botany;
+                          case "zoology":
+                            return zoology;
+                          default:
+                            return null;
+                        }
+                      };
+                      const icon = getSubjectIcon(worst.subject);
+                      return icon ? (
+                        <Image
+                          source={icon}
+                          style={{
+                            width: wp(8),
+                            height: wp(8),
+                            resizeMode: "contain",
+                            position: "absolute",
+                            left: 24,
+                          }}
+                        />
+                      ) : null;
+                    })()}
+                    <Text style={styles.focusButtonText}>{worst.subject}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </>
           );
         })()}
       </CustomVerticalScrollbar>
@@ -384,8 +460,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     paddingBottom: 24,
-    margin: 16,
-    marginBottom: 8,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 0,
     opacity: 0.95
   },
   headerTextContainer: { alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
@@ -395,7 +472,14 @@ const styles = StyleSheet.create({
   statsCard: { flex: 1, backgroundColor: 'rgba(45, 44, 44, 0.5)', borderRadius: 18, padding: 16, marginHorizontal: 4, alignItems: 'center', overflow: 'hidden' },
   statsValue: { color: COLORS.light, fontFamily: 'AppFont-Bold', fontSize: 24, marginBottom: 2 },
   statsLabel: { color: COLORS.light80, fontFamily: 'AppFont-Bold', fontSize: 13 },
-  sectionBox: { backgroundColor: COLORS.light, borderRadius: 24, padding: 16, margin: 16, marginBottom: 8 },
+  sectionBox: { 
+    backgroundColor: COLORS.light, 
+    borderRadius: 24, 
+    padding: 16, 
+    marginHorizontal: 16, 
+    marginTop: 16, 
+    marginBottom: 0 
+  },
   sectionTitle: { fontFamily: 'AppFont-Bold', fontSize: 20, color: COLORS.primary03, marginBottom: 12 },
   subjectCard: { backgroundColor: COLORS.secondary04, borderRadius: 16, padding: 12, marginBottom: 12 },
   subjectRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
@@ -432,7 +516,7 @@ const styles = StyleSheet.create({
   },
   focusButtonText: {
     fontFamily: 'AppFont-Bold',
-    fontSize: 16,
+    fontSize: 24,
     color: '#ffffff',
   },
   shareBtn: {
@@ -463,7 +547,41 @@ const styles = StyleSheet.create({
     fontFamily: 'AppFont-Bold',
     fontSize: 14,
     color: COLORS.grey,
-  }
+  },
+  focusLabelContainer: {
+    marginTop: 20,
+    marginBottom: 8,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  focusLabelHeader: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: 20,
+    color: COLORS.primary03,
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  focusLabelDescription: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: 15,
+    color: '#131314ff',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  focusSectionCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 20,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    alignItems: 'center',
+  },
 });
 
 export default GyrusNEETAnalytics;

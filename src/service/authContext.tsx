@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState, AppStateStatus } from "react-native";
 import { axiosInstance } from "../config/indeceptor";
 import { getSecureStorage } from "../config/SecureStore";
+
 import React, {
   createContext,
   useState,
@@ -120,7 +121,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     saveAppState();
   }, [appState]);
 
-  // Handle background-to-foreground transitions to sync plan status
+  // Handle background-to-foreground transitions to sync plan status and manage reminders
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {

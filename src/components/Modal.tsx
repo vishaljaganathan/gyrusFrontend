@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { View, StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator, Alert, Animated, Easing } from 'react-native'
 import { Svg, Path, Rect, Defs, LinearGradient, Stop, Mask } from "react-native-svg";
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
 
@@ -113,84 +114,88 @@ const ModalBox = ({
           maxWidth="350"
           style={{ backgroundColor: "rgba(52, 52, 52, 0.9)", borderRadius: 10, borderWidth: 1, borderColor: '#fff' }}
         >
+          <TouchableOpacity
+            onPress={() => setShowModal(false)}
+            style={{ position: 'absolute', top: 10, right: 10, zIndex: 15 }}
+          >
+            <Ionicons name="close" size={24} color="rgba(255, 255, 255, 0.7)" />
+          </TouchableOpacity>
+
           {/* Emoji Section */}
           {showEmoji ? (
             <Modal.Body style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
-              <TouchableOpacity
-                onPress={() => setShowModal(false)}
-                style={{ position: 'absolute', top: 10, right: 10, zIndex: 10 }}
-              >
-                <Ionicons name="close" size={24} color="#fff" />
-              </TouchableOpacity>
+
 
               <View style={ModalStyle.emojiContainer}>
-                {/* Active Streak Row */}
-                <View style={ModalStyle.streakRow}>
-                  <View style={ModalStyle.iconContainer}>
-                    <View style={{ width: 80, height: 40 }}>
-                      <Svg width="80" height="40" viewBox="0 0 80 40">
-                        <Defs>
-                          <LinearGradient id="pulseGradModal" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <Stop offset="0%" stopColor="white" stopOpacity="0" />
-                            <Stop offset="50%" stopColor="white" stopOpacity="0.1" />
-                            <Stop offset="90%" stopColor="white" stopOpacity="1" />
-                            <Stop offset="100%" stopColor="white" stopOpacity="0" />
-                          </LinearGradient>
-                          <Mask id="pulseMaskModal">
-                            <AnimatedRect
-                              x={ekgAnim.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [-80, 80]
-                              })}
-                              y="0"
-                              width="80"
-                              height="40"
-                              fill="url(#pulseGradModal)"
-                            />
-                          </Mask>
-                        </Defs>
-                        <Path
-                          d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
-                          fill="none"
-                          stroke="#00B712"
-                          strokeWidth="1.2"
-                          opacity={0.15}
-                        />
-                        <Path
-                          d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
-                          fill="none"
-                          stroke="#00B712"
-                          strokeWidth="3.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          mask="url(#pulseMaskModal)"
-                        />
-                      </Svg>
+                <View style={ModalStyle.statsContainer}>
+                  {/* Active Column */}
+                  <View style={ModalStyle.statColumn}>
+                    <View style={ModalStyle.statIconContainer}>
+                      <View style={{ width: 80, height: 40, justifyContent: 'center', alignItems: 'center' }}>
+                        <Svg width="65" height="30" viewBox="0 0 80 40">
+                          <Defs>
+                            <LinearGradient id="pulseGradModal" x1="0%" y1="0%" x2="100%" y2="0%">
+                              <Stop offset="0%" stopColor="white" stopOpacity="0" />
+                              <Stop offset="50%" stopColor="white" stopOpacity="0.1" />
+                              <Stop offset="90%" stopColor="white" stopOpacity="1" />
+                              <Stop offset="100%" stopColor="white" stopOpacity="0" />
+                            </LinearGradient>
+                            <Mask id="pulseMaskModal">
+                              <AnimatedRect
+                                x={ekgAnim.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: [-80, 80]
+                                })}
+                                y="0"
+                                width="80"
+                                height="40"
+                                fill="url(#pulseGradModal)"
+                              />
+                            </Mask>
+                          </Defs>
+                          <Path
+                            d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
+                            fill="none"
+                            stroke="#00B712"
+                            strokeWidth="1.2"
+                            opacity={0.15}
+                          />
+                          <Path
+                            d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
+                            fill="none"
+                            stroke="#00B712"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            mask="url(#pulseMaskModal)"
+                          />
+                        </Svg>
+                      </View>
                     </View>
-                  </View>
-                  <View style={ModalStyle.numberContainer}>
-                    <Text style={ModalStyle.streakText}>
+                    <Text style={[ModalStyle.statValue, { color: '#FFFFFF' }]}>
                       {streakData?.active || 0}
                     </Text>
+                    <Text style={ModalStyle.statLabel}>Active Days</Text>
                   </View>
-                </View>
 
-                {/* Inactive Streak Row */}
-                <View style={ModalStyle.streakRow}>
-                  <View style={ModalStyle.iconContainer}>
-                    <Image source={SleepyImage} style={ModalStyle.sleepyImage} />
-                  </View>
-                  <View style={ModalStyle.numberContainer}>
-                    <Text style={ModalStyle.streakText}>
+                  {/* Vertical Divider */}
+                  <View style={ModalStyle.verticalDivider} />
+
+                  {/* Inactive Column */}
+                  <View style={ModalStyle.statColumn}>
+                    <View style={ModalStyle.statIconContainer}>
+                      <Image source={SleepyImage} style={ModalStyle.sleepyImage} />
+                    </View>
+                    <Text style={[ModalStyle.statValue, { color: '#FFFFFF' }]}>
                       {Math.max(0, Math.abs(Number(streakData?.inactive) || 0))}
                     </Text>
+                    <Text style={ModalStyle.statLabel}>Inactive Days</Text>
                   </View>
                 </View>
               </View>
             </Modal.Body>
           ) : (
             <Modal.Header style={{ backgroundColor: "transparent", borderBottomWidth: 0, elevation: 0, shadowOpacity: 0 }}>
-              <Modal.CloseButton style={{ padding: 5, zIndex: 2 }} />
               <View style={ModalStyle.emojiContainer} />
             </Modal.Header>
           )}
@@ -229,7 +234,11 @@ const ModalBox = ({
                   }}
                 >
                   {res.sub && (
-                    <View
+                    <ExpoLinearGradient
+                      colors={["#22E2D6", "#15BBB1", "#0D7F78"]}
+                      locations={[0, 0.4, 1]}
+                      start={{ x: 0.5, y: 0 }}
+                      end={{ x: 0.5, y: 1 }}
                       style={[
                         ModalStyle.subjectContainer,
                         {
@@ -247,7 +256,7 @@ const ModalBox = ({
                       <View style={ModalStyle.iconWrapper}>
                         {res.sub && res.img && (
                           <Image source={res.img}
-            style={ModalStyle.icon} />
+             style={ModalStyle.icon} />
                         )}
                       </View>
 
@@ -264,7 +273,7 @@ const ModalBox = ({
                           </Text>
                         )}
                       </View>
-                    </View>
+                    </ExpoLinearGradient>
                   )}
                 </Pressable>
 
@@ -288,28 +297,35 @@ const ModalBox = ({
                           <Text style={ModalStyle.expiryText}>
                             on {new Date(res.expiryDate).toLocaleDateString("en-GB")}
                           </Text>
-                          {daysUntil(res.expiryDate) <= 5 && (
-                            <TouchableOpacity
-                              style={ModalStyle.updateNowButton}
-                              onPress={() => {
-                                setShowModal(false);
-                                navigation.navigate("Plans");
-                              }}
-                            >
-                              <Text style={ModalStyle.updateNowText}>Update Now</Text>
-                            </TouchableOpacity>
-                          )}
+                          {(() => {
+                            const isTrial = !!userData?.isTrial || String(res.title || '').toLowerCase().includes('trial');
+                            const isSilver = String(res.title || '').toLowerCase().includes('silver');
+                            const isPremium = !isTrial && !isSilver;
+                            const showButton = isTrial || isSilver || (isPremium && daysUntil(res.expiryDate) <= 5);
+
+                            return showButton ? (
+                              <TouchableOpacity
+                                style={ModalStyle.updateNowButton}
+                                onPress={() => {
+                                  setShowModal(false);
+                                  navigation.navigate("Plans");
+                                }}
+                              >
+                                <Text style={ModalStyle.updateNowText}>Update Now</Text>
+                              </TouchableOpacity>
+                            ) : null;
+                          })()}
                         </View>
                       ) : (
-                        <GradientButton
+                        <TouchableOpacity
+                          style={ModalStyle.updateNowButton}
                           onPress={() => {
                             setShowModal(false);
                             navigation.navigate("Plans");
                           }}
-                          colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-                          Text="Upgrade"
-                          textStyle={{ fontWeight: "bold" }}
-                        />
+                        >
+                          <Text style={ModalStyle.updateNowText}>Update Now</Text>
+                        </TouchableOpacity>
                       )}
                     </View>
                   </View>
@@ -349,39 +365,66 @@ const ModalStyle = StyleSheet.create({
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: 30,
-    paddingBottom: 10,
     gap: 30 }, 
-  streakRow: {
+  closeButtonContainer: {
+    position: 'absolute',
+    top: hp(5),
+    right: wp(6),
+    zIndex: 9999,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  statsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
     paddingVertical: 10,
     width: '100%',
-    gap: wp(10),
   },
-  iconContainer: {
-    width: wp(30),
+  statColumn: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  numberContainer: {
-    width: wp(20),
-    alignItems: "flex-start",
+  statIconContainer: {
+    height: 45,
+    alignItems: "center",
     justifyContent: "center",
-    paddingLeft: wp(2),
+    marginTop: 16,
+    marginBottom: 16,
   },
-  streakImage: {
-    width: 40,
-    height: hp(4),
-    resizeMode: "contain" }, sleepyImage: {
-    width: 40,
-    height: hp(4),
-    resizeMode: "contain" }, streakText: {
+  statValue: {
     fontFamily: 'AppFont-Bold', 
-    fontWeight: '700',
-    fontSize: 18,
-    color: "#FFFFFF"},
+    fontWeight: '800',
+    fontSize: wp(5.5),
+    lineHeight: wp(6.5),
+    textAlign: "center",
+  },
+  statLabel: {
+    fontFamily: 'AppFont-Regular',
+    fontWeight: '600',
+    fontSize: wp(2.8),
+    color: "rgba(255, 255, 255, 0.5)",
+    marginTop: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  verticalDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+  sleepyImage: {
+    width: 32,
+    height: 32,
+    resizeMode: "contain"
+  },
 
   subjectContainer: {
     flexDirection: "row",
@@ -420,24 +463,40 @@ const ModalStyle = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.light,
     marginTop: 12,
-    padding: 12,
-    borderRadius: 9 }, memberImg: {
-    width: 80,
-    height: 80,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 183, 194, 0.15)',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 3
+  },
+  memberImg: {
+    width: 75,
+    height: 75,
     resizeMode: "contain",
-    marginRight: 12 }, memberDetails: {
+    marginRight: 16
+  },
+  memberDetails: {
     flex: 1,
-    justifyContent: "center" }, memberTitle: {
+    justifyContent: "center"
+  },
+  memberTitle: {
     fontFamily: 'AppFont-Bold', 
     fontWeight: '700',
-    fontSize: wp(4.2),
+    fontSize: wp(4.4),
     color: COLORS.secondary06,
-        marginBottom: 6 },
+    marginBottom: 4
+  },
   expiryText: {
     fontFamily: 'AppFont-Regular',
     fontWeight: '500',
-    fontSize: wp(3.2),
-    color: '#000000' },
+    fontSize: wp(3.3),
+    color: '#4A5568',
+    lineHeight: 18
+  },
 
   neetPopUpContainer: {
     backgroundColor: COLORS.light,
@@ -459,17 +518,24 @@ const ModalStyle = StyleSheet.create({
     marginVertical: 10 },
   updateNowButton: {
     backgroundColor: "#15BBB1",
-    paddingVertical: hp(0.5),
-    paddingHorizontal: wp(2),
-    borderRadius: 5,
-    marginTop: hp(0.8),
-    alignSelf: 'flex-start'
+    paddingVertical: hp(0.8),
+    paddingHorizontal: wp(4),
+    borderRadius: 20,
+    marginTop: hp(1.2),
+    alignSelf: 'flex-start',
+    shadowColor: "#15BBB1",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 2
   },
   updateNowText: {
     color: '#FFFFFF',
     fontFamily: 'AppFont-Bold',
     fontSize: wp(3.2),
-    fontWeight: '700'
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
   } });
 
 export default ModalBox;

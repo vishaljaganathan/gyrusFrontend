@@ -143,6 +143,27 @@ const RetryView: React.FC<RetryViewProps> = ({
           paddingHorizontal: wp(5) 
         }}
       >
+        {!isSharing && (
+          <TouchableOpacity
+            onPress={onGoBack}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+            style={{
+              position: "absolute",
+              top: hp(2),
+              right: wp(5),
+              zIndex: 9999
+            }}
+          >
+            <CustomBoldText
+              style={{
+                color: "#0AB8AD",
+                fontSize: 28
+              }}
+            >
+              ×
+            </CustomBoldText>
+          </TouchableOpacity>
+        )}
         <Lin
           colors={['#00474c', '#002a26']}
           style={StyleSheet.absoluteFill}
@@ -334,18 +355,12 @@ const RetryView: React.FC<RetryViewProps> = ({
 
         {!isSharing && (
           <View style={{ width: '100%', gap: hp(1.5), marginTop: hp(5), alignItems: 'center' }}>
-            <View style={{ flexDirection: 'row', gap: wp(4), justifyContent: 'center', width: '90%', alignSelf: 'center' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', width: '90%', alignSelf: 'center' }}>
               <TestButton
                 onPress={onRetry}
                 colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-                text="Try Again"
-                style={{ flex: 1 }}
-              />
-              <TestButton
-                onPress={onGoBack}
-                colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-                text="Go Back"
-                style={{ flex: 1 }}
+                text={<Text style={{ fontFamily: 'AppFont-Bold', fontSize: wp(4.5) }}>Continue</Text>}
+                style={{ width: wp(55), height: hp(5), borderRadius: 28 }}
               />
             </View>
 

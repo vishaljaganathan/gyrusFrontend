@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Image, StyleSheet, ScrollView, Animated, TouchableOpacity, Alert, Share, Easing } from 'react-native';
+import { View, Image, StyleSheet, ScrollView, Animated, TouchableOpacity, Alert, Share, Easing, Text as RNText } from 'react-native';
 import { Svg, Path, Rect, Defs, LinearGradient, Stop, Mask, Circle } from "react-native-svg";
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient as Lin } from "expo-linear-gradient";
@@ -75,12 +75,13 @@ const SuccessView: React.FC<SuccessViewProps> = ({
       pulseAnim.setValue(1);
       ekgAnim.setValue(0);
 
-      const confettiArray = Array.from({ length: 50 }, (_, i) => ({
+      const confettiArray = Array.from({ length: 15 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
-        delay: Math.random() * 3,
-        duration: 6 + Math.random() * 4,
-        color: ['#4F46E5', '#EC4899', '#10B981', '#F59E0B', '#8B5CF6'][Math.floor(Math.random() * 5)],
+        delay: Math.random() * 5,
+        duration: 8 + Math.random() * 4,
+        type: Math.random() > 0.5 ? "❤️" : "❤️",
+        fontSize: 16 + Math.random() * 16,
         anim: new Animated.Value(0)
       }));
       setConfetti(confettiArray);
@@ -354,26 +355,25 @@ const SuccessView: React.FC<SuccessViewProps> = ({
           </View>
         )}
 
-        {confetti.map(particle => (
-          <Animated.View
-            key={particle.id}
-            style={{
-              position: 'absolute',
-              top: -20,
-              left: `${particle.left}%`,
-              width: 12,
-              height: 12,
-              borderRadius: 6,
-              backgroundColor: particle.color,
-              zIndex: 9999,
-              transform: [
-                { translateY: particle.anim.interpolate({ inputRange: [0, 1], outputRange: [0, hp(100)] }) },
-                { rotate: particle.anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }
-              ],
-              opacity: isSharing ? 0 : particle.anim.interpolate({ inputRange: [0, 0.8, 1], outputRange: [0.3, 0.3, 0] })
-            } as any}
-          />
-        ))}
+        <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, opacity: isSharing ? 0 : 1, zIndex: 9999 }}>
+          {confetti.map(particle => (
+            <Animated.View
+              key={particle.id}
+              style={{
+                position: 'absolute',
+                bottom: -50,
+                left: `${particle.left}%`,
+                zIndex: 9999,
+                transform: [
+                  { translateY: particle.anim.interpolate({ inputRange: [0, 1], outputRange: [0, -hp(120)] }) }
+                ],
+                opacity: particle.anim.interpolate({ inputRange: [0, 0.1, 0.8, 1], outputRange: [0, 0.8, 0.8, 0] })
+              } as any}
+            >
+              <RNText style={{ fontSize: particle.fontSize }}>{particle.type}</RNText>
+            </Animated.View>
+          ))}
+        </View>
       </ViewShot>
 
       {!isSharing && (
