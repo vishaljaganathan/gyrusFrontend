@@ -1,11 +1,11 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
-import { View, StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator, Alert, Animated, Easing } from 'react-native'
+import { View, StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator, Alert, Animated, Easing, Modal as RNModal, Platform, StatusBar } from 'react-native'
 import { Svg, Path, Rect, Defs, LinearGradient, Stop, Mask } from "react-native-svg";
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
 
-import { Center, Modal } from "@gluestack-ui/themed-native-base";
+import { Center } from "@gluestack-ui/themed-native-base";
 import { ModalProps } from "../interface/Interface";
 import { useNavigation } from "@react-navigation/native";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
@@ -18,6 +18,7 @@ import {
   heightPercentageToDP as hp } from "react-native-responsive-screen";
 import uuid from 'react-native-uuid';
 import { setSecureStorage } from '../config/SecureStore';
+import NotificationDropdown from './NotificationDropdown';
 
 
 
@@ -31,7 +32,9 @@ const ModalBox = ({
   setShowModal,
   showEmoji,
   report,
-  streakData } : ModalProps) => {
+  streakData,
+  activeOption,
+  activeIcon } : ModalProps) => {
   const StreaksImage = require("../assets/stricks.png");
   const SleepyImage = { uri: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f634/512.gif" };
   const themeContext = useContext(ThemeContext);
@@ -107,23 +110,139 @@ const ModalBox = ({
     return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
   };
 
+  if (!showModal) return null;
+
+  const offset = -((Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0) + hp(7)) / 2;
+
   return (
-    <Center>
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
-        <Modal.Content
-          maxWidth="350"
-          style={{ backgroundColor: "rgba(52, 52, 52, 0.9)", borderRadius: 10, borderWidth: 1, borderColor: '#fff' }}
-        >
+    <RNModal
+      visible={showModal}
+      transparent={true}
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={() => setShowModal(false)}
+    >
+      {/* Dark backdrop covering the entire screen, status bar, and bottom bar */}
+      <Pressable
+        style={{ flex: 1, width: '100%', backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' }}
+        onPress={() => setShowModal(false)}
+      >
+        {/* Active Icon Overlay (fully bright) */}
+        {activeOption !== null && (
+          <View style={{
+            position: 'absolute',
+            top: (Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0) + hp(0.5),
+            left: 0,
+            right: 0,
+            height: hp(6),
+            flexDirection: 'row',
+            paddingHorizontal: wp(1),
+            backgroundColor: 'transparent',
+            zIndex: 20,
+          }} pointerEvents="none">
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              {activeOption === 0 && (
+                <View style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderBottomWidth: 2.5,
+                  borderBottomColor: '#0AB8AD',
+                  paddingBottom: hp(0.9),
+                  width: '100%',
+                }}>
+                  {activeIcon}
+                </View>
+              )}
+            </View>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              {activeOption === 1 && (
+                <View style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderBottomWidth: 2.5,
+                  borderBottomColor: '#0AB8AD',
+                  paddingBottom: hp(0.9),
+                  width: '100%',
+                }}>
+                  {activeIcon}
+                </View>
+              )}
+            </View>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              {activeOption === 2 && (
+                <View style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderBottomWidth: 2.5,
+                  borderBottomColor: '#0AB8AD',
+                  paddingBottom: hp(0.9),
+                  width: '100%',
+                }}>
+                  {activeIcon}
+                </View>
+              )}
+            </View>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              {activeOption === 3 && (
+                <View style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderBottomWidth: 2.5,
+                  borderBottomColor: '#0AB8AD',
+                  paddingBottom: hp(0.9),
+                  width: '100%',
+                }}>
+                  {activeIcon}
+                </View>
+              )}
+            </View>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              {activeOption === 4 && (
+                <View style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderBottomWidth: 2.5,
+                  borderBottomColor: '#0AB8AD',
+                  paddingBottom: hp(0.9),
+                  width: '100%',
+                }}>
+                  {activeIcon}
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        <Pressable style={{ width: '100%', alignItems: 'center' }} onPress={() => {}}>
+            <View
+              style={{
+                width: wp(92),
+                maxWidth: 400,
+                marginTop: offset,
+                backgroundColor: "rgba(52, 52, 52, 0.9)",
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: '#fff',
+                position: 'relative',
+                overflow: 'hidden',
+                padding: wp(4),
+              }}
+            >
           <TouchableOpacity
             onPress={() => setShowModal(false)}
-            style={{ position: 'absolute', top: 10, right: 10, zIndex: 15 }}
+            style={{ position: 'absolute', top: 5, right: 10, zIndex: 15 }}
           >
             <Ionicons name="close" size={24} color="rgba(255, 255, 255, 0.7)" />
           </TouchableOpacity>
 
           {/* Emoji Section */}
           {showEmoji ? (
-            <Modal.Body style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
+            <View style={{ padding: 0 }}>
 
 
               <View style={ModalStyle.emojiContainer}>
@@ -193,16 +312,15 @@ const ModalBox = ({
                   </View>
                 </View>
               </View>
-            </Modal.Body>
-          ) : (
-            <Modal.Header style={{ backgroundColor: "transparent", borderBottomWidth: 0, elevation: 0, shadowOpacity: 0 }}>
-              <View style={ModalStyle.emojiContainer} />
-            </Modal.Header>
-          )}
+            </View>
+          ) : null}
 
           {/* Modal Body */}
-          <Modal.Body style={{ marginBottom: wp(4) }}>
-            {modelData?.map((res) => (
+          <View style={{ marginBottom: 0 }}>
+            {activeOption === 4 ? (
+              <NotificationDropdown />
+            ) : (
+              modelData?.map((res) => (
               <View key={String(uuid.v4())}>
                 {/* Subject Card */}
                 <Pressable
@@ -233,6 +351,11 @@ const ModalBox = ({
                     }
                   }}
                 >
+                  {res.sub === "NEET" && (
+                    <Text style={{ fontFamily: 'AppFont-Bold', color: '#fff', fontSize: 16, marginBottom: 12, textAlign: 'center' }}>
+                      NEET Pattern
+                    </Text>
+                  )}
                   {res.sub && (
                     <ExpoLinearGradient
                       colors={["#22E2D6", "#15BBB1", "#0D7F78"]}
@@ -279,24 +402,24 @@ const ModalBox = ({
 
                 {/* Membership Card */}
                 {res.title && res.img && (
-                  <View key={String(uuid.v4())}
-            style={ModalStyle.actSilver}>
+                  <View key={String(uuid.v4())} style={ModalStyle.actSilver}>
                     {res.img && (
-                      <Image source={res.img}
-            style={ModalStyle.memberImg} />
+                      <Image source={res.img} style={ModalStyle.memberImg} />
                     )}
                     <View style={ModalStyle.memberDetails}>
                       <Text style={ModalStyle.memberTitle}>
                         {res.title} Member
                       </Text>
                       {res.plan && res.expiryDate ? (
-                        <View>
+                        <View style={ModalStyle.expiryContainer}>
                           <Text style={ModalStyle.expiryText}>
-                            Validity expires
+                            Expires on {new Date(res.expiryDate).toLocaleDateString("en-GB")}
                           </Text>
-                          <Text style={ModalStyle.expiryText}>
-                            on {new Date(res.expiryDate).toLocaleDateString("en-GB")}
-                          </Text>
+                          <View style={ModalStyle.daysRemainingBadge}>
+                            <Text style={ModalStyle.daysRemainingText}>
+                              {daysUntil(res.expiryDate)} Days Remaining
+                            </Text>
+                          </View>
                           {(() => {
                             const isTrial = !!userData?.isTrial || String(res.title || '').toLowerCase().includes('trial');
                             const isSilver = String(res.title || '').toLowerCase().includes('silver');
@@ -305,26 +428,42 @@ const ModalBox = ({
 
                             return showButton ? (
                               <TouchableOpacity
-                                style={ModalStyle.updateNowButton}
+                                style={{ marginTop: hp(1.2), alignSelf: 'center' }}
                                 onPress={() => {
                                   setShowModal(false);
                                   navigation.navigate("Plans");
                                 }}
                               >
-                                <Text style={ModalStyle.updateNowText}>Update Now</Text>
+                                <ExpoLinearGradient
+                                  colors={["#22E2D6", "#15BBB1", "#0D7F78"]}
+                                  locations={[0, 0.4, 1]}
+                                  start={{ x: 0.5, y: 0 }}
+                                  end={{ x: 0.5, y: 1 }}
+                                  style={ModalStyle.updateNowButton}
+                                >
+                                  <Text style={ModalStyle.updateNowText}>Update Now</Text>
+                                </ExpoLinearGradient>
                               </TouchableOpacity>
                             ) : null;
                           })()}
                         </View>
                       ) : (
                         <TouchableOpacity
-                          style={ModalStyle.updateNowButton}
+                          style={{ marginTop: hp(1.2), alignSelf: 'center' }}
                           onPress={() => {
                             setShowModal(false);
                             navigation.navigate("Plans");
                           }}
                         >
-                          <Text style={ModalStyle.updateNowText}>Update Now</Text>
+                          <ExpoLinearGradient
+                            colors={["#22E2D6", "#15BBB1", "#0D7F78"]}
+                            locations={[0, 0.4, 1]}
+                            start={{ x: 0.5, y: 0 }}
+                            end={{ x: 0.5, y: 1 }}
+                            style={ModalStyle.updateNowButton}
+                          >
+                            <Text style={ModalStyle.updateNowText}>Update Now</Text>
+                          </ExpoLinearGradient>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -345,11 +484,13 @@ const ModalBox = ({
                   </View>
                 )}
               </View>
-            ))}
-          </Modal.Body>
-        </Modal.Content>
-      </Modal>
-    </Center>
+            ))
+            )}
+          </View>
+               </View>
+          </Pressable>
+        </Pressable>
+    </RNModal>
   );
 };
 
@@ -361,7 +502,8 @@ const ModalStyle = StyleSheet.create({
     borderColor: "#ADADAD",
     borderStyle: "solid",
     borderRadius: 12,
-    overflow: "hidden" }, emojiContainer: {
+    overflow: "hidden" }, 
+  emojiContainer: {
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
@@ -369,7 +511,7 @@ const ModalStyle = StyleSheet.create({
   closeButtonContainer: {
     position: 'absolute',
     top: hp(5),
-    right: wp(6),
+    right: wp(5),
     zIndex: 9999,
     width: 40,
     height: 40,
@@ -459,43 +601,66 @@ const ModalStyle = StyleSheet.create({
     color: "#FFFFFF"},
 
   actSilver: {
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: COLORS.light,
     marginTop: 12,
-    padding: 16,
-    borderRadius: 12,
+    padding: 20,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(0, 183, 194, 0.15)',
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3
   },
   memberImg: {
-    width: 75,
-    height: 75,
+    width: 80,
+    height: 80,
     resizeMode: "contain",
-    marginRight: 16
+    marginBottom: 12
   },
   memberDetails: {
-    flex: 1,
+    alignItems: "center",
     justifyContent: "center"
   },
   memberTitle: {
     fontFamily: 'AppFont-Bold', 
     fontWeight: '700',
-    fontSize: wp(4.4),
+    fontSize: wp(4.5),
     color: COLORS.secondary06,
-    marginBottom: 4
+    marginBottom: 6,
+    letterSpacing: 0.5,
+    textAlign: "center"
+  },
+  expiryContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
   },
   expiryText: {
     fontFamily: 'AppFont-Regular',
     fontWeight: '500',
-    fontSize: wp(3.3),
+    fontSize: wp(3.2),
     color: '#4A5568',
-    lineHeight: 18
+    marginBottom: 6,
+    textAlign: "center"
+  },
+  daysRemainingBadge: {
+    backgroundColor: 'rgba(0, 183, 194, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 183, 194, 0.3)',
+    marginBottom: 8
+  },
+  daysRemainingText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3),
+    color: '#008B94',
+    textAlign: "center"
   },
 
   neetPopUpContainer: {
@@ -517,12 +682,9 @@ const ModalStyle = StyleSheet.create({
     marginBottom: 5,
     marginVertical: 10 },
   updateNowButton: {
-    backgroundColor: "#15BBB1",
     paddingVertical: hp(0.8),
     paddingHorizontal: wp(4),
     borderRadius: 20,
-    marginTop: hp(1.2),
-    alignSelf: 'flex-start',
     shadowColor: "#15BBB1",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,

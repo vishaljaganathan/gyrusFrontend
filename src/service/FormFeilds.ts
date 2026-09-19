@@ -4,7 +4,8 @@ const DEFAULT_TARGET_YEAR_RANGE = 5;
 
 const parseNeetDate = (neetDate?: Date | string): Date | undefined => {
   if (!neetDate) {
-    return undefined;
+    const now = new Date();
+    return new Date(now.getFullYear(), 4, 3); // May 3rd (month is 0-indexed: 4 = May)
   }
 
   if (neetDate instanceof Date) {
@@ -38,18 +39,10 @@ export const getNeetTargetYearOptions = (
   const parsedNeetDate = parseNeetDate(neetDate);
 
   if (parsedNeetDate) {
-    const examDateThisYear = new Date(
-      currentYear,
-      parsedNeetDate.getMonth(),
-      parsedNeetDate.getDate(),
-      23,
-      59,
-      59,
-      999
-    );
-
-    if (now > examDateThisYear) {
-      startYear = currentYear + 1;
+    if (now > parsedNeetDate) {
+      startYear = parsedNeetDate.getFullYear() + 1;
+    } else {
+      startYear = parsedNeetDate.getFullYear();
     }
   }
 
@@ -219,7 +212,7 @@ const baseSignUpFields = [
       show: true }, {
       idx: 10,
       inputType: "text",
-      placeholderName: "School Name",
+      placeholderName: "School/Institution/Center Name",
       fieldType: "input",
       page: 2,
       required: true,
@@ -228,7 +221,7 @@ const baseSignUpFields = [
       show: true }, {
       idx: 11,
       inputType: "text",
-      placeholderName: "School Pincode",
+      placeholderName: "School/Institution/Center Pincode",
       fieldType: "input",
       page: 2,
       required: true,
@@ -404,7 +397,7 @@ const baseProfileFields = [
   {
     idx: 8,
     inputType: "text",
-    placeholderName: "School Name",
+    placeholderName: "School/Institution/Center Name",
     fieldType: "input",
     page: 2,
     required: false,
@@ -413,7 +406,7 @@ const baseProfileFields = [
     show: true }, {
     idx: 9,
     inputType: "text",
-    placeholderName: "School Pincode",
+    placeholderName: "School/Institution/Center Pincode",
     fieldType: "input",
     page: 2,
     required: false,

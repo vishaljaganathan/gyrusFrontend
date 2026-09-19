@@ -209,10 +209,18 @@ const SuccessView: React.FC<SuccessViewProps> = ({
             fontFamily: 'AppFont-Bold', fontSize: hp(1.6),
             textAlign: "center",
             marginBottom: hp(1.5),
-            textTransform: 'capitalize'
+            textTransform: (finalData?.subject || '').toString().toLowerCase().startsWith('chapter_') ? 'none' : 'capitalize'
           }}
         >
-          {finalData.subject === 'neet' ? 'NEET' : finalData.subject} {std ? `• ${getStdLabel(std)}` : ''}
+          {(() => {
+            const isChapter = (finalData?.subject || '').toString().toLowerCase().startsWith('chapter_');
+            if (isChapter) {
+              const name = finalData.chapterName || finalData.chapter?.topicName || 'Chapter Practice';
+              const chNum = finalData.chapterNumber || finalData.chapter?.chapterNumber;
+              return chNum ? `Chapter ${chNum}\n${name}` : name;
+            }
+            return `${finalData?.subject === 'neet' ? 'NEET' : finalData?.subject} ${std ? `• ${getStdLabel(std)}` : ''}`;
+          })()}
         </Text>
 
         <View style={[styles.resultCard, { width: '90%', alignSelf: 'center' }]}>
@@ -252,7 +260,7 @@ const SuccessView: React.FC<SuccessViewProps> = ({
                 <Text style={[styles.statValue, { color: '#10b981' }]}>{displayScore}</Text>
               </View>
               <View style={styles.statRow}>
-                <Text style={styles.statLabel}>Wrong</Text>
+                <Text style={styles.statLabel}>Incorrect</Text>
                 <Text style={[styles.statValue, { color: '#ef4444' }]}>{submittedWrong ?? wrongQtsIds.length}</Text>
               </View>
               <View style={styles.statRow}>
@@ -355,7 +363,7 @@ const SuccessView: React.FC<SuccessViewProps> = ({
           </View>
         )}
 
-        <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, opacity: isSharing ? 0 : 1, zIndex: 9999 }}>
+        <View pointerEvents="none" style={{ ...StyleSheet.absoluteFill, opacity: isSharing ? 0 : 1, zIndex: 9999 }}>
           {confetti.map(particle => (
             <Animated.View
               key={particle.id}

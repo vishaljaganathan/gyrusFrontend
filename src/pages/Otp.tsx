@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
 import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
 import { LinearGradient } from "expo-linear-gradient";
+import { setSecureStorage } from "../config/SecureStore";
+import { axiosInstance } from "../config/indeceptor";
+import { ThemeContext } from "../service/authContext";
 import { moderateScale } from "../styles/Responsive";
 import { AxiosError } from "axios";
 import { COLORS } from "../styles/themes";
@@ -25,6 +28,7 @@ const Otp = ({ navigation, route }: { navigation: any; route: any }) => {
   const [timer, setTimer] = useState(90); // 1.30 mins = 90 seconds
   const [canResend, setCanResend] = useState(false);
   const { phoneNo, otp: receivedOtp, id, operation, msgHint } = route.params || {};
+  const { setUserData } = useContext(ThemeContext);
 
   useEffect(() => {
     let interval: any;
@@ -64,7 +68,29 @@ const Otp = ({ navigation, route }: { navigation: any; route: any }) => {
       } else {
         if (data.status >= 200 && data.status < 300) {
           setOtp("");
-          navigation.replace("Login"); // Replace to avoid stacking
+          if (data.data?.access_token) {
+            (async () => {
+              try {
+                await setSecureStorage("token", data.data.access_token);
+                await setSecureStorage("newUser", "false");
+                const res = await axiosInstance.get("authentication/user");
+                if (res && res.data) {
+                  setUserData(res.data);
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "BottomBar" }],
+                  });
+                } else {
+                  navigation.replace("Login");
+                }
+              } catch (err) {
+                console.log("[OTP] Auto-login failed:", err);
+                navigation.replace("Login");
+              }
+            })();
+          } else {
+            navigation.replace("Login");
+          }
         }
       }
     },
@@ -142,14 +168,15 @@ const Otp = ({ navigation, route }: { navigation: any; route: any }) => {
               paddingTop: wp(6),
               paddingBottom: wp(6),
               borderRadius: wp(3),
-              alignItems: 'center'
+              alignItems: 'center',
+              width: wp(95)
             }}
           >
             <Text
               style={{
                 color: "white",
                 textAlign: "center",
-                width: wp(90),
+                width: "100%",
                 fontFamily: 'AppFont-Bold',
                 fontSize: wp(5),
                 marginBottom: 10
@@ -161,7 +188,7 @@ const Otp = ({ navigation, route }: { navigation: any; route: any }) => {
               style={{
                 color: "white",
                 textAlign: "center",
-                width: wp(90),
+                width: "100%",
                 fontFamily: 'AppFont-Regular',
                 fontSize: wp(4),
                 marginTop: wp(2)
@@ -304,7 +331,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   otpContainer: {
-    margin: 10
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginVertical: 10,
   },
   pinCodeText: {
     fontFamily: 'AppFont-Regular',

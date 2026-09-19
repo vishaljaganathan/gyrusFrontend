@@ -1,306 +1,369 @@
-import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Modal,
-  Image,
-} from "react-native";
-import { CustomText as Text } from "../components/CustomText";
-import { LinearGradient } from "expo-linear-gradient";
-import { COLORS } from "../styles/themes";
-import {
-  widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
-import { Ionicons } from "@expo/vector-icons";
-import GradientButton from "../components/GradientButton";
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, LayoutAnimation, Platform, UIManager, Animated, Pressable, Image } from "react-native";
 
-const COURSE_DETAILS: any = {
-  "XI": {
-    title: "Regular Course",
-    subTitle: "11th Std",
-    content: "The regular courses are planned and constructed specifically for grade XI and XII students involving a professional team of doctors who are experts in NEET coaching, clutching about approximately 37 years question bank with accurate solutions and their explanations to hone their NEET cracking skills. The course not only upgrades the student's preparation but also elevates their quickness to conquering the NEET exams.",
-    color: "#0AB8AD",
-    btnLabel: "11th",
-  },
-  "XII": {
-    title: "Regular Course",
-    subTitle: "12th Std",
-    content: "The regular courses are planned and constructed specifically for grade XI and XII students involving a professional team of doctors who are experts in NEET coaching, clutching about approximately 37 years question bank with accurate solutions and their explanations to hone their NEET cracking skills. The course not only upgrades the student's preparation but also elevates their quickness to conquering the NEET exams.",
-    color: "#0AB8AD",
-    btnLabel: "12th",
-  },
-  "R": {
-    title: "Repeater Course",
-    subTitle: "NEET 2nd Attempt",
-    content: "The repeater course offers accessibility of updated personalized question papers, professionally designed in the form of MCQs meeting the NEET standards. Students are allowed to take tests frequently in order to improve their understanding of the subjects in meeting the pre-requisites to triumph in their NEET exams.",
-    color: "#0AB8AD",
-    btnLabel: "Repeater",
-  },
-  "C": {
-    title: "Crash Course",
-    subTitle: "12th Passed out",
-    content: "The crash courses offered by Gyrus ensures intensive short-term condensed learning opportunity, orchestrated to quickly refresh the concepts already assimilated. Students are entitled to participate in multiple special test-series providing concentrated learning experience making it ideal for the students, for a better retention, focusing on the key concepts and strategies.",
-    color: "#0AB8AD",
-    btnLabel: "Crash",
-  },
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useIsFocused } from "@react-navigation/native";
+import { CustomText as Text } from "../components/CustomText";
+import HeaderBar from "../navigation/Headerbar";
+import { COLORS } from "../styles/themes";
+import SubjectRow from "../components/SubjectRow";
+import { axiosInstance } from "../config/indeceptor";
+import { ThemeContext } from "../service/authContext";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import { faPlayCircle } from "@fortawesome/free-solid-svg-icons";
+
+const Botany = require("../assets/botany.png");
+const chemistry = require("../assets/chemistry.png");
+const physics = require("../assets/physics.png");
+const zoology = require("../assets/zoology.png");
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
+
+const getSubjectIcon = (subject: string) => {
+  switch (subject.toLowerCase()) {
+    case "physics": return physics;
+    case "chemistry": return chemistry;
+    case "botany": return Botany;
+    case "zoology": return zoology;
+    default: return null;
+  }
 };
 
-const ClassSelection = ({ navigation }: { navigation: any }) => {
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
 
-  const handleClassSelect = (classId: string) => {
-    setSelectedClass(classId);
-    setModalVisible(true);
+
+const ClassSelection = ({ navigation }: any) => {
+  const { userData, setUserData } = React.useContext(ThemeContext);
+  const isFocused = useIsFocused();
+  const [activeTab, setActiveTab] = useState<"11th" | "12th">("11th");
+  const [lastSubject, setLastSubject] = useState("");
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (isFocused) {
+      axiosInstance.get("authentication/user")
+        .then(res => {
+          if (res.data) {
+            setUserData(res.data);
+          }
+        })
+        .catch(() => {});
+        
+      AsyncStorage.getItem('lastPracticedSubject').then(res => {
+        if (res) setLastSubject(res);
+      });
+    }
+  }, [isFocused]);
+
+  const subjects = ["Physics", "Chemistry", "Botany", "Zoology"];
+
+
+
+  const [fadeAnim] = useState(new Animated.Value(1));
+  const [translateYAnim] = useState(new Animated.Value(0));
+
+  const handleTabChange = (tab: "11th" | "12th") => {
+    if (activeTab !== tab) {
+      
+      // Animate out quickly
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYAnim, {
+          toValue: 15,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        // Update state while invisible
+        setActiveTab(tab);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        
+        // Animate back in smoothly
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateYAnim, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+    }
   };
 
-  const handleContinue = () => {
-    setModalVisible(false);
-    navigation.navigate("SignUp", { selectedStd: selectedClass });
+  const handleSubjectClick = (subject: string) => {
+    const compoundKey = `${activeTab}_${subject}`;
+    AsyncStorage.setItem('lastPracticedSubject', compoundKey);
+    setLastSubject(compoundKey);
+    navigation.navigate('SubjectChapters', { subject, activeTab });
   };
-
-  const logo = require("../assets/appLogo.png");
 
   return (
-    <LinearGradient
-      colors={[COLORS.primary01, COLORS.primary02, COLORS.primary03, COLORS.primary05]}
-      style={styles.container}
-    >
-      <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={() => navigation.goBack()}
-        activeOpacity={1}
-      >
-        <Ionicons name="arrow-back" size={wp(6)} color="white" />
-      </TouchableOpacity>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 60 }]}>
+      <HeaderBar />
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingBottom: 60 }}>
+        <View style={styles.cardContainer}>
+          <Text style={{ fontFamily: 'AppFont-Bold', color: '#fff', fontSize: 18, textAlign: 'center', marginBottom: 16 }}>
+            Chapterwise 
+          </Text>
+          <View style={[styles.tabContainer, { marginHorizontal: 0, marginTop: 0 }]}>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === "11th" && styles.activeTab]}
+              onPress={() => handleTabChange("11th")}
+            >
+              <Text style={[styles.tabText, activeTab === "11th" && styles.activeTabText]}>Class - XI</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === "12th" && styles.activeTab]}
+              onPress={() => handleTabChange("12th")}
+            >
+              <Text style={[styles.tabText, activeTab === "12th" && styles.activeTabText]}>Class - XII</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: translateYAnim }], marginTop: 16 }}>
+            {subjects.map((subject, index) => {
+              return (
+                <View key={index} style={{ marginVertical: 6 }}>
+                  <Pressable onPress={() => handleSubjectClick(subject)}>
+                    <ExpoLinearGradient
+                      colors={["#22E2D6", "#15BBB1", "#0D7F78"]}
+                      locations={[0, 0.4, 1]}
+                      start={{ x: 0.5, y: 0 }}
+                      end={{ x: 0.5, y: 1 }}
+                      style={[
+                        styles.pillSubjectContainer,
+                        {
+                          borderWidth: lastSubject === `${activeTab}_${subject}` ? 2 : 0,
+                          borderColor: lastSubject === `${activeTab}_${subject}` ? "#FFFFFF" : "transparent",
+                          marginTop: 0,
+                        }
+                      ]}
+                    >
+                      <View style={styles.pillIconWrapper}>
+                        <Image source={getSubjectIcon(subject)} style={styles.pillIcon} />
+                      </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-           <Image source={logo} style={styles.logo} />
-           <Text style={styles.title}>Select Your Course</Text>
-           <Text style={styles.subtitle}>Choose the path that fits your goals</Text>
-        </View>
+                      <View style={styles.pillTextWrapper}>
+                        <Text style={styles.pillSubjectText}>{subject}</Text>
+                      </View>
 
-        <View style={styles.grid}>
-          {Object.keys(COURSE_DETAILS).map((key, index) => {
-            const details = COURSE_DETAILS[key];
-            return (
-              <View 
-                key={key} 
-                style={styles.cardWrapper}
-              >
-                <TouchableOpacity
-                  style={styles.card}
-                  onPress={() => handleClassSelect(key)}
-                  activeOpacity={1}
-                >
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardHeaderText}>{details.btnLabel}</Text>
-                  </View>
-                  <View style={styles.cardBody}>
-                    <Text style={styles.cardTitle}>{details.title}</Text>
-                    <Ionicons name="chevron-forward-circle" size={24} color="#0AB8AD" />
-                  </View>
-                </TouchableOpacity>
-              </View>
-            );
-          })}
+                      <View style={styles.pillPercentageWrapper}></View>
+                    </ExpoLinearGradient>
+                  </Pressable>
+                </View>
+              );
+            })}
+          </Animated.View>
         </View>
       </ScrollView>
-
-      {/* Course Detail Modal */}
-      <Modal
-        animationType="none" // Remove modal animation
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {selectedClass && (
-              <>
-                <View style={[styles.modalHeader, { backgroundColor: COURSE_DETAILS[selectedClass].color }]}>
-                  <View>
-                    <Text style={styles.modalTitle}>{COURSE_DETAILS[selectedClass].title}</Text>
-                    <Text style={styles.modalSubtitle}>{COURSE_DETAILS[selectedClass].subTitle}</Text>
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.closeButton} 
-                    onPress={() => setModalVisible(false)}
-                    activeOpacity={1}
-                  >
-                    <Ionicons name="close" size={28} color="white" />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView style={styles.modalBody}>
-                  <Text style={styles.modalDescription}>
-                    {COURSE_DETAILS[selectedClass].content}
-                  </Text>
-                </ScrollView>
-
-                <View style={styles.modalFooter}>
-                  <GradientButton
-                    onPress={handleContinue}
-                    colors={["#0AB8AD", "#00474C"]}
-                    activeOpacity={1}
-                    Text={<Text style={styles.continueBtnText}>Continue</Text>}
-                  />
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.secondary01,
   },
-  scrollContent: {
+  cardContainer: {
+    backgroundColor: "rgba(2, 60, 54, 0.4)",
+    borderRadius: 24,
+    padding: 20,
+    marginHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    marginTop: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.08)", // Darker semi-transparent container
+    borderRadius: 30,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 26,
+  },
+  activeTab: {
+    backgroundColor: COLORS.two || '#0AB8AD',
+  },
+  tabText: {
+    fontSize: 20,
+    color: COLORS.two || '#0AB8AD', // Teal color for inactive text
+    fontFamily: "AppFont-Bold",
+  },
+  activeTabText: {
+    color: '#013a3f', // Dark green color for active text on teal background
+  },
+  content: {
+    padding: 16,
     flexGrow: 1,
-    paddingBottom: hp(5),
-    paddingHorizontal: wp(5),
-    alignItems: "center",
-    justifyContent: "center", // Center vertically
   },
-  header: {
-    marginBottom: hp(4),
-    alignItems: "center",
+  chaptersList: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 8,
   },
-  logo: {
-    width: wp(50),
-    height: hp(15),
-    resizeMode: "contain",
-    marginBottom: hp(1),
+  listCard: {
+    backgroundColor: "rgba(40, 63, 56, 0.8)",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(10, 184, 173, 0.3)",
   },
-  backButton: {
-    position: "absolute",
-    left: wp(4),
-    top: hp(5), // Positioned at top left
-    zIndex: 10,
-    padding: wp(2),
-    borderRadius: wp(5),
-    backgroundColor: "rgba(255,255,255,0.1)",
+  listCardExpanded: {
+    borderColor: COLORS.two,
+    backgroundColor: "rgba(40, 63, 56, 1)",
   },
-  title: {
-    fontSize: wp(7),
-    fontFamily: "AppFont-Bold",
-    color: "white",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: wp(4),
-    fontFamily: "AppFont-Regular",
-    color: "rgba(255,255,255,0.7)",
-    textAlign: "center",
-    marginTop: hp(0.5),
-  },
-  grid: {
-    width: "100%",
+  listCardMain: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  cardWrapper: {
-    width: "48%",
-    marginBottom: hp(2),
-  },
-  card: {
-    backgroundColor: "white", // High contrast
-    borderRadius: wp(4),
-    overflow: "hidden",
-    height: hp(15),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  cardHeader: {
-    paddingVertical: hp(1),
     alignItems: "center",
-    backgroundColor: "#0AB8AD", // Solid teal header
+    justifyContent: "space-between",
+    minHeight: 64,
   },
-  cardHeaderText: {
-    color: "white",
-    fontFamily: "AppFont-Bold",
-    fontSize: wp(4.5),
-  },
-  cardBody: {
+  listCardLeft: {
     flex: 1,
-    padding: wp(3),
-    justifyContent: "space-between",
-    alignItems: "center",
     flexDirection: "row",
-  },
-  cardTitle: {
-    color: "#333", // Dark text on white background
-    fontFamily: "AppFont-Bold",
-    fontSize: wp(3.8),
-    flex: 1,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    justifyContent: "center",
     alignItems: "center",
-    padding: wp(5),
+    paddingRight: 16,
   },
-  modalContent: {
-    width: "100%",
-    backgroundColor: "white",
-    borderRadius: wp(5),
-    overflow: "hidden",
-    maxHeight: hp(70),
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: wp(5),
-  },
-  modalTitle: {
-    color: "white",
-    fontFamily: "AppFont-Bold",
-    fontSize: wp(5.5),
-  },
-  modalSubtitle: {
-    color: "rgba(255,255,255,0.8)",
-    fontFamily: "AppFont-Regular",
-    fontSize: wp(3.8),
-  },
-  closeButton: {
-    padding: wp(1),
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalBody: {
-    padding: wp(5),
-  },
-  modalDescription: {
-    color: "#333",
-    fontFamily: "AppFont-Regular",
-    fontSize: wp(4),
-    lineHeight: wp(6),
-    textAlign: "justify",
-  },
-  modalFooter: {
-    padding: wp(5),
+  expandedContent: {
+    marginTop: 16,
+    paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#eee",
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
-  continueBtnText: {
+  chaptersContainer: {
+    marginTop: 10,
+  },
+  progressContainer: {
+    marginBottom: 16,
+  },
+  firstRoundProgress: {},
+  additionalRoundProgress: {
+    marginTop: 10,
+  },
+  progressLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  roundLabelText: {
+    fontSize: 12,
+    color: COLORS.two,
     fontFamily: "AppFont-Bold",
-    color: "white",
-    fontSize: wp(4.5),
   },
+  progressBarBackground: {
+    height: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: COLORS.two,
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.7)",
+    fontFamily: "AppFont-Bold",
+    textAlign: "right",
+  },
+  practiceButton: {
+    backgroundColor: COLORS.two,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  practiceButtonText: {
+    color: COLORS.secondary01,
+    fontFamily: "AppFont-Bold",
+    fontSize: 14,
+  },
+  chapterBadge: {
+    backgroundColor: 'rgba(10, 184, 173, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  chapterNumber: {
+    fontSize: 11,
+    color: COLORS.two,
+    fontFamily: "AppFont-Bold",
+    letterSpacing: 0.5,
+  },
+  chapterTitle: {
+    fontSize: 15,
+    color: COLORS.light,
+    fontFamily: "AppFont-Bold",
+    flex: 1,
+  },
+  noDataText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.7)",
+    fontFamily: "AppFont-Bold",
+    textAlign: "center",
+    paddingVertical: 12,
+  },
+  pillSubjectContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#15BBB1",
+    marginTop: hp(1.2),
+    paddingVertical: 15,
+    paddingHorizontal: wp(3),
+    borderRadius: 30,
+  },
+  pillIconWrapper: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillIcon: {
+    width: wp(7),
+    height: hp(3),
+    resizeMode: "contain",
+  },
+  pillTextWrapper: {
+    flex: 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillSubjectText: {
+    fontFamily: 'AppFont-Bold',
+    fontWeight: '700',
+    fontSize: wp(4.8),
+    color: "#FFFFFF",
+    textAlign: "center",
+  },
+  pillPercentageWrapper: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  }
 });
 
 export default ClassSelection;

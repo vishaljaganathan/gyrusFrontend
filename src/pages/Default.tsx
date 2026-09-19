@@ -88,6 +88,20 @@ const Default = ({ navigation }: { navigation: any }) => {
           ...prev,
           internetStatus: netState.isConnected}));
 
+        // Fetch target NEET date to dynamically configure signup target years
+        try {
+          const neetRes = await axiosInstance.get("neet-date");
+          const resolvedDate = neetRes?.data?.date;
+          if (resolvedDate) {
+            setAppState((prev: any) => ({
+              ...prev,
+              neetDate: resolvedDate,
+            }));
+          }
+        } catch (e) {
+          console.log("[Default] Failed to fetch neet-date on startup:", e);
+        }
+
         const token = await getSecureStorage("token");
         if (token) {
           try {
@@ -96,19 +110,19 @@ const Default = ({ navigation }: { navigation: any }) => {
               setUserData(res.data);
               navigation.replace("BottomBar");
             } else {
-              navigation.replace("Login");
+              navigation.replace("SignUp");
             }
           } catch (err) {
-            navigation.replace("Login");
+            navigation.replace("SignUp");
           }
         } else {
           // Wait a bit more for the splash feel
           setTimeout(() => {
-            navigation.replace("Login");
+            navigation.replace("SignUp");
           }, 1000);
         }
       } catch (err) {
-        navigation.replace("Login");
+        navigation.replace("SignUp");
       }
     };
 

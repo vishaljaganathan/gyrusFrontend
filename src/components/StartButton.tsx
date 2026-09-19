@@ -14,26 +14,36 @@ import {
 const StartButton = ({
   onPress,
   style,
+  cardStyle,
   disable,
   Text: textProp,
   colors,
   loading,
-  questionCount}: {
+  questionCount,
+  elevation: customElevation,
+}: {
   onPress: () => void;
   style?: any;
+  cardStyle?: any;
   disable?: boolean;
   Text?: string;
   colors?: [string, string];
   loading?: boolean;
   questionCount?: number;
+  elevation?: number;
 }) => {
   const label = textProp || `Start${questionCount ? ` - ${questionCount}` : ""}`;
   const gradientColors: [string, string] =
     colors && colors.length >= 2 ? colors : ["#00B712", "#5AFF15"];
   return (
-    <TouchableOpacity onPress={onPress} disabled={disable || loading}>
+    <TouchableOpacity onPress={onPress} disabled={disable || loading} style={style}>
       <LinearGradient
-        style={[styles.card, styles.elevation]}
+        style={[
+          styles.card,
+          styles.elevation,
+          cardStyle,
+          customElevation !== undefined ? { elevation: customElevation } : null
+        ]}
         colors={gradientColors}
         start={{ x: 0.6, y: 0.3 }}
         end={{ x: 0.6, y: 0 }}

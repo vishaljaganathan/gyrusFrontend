@@ -124,10 +124,10 @@ const GyrusNEETAnalytics = () => {
       zoology: 'neetZoology',
     };
     const colorMap: Record<'physics' | 'chemistry' | 'botany' | 'zoology', string> = {
-      physics: '#2979FF',
-      chemistry: '#C45EFF',
-      botany: '#239229',
-      zoology: '#10b981'
+      physics: '#8627BC',
+      chemistry: '#013385',
+      botany: '#016507',
+      zoology: '#007750'
     };
 
     const extractStats = (sub: any) => {
@@ -210,8 +210,8 @@ const GyrusNEETAnalytics = () => {
 
         {!userData?.analyticsEnabledAt && (
           <View style={[styles.sectionBox, { marginHorizontal: 16, backgroundColor: '#FEF9E7' }]}>
-            <Text style={{ fontFamily: 'AppFont-Bold', fontSize: 16, color: COLORS.one, marginBottom: 6 }}>New: Test Analytics</Text>
-            <Text style={{ color: COLORS.one, textAlign: 'justify' }}>This analytics feature is new. Your analytics will start at 0 when you submit tests from now on. Take a subject wise test to enable tracking for your subjects.</Text>
+            <Text style={{ fontFamily: 'AppFont-Bold', fontSize: 16, color: COLORS.one, marginBottom: 6 }}>New: Learning Analytics</Text>
+            <Text style={{ color: COLORS.one, textAlign: 'justify' }}>This analytics feature is new. Your analytics will start at 0 when you practice from now on. Track your Learning accuracy, strengths, weaknesses, and improvement over time.</Text>
           </View>
         )}
         <LinearGradient
@@ -222,8 +222,8 @@ const GyrusNEETAnalytics = () => {
           style={styles.headerBox}
         >
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>Test Analytics</Text>
-            <Text style={styles.headerSubtitle}>Gyrus NEET Mock Test Performance</Text>
+            <Text style={styles.headerTitle}>Learning Analytics</Text>
+            <Text style={styles.headerSubtitle}>Gyrus NEET Learning Performance</Text>
           </View>
           {/* <View style={{ position: 'absolute', right: 16, top: 12 }}>
             <View>
@@ -372,7 +372,7 @@ const GyrusNEETAnalytics = () => {
                 <View style={styles.focusLabelContainer}>
                   <Text style={styles.focusLabelHeader}>FOCUS AREA RECOMMENDED</Text>
                   <Text style={styles.focusLabelDescription}>
-                    You need to concentrate more on <Text style={{ color: worst.color }}>{worst.subject}</Text> compared to other subjects. Tap below to start practicing:
+                    You need to concentrate more on <Text style={{ color: worst.color }}>{worst.subject}</Text> compared to other subjects. Tap below to start Learning:
                   </Text>
                 </View>
 

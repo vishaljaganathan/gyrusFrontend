@@ -119,22 +119,57 @@ const ArrowSvg = (props: any) => {
   );
 };
 
-const SingleStage = ({ id, score, start, loading, questionCount, label, showNumber, isLatest, onScorePress }: any) => {
+const SingleStage = ({ id, score, start, loading, questionCount, label, showNumber, isLatest, onScorePress, onLayout, roundEndLabel, roundEndStats, hideArrow, isBottomStage, practiceLabel, isLocked }: any) => {
   return (
-    <View style={styles.container}>
-      {/* Slanted arrow body */}
-      <View
-        style={{
-          transform: [{ rotate: id % 2 == 0 ? "-5deg" : "-85deg" }],
-          position: "absolute",
-          bottom: hp(-6),
-        }}
-      >
-        {score == "" && <DummyArrow key={id} />}
-        {score != "" && (
-          <ArrowSvg key={id} id={id} valid={score == "" ? false : true} />
-        )}
-      </View>
+    <View style={[styles.container, isBottomStage && styles.bottomStageContainer]} onLayout={onLayout}>
+      {/* Slanted arrow — hidden when a round-end label takes its place or hideArrow is true */}
+      {!roundEndLabel && !hideArrow && (
+        <View
+          style={{
+            transform: [{ rotate: id % 2 == 0 ? "-5deg" : "-85deg" }],
+            position: "absolute",
+            bottom: hp(-6),
+          }}
+        >
+          {score == "" && <DummyArrow key={id} />}
+          {score != "" && (
+            <ArrowSvg key={id} id={id} valid={score == "" ? false : true} />
+          )}
+        </View>
+      )}
+
+      {/* Round-complete label + stats — replaces the arrow when a round ends here */}
+      {roundEndLabel && (
+        <View style={styles.roundEndOverlay} pointerEvents="none">
+          {/* Pill header */}
+          <View style={styles.roundEndPillRow}>
+            <View style={styles.roundEndLine} />
+            <View style={styles.roundEndPill}>
+              <Text style={styles.roundEndCheck}>✓</Text>
+              <Text style={styles.roundEndText}>{roundEndLabel}</Text>
+            </View>
+            <View style={styles.roundEndLine} />
+          </View>
+
+          {/* Stats cards below the pill */}
+          {roundEndStats && (
+            <View style={styles.roundEndStatsRow}>
+              <View style={[styles.roundEndStatCard, { backgroundColor: 'rgba(0,0,0,0.45)', borderColor: 'rgba(255,255,255,0.15)' }]}>
+                <Text style={[styles.roundEndStatValue, { color: '#5dffc4' }]}>{roundEndStats.correct}</Text>
+                <Text style={styles.roundEndStatLabel}>Correct</Text>
+              </View>
+              <View style={[styles.roundEndStatCard, { backgroundColor: 'rgba(0,0,0,0.45)', borderColor: 'rgba(255,255,255,0.15)' }]}>
+                <Text style={[styles.roundEndStatValue, { color: '#ff8f8f' }]}>{roundEndStats.wrong}</Text>
+                <Text style={styles.roundEndStatLabel}>Incorrect</Text>
+              </View>
+              <View style={[styles.roundEndStatCard, { backgroundColor: 'rgba(0,0,0,0.45)', borderColor: 'rgba(255,255,255,0.15)' }]}>
+                <Text style={[styles.roundEndStatValue, { color: '#ffffff' }]}>{roundEndStats.total}</Text>
+                <Text style={styles.roundEndStatLabel}>Total</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
 
       <ScoreBox
         key={id}
@@ -147,6 +182,8 @@ const SingleStage = ({ id, score, start, loading, questionCount, label, showNumb
         label={label}
         showNumber={showNumber}
         isLatest={isLatest}
+        practiceLabel={practiceLabel}
+        isLocked={isLocked}
       />
     </View>
   );
@@ -159,18 +196,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: hp(20),
   },
+  bottomStageContainer: {
+    marginBottom: -85,
+  },
   stageContainer: {
     flexDirection: "column",
     alignItems: "center",
-    marginBottom: 20, // Space between stages
+    marginBottom: 20,
   },
   stageButton: {
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 40, // Rounded corners
+    borderRadius: 40,
     width: 80,
     height: 80,
-    elevation: 5, // Shadow effect
+    elevation: 5,
   },
   stageText: {
     position: "absolute",
@@ -181,7 +221,75 @@ const styles = StyleSheet.create({
   arrow: {
     marginTop: 10,
     width: 30,
-    height: 30, // Adjust size as needed
+    height: 30,
+  },
+  roundEndOverlay: {
+    position: 'absolute',
+    bottom: hp(3.2),
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  roundEndPillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 6,
+  },
+  roundEndLine: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 1,
+  },
+  roundEndPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginHorizontal: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  roundEndCheck: {
+    color: '#4ade80',
+    fontSize: 15,
+    fontFamily: 'AppFont-Bold',
+    marginRight: 6,
+  },
+  roundEndText: {
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 14,
+    fontFamily: 'AppFont-Bold',
+    letterSpacing: 0.3,
+  },
+  roundEndStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',    
+  },
+  roundEndStatCard: {
+    flex: 1,
+    alignItems: 'center',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderWidth: 1,
+  },
+  roundEndStatValue: {
+    fontSize: 22,
+    fontFamily: 'AppFont-Bold',
+  },
+  roundEndStatLabel: {
+    fontSize: 13,
+    fontFamily: 'AppFont-Medium',
+    color: 'rgba(255,255,255,0.88)',
+    marginTop: 3,
   },
 });
 

@@ -2,38 +2,27 @@ import React, { useEffect, useState, useContext, useCallback } from "react";
 import { 
   View, 
   StyleSheet, 
-  Image, 
   TouchableOpacity, 
   ActivityIndicator, 
-  Platform,
-  Dimensions,
   RefreshControl,
   Modal,
-  Alert
+  Platform
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CustomText as Text } from '../components/CustomText';
 import { CustomVerticalScrollbar } from '../components/CustomVerticalScrollbar';
-import { LinearGradient } from "expo-linear-gradient";
-import TrialModal from "../components/TrialModal";
-import { COLORS } from "../styles/themes";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
-import PremiumBanner from "../components/PremiumBanner";
-import HeaderBar from "../navigation/Headerbar";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeContext } from "../service/authContext";
-import { getRequest, postRequest } from "../config/Requests";
+import { getRequest } from "../config/Requests";
 import { axiosInstance } from "../config/indeceptor";
+import TrialModal from "../components/TrialModal";
+import PremiumBanner from "../components/PremiumBanner";
 
-const { width } = Dimensions.get('window');
-
-const Notification = ({ navigation }: { navigation: any }) => {
-  const { userData, setUserData, notificationRefreshTrigger, setUnreadNotificationCount } = useContext(ThemeContext);
+const NotificationDropdown = () => {
+  const { userData, notificationRefreshTrigger, setUnreadNotificationCount } = useContext(ThemeContext);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showTrialModal, setShowTrialModal] = useState(false);
-  const [showPremiumBanner, setShowPremiumBanner] = useState(false);
   const [notificationGroups, setNotificationGroups] = useState<any>({
     TODAY: [],
     YESTERDAY: [],
@@ -43,6 +32,8 @@ const Notification = ({ navigation }: { navigation: any }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [showDeleteOption, setShowDeleteOption] = useState(false);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [showTrialModal, setShowTrialModal] = useState(false);
+  const [showPremiumBanner, setShowPremiumBanner] = useState(false);
 
   // Load read notifications from storage
   useEffect(() => {
@@ -80,14 +71,12 @@ const Notification = ({ navigation }: { navigation: any }) => {
         notificationId: selectedNotification._id
       });
       
-      // Update local state to remove the notification from groups
       const updatedGroups = { ...notificationGroups };
       Object.keys(updatedGroups).forEach(key => {
         updatedGroups[key] = updatedGroups[key].filter((n: any) => n._id !== selectedNotification._id);
       });
       setNotificationGroups(updatedGroups);
       
-      // Close modal
       setModalVisible(false);
       setShowDeleteOption(false);
     } catch (error) {
@@ -100,10 +89,8 @@ const Notification = ({ navigation }: { navigation: any }) => {
 
     try {
       setLoading(true);
-      
       const std = userData?.std || 'all';
       
-      // Fetch individual, group, and broadcast notifications
       const [individualRes, groupRes, broadcastRes] = await Promise.all([
         getRequest(`notifications/individual/${userData._id}`),
         getRequest(`notifications/group/${std}?userId=${userData._id}`),
@@ -114,14 +101,12 @@ const Notification = ({ navigation }: { navigation: any }) => {
       const group = (groupRes.data || []).map((n: any) => ({ ...n, origin: 'group' }));
       const broadcast = (broadcastRes.data || []).map((n: any) => ({ ...n, origin: 'broadcast' }));
 
-      // Combine and sort by date
       const allNotifications = [...individual, ...group, ...broadcast].sort((a, b) => {
         const dateA = new Date(a.sentAt || a.createdAt).getTime();
         const dateB = new Date(b.sentAt || b.createdAt).getTime();
         return dateB - dateA;
       });
 
-      // Group them
       const groups: any = { TODAY: [], YESTERDAY: [], EARLIER: [] };
       const now = new Date();
       const yesterday = new Date(now);
@@ -145,9 +130,8 @@ const Notification = ({ navigation }: { navigation: any }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userData?._id, setUnreadNotificationCount]);
+  }, [userData?._id]);
 
-  // Update unread count whenever groups or readIds change
   useEffect(() => {
     const all = [
       ...notificationGroups.TODAY, 
@@ -157,10 +141,10 @@ const Notification = ({ navigation }: { navigation: any }) => {
     if (all.length > 0) {
       const unreadCount = all.filter((n: any) => !readIds.has(n._id)).length;
       setUnreadNotificationCount(unreadCount);
+    } else {
+      setUnreadNotificationCount(0);
     }
   }, [notificationGroups, readIds, setUnreadNotificationCount]);
-
-  // Trial activation logic handled by TrialModal component
 
   useEffect(() => {
     fetchNotifications();
@@ -172,12 +156,10 @@ const Notification = ({ navigation }: { navigation: any }) => {
   };
 
   const getIconName = (item: any) => {
-    // 1. Origin-based icons as requested
     if (item.origin === 'broadcast') return 'megaphone-outline';
     if (item.origin === 'group') return 'people-outline';
     if (item.origin === 'individual') return 'person-outline';
 
-    // 2. Fallback to existing content-based logic if origin is missing
     const type = item.notificationType?.toLowerCase() || '';
     const title = item.header?.toLowerCase() || '';
     
@@ -228,7 +210,7 @@ const Notification = ({ navigation }: { navigation: any }) => {
         </View>
         <View style={styles.textContent}>
           <View style={styles.cardTopRow}>
-            <Text style={styles.titleText}>{item.header}</Text>
+            <Text style={styles.titleText} numberOfLines={1}>{item.header}</Text>
           </View>
           <Text style={styles.timeText}>{getTimeLabel(item.sentAt || item.createdAt)}</Text>
         </View>
@@ -249,184 +231,173 @@ const Notification = ({ navigation }: { navigation: any }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeContainer} edges={["top"]}>
-      <LinearGradient 
-        style={styles.container}
-        colors={["#00474C", "#0AB8AD", "#028464"]}
-      >
-        <HeaderBar />
-        {loading && !refreshing ? (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
-          </View>
-        ) : (
-          <CustomVerticalScrollbar 
-            indicatorColor="hsla(185, 100%, 93%, 1.00)"
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
-            }
-          >
-            {/* Pinned Trial Offer */}
-            {userData && !userData.planValid && !userData.trialUsed && (
-              <View style={styles.pinnedContainer}>
-                <Text style={styles.groupLabel}>OFFER FOR YOU</Text>
-                <TouchableOpacity 
-                  style={[styles.card, styles.trialCardPinned]}
-                  onPress={() => setShowTrialModal(true)}
-                  activeOpacity={0.9}
-                >
-                  <View style={styles.cardContent}>
-                    <View style={styles.iconContainer}>
-                      <View style={[styles.iconPlaceholder, { backgroundColor: '#FFD700' }]}>
-                        <Ionicons name="gift" size={wp(6)} color="#00474C" />
-                      </View>
-                    </View>
-                    <View style={styles.textContent}>
-                      <View style={styles.cardTopRow}>
-                        <Text style={[styles.titleText, { color: '#FFD700' }]}>7-Day Gold Trial</Text>
-                        <View style={[styles.unreadDot, { backgroundColor: '#FFD700' }]} />
-                      </View>
-                      <Text style={[styles.timeText, { color: '#FFD700', fontFamily: 'AppFont-Bold' }]}>VIEW OFFER</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {notificationGroups.TODAY.length === 0 && 
-             notificationGroups.YESTERDAY.length === 0 && 
-             notificationGroups.EARLIER.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="notifications-off-outline" size={wp(15)} color="rgba(255,255,255,0.2)" />
-                <Text style={styles.emptyText}>No notifications yet</Text>
-              </View>
-            ) : (
-              <>
-                {renderGroup('TODAY', notificationGroups.TODAY)}
-                {renderGroup('YESTERDAY', notificationGroups.YESTERDAY)}
-                {renderGroup('EARLIER', notificationGroups.EARLIER)}
-              </>
-            )}
-          </CustomVerticalScrollbar>
-        )}
-
-        {/* Notification Detail Modal */}
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
+    <View style={styles.container}>
+      {loading && !refreshing ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      ) : (
+        <CustomVerticalScrollbar 
+          indicatorColor="hsla(185, 100%, 93%, 1.00)"
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
+          }
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+          {/* Pinned Trial Offer */}
+          {userData && !userData.planValid && !userData.trialUsed && (
+            <View style={styles.pinnedContainer}>
+              <Text style={styles.groupLabel}>OFFER FOR YOU</Text>
               <TouchableOpacity 
-                style={styles.menuButton} 
-                onPress={() => setShowDeleteOption(!showDeleteOption)}
+                style={[styles.card, styles.trialCardPinned]}
+                onPress={() => setShowTrialModal(true)}
+                activeOpacity={0.9}
               >
-                <Ionicons name="ellipsis-vertical" size={wp(6)} color="rgba(255,255,255,0.6)" />
-              </TouchableOpacity>
-
-              {showDeleteOption && (
-                <TouchableOpacity 
-                  style={styles.deleteOption} 
-                  onPress={handleDeleteNotification}
-                >
-                  <Ionicons name="trash-outline" size={wp(4.5)} color="#ef4444" />
-                  <Text style={styles.deleteText}>Delete</Text>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity 
-                style={styles.modalCloseButton} 
-                onPress={() => {
-                  setModalVisible(false);
-                  setShowDeleteOption(false);
-                }}
-              >
-                <Ionicons name="close" size={wp(7)} color="white" />
-              </TouchableOpacity>
-              
-              {selectedNotification && (
-                <CustomVerticalScrollbar showsVerticalScrollIndicator={false} indicatorColor="hsla(185, 100%, 93%, 1.00)">
-                  <View style={styles.modalIconContainer}>
-                    <View style={styles.modalIconPlaceholder}>
-                      <Ionicons 
-                        name={getIconName(selectedNotification)} 
-                        size={wp(10)} 
-                        color="white" 
-                      />
+                <View style={styles.cardContent}>
+                  <View style={styles.iconContainer}>
+                    <View style={[styles.iconPlaceholder, { backgroundColor: '#FFD700' }]}>
+                      <Ionicons name="gift" size={wp(6)} color="#00474C" />
                     </View>
                   </View>
-                  
-                  <Text style={styles.modalTitle}>{selectedNotification.header}</Text>
-                  <View style={styles.modalDivider} />
-                  <Text style={styles.modalBody}>{selectedNotification.body}</Text>
-                  <Text style={styles.modalTime}>{getTimeLabel(selectedNotification.sentAt || selectedNotification.createdAt)}</Text>
-                </CustomVerticalScrollbar>
-              )}
+                  <View style={styles.textContent}>
+                    <View style={styles.cardTopRow}>
+                      <Text style={[styles.titleText, { color: '#FFD700' }]}>14-Day Gold Trial</Text>
+                      <View style={[styles.unreadDot, { backgroundColor: '#FFD700' }]} />
+                    </View>
+                    <Text style={[styles.timeText, { color: '#FFD700', fontFamily: 'AppFont-Bold' }]}>VIEW OFFER</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
             </View>
+          )}
+
+          {notificationGroups.TODAY.length === 0 && 
+           notificationGroups.YESTERDAY.length === 0 && 
+           notificationGroups.EARLIER.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="notifications-off-outline" size={wp(10)} color="rgba(255,255,255,0.2)" />
+              <Text style={styles.emptyText}>No notifications yet</Text>
+            </View>
+          ) : (
+            <>
+              {renderGroup('TODAY', notificationGroups.TODAY)}
+              {renderGroup('YESTERDAY', notificationGroups.YESTERDAY)}
+              {renderGroup('EARLIER', notificationGroups.EARLIER)}
+            </>
+          )}
+        </CustomVerticalScrollbar>
+      )}
+
+      {/* Notification Detail Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity 
+              style={styles.menuButton} 
+              onPress={() => setShowDeleteOption(!showDeleteOption)}
+            >
+              <Ionicons name="ellipsis-vertical" size={wp(5)} color="rgba(255,255,255,0.6)" />
+            </TouchableOpacity>
+
+            {showDeleteOption && (
+              <TouchableOpacity 
+                style={styles.deleteOption} 
+                onPress={handleDeleteNotification}
+              >
+                <Ionicons name="trash-outline" size={wp(4.5)} color="#ef4444" />
+                <Text style={styles.deleteText}>Delete</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity 
+              style={styles.modalCloseButton} 
+              onPress={() => {
+                setModalVisible(false);
+                setShowDeleteOption(false);
+              }}
+            >
+              <Ionicons name="close" size={wp(6)} color="white" />
+            </TouchableOpacity>
+            
+            {selectedNotification && (
+              <CustomVerticalScrollbar showsVerticalScrollIndicator={false} indicatorColor="hsla(185, 100%, 93%, 1.00)">
+                <View style={styles.modalIconContainer}>
+                  <View style={styles.modalIconPlaceholder}>
+                    <Ionicons 
+                      name={getIconName(selectedNotification)} 
+                      size={wp(8)} 
+                      color="white" 
+                    />
+                  </View>
+                </View>
+                
+                <Text style={styles.modalTitle}>{selectedNotification.header}</Text>
+                <View style={styles.modalDivider} />
+                <Text style={styles.modalBody}>{selectedNotification.body}</Text>
+                <Text style={styles.modalTime}>{getTimeLabel(selectedNotification.sentAt || selectedNotification.createdAt)}</Text>
+              </CustomVerticalScrollbar>
+            )}
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
-        {/* 7-Day Free Trial Modal */}
-        <TrialModal 
-          isVisible={showTrialModal} 
-          onClose={() => setShowTrialModal(false)}
-          onSuccess={() => setShowPremiumBanner(true)}
-        />
+      {/* 14-Day Free Trial Modal */}
+      <TrialModal 
+        isVisible={showTrialModal} 
+        onClose={() => setShowTrialModal(false)}
+        onSuccess={() => setShowPremiumBanner(true)}
+      />
 
-        {/* Premium Banner Overlay */}
-        <PremiumBanner 
-          isVisible={showPremiumBanner} 
-          onClose={() => setShowPremiumBanner(false)} 
-        />
-      </LinearGradient>
-    </SafeAreaView>
+      {/* Premium Banner Overlay */}
+      <PremiumBanner 
+        isVisible={showPremiumBanner} 
+        onClose={() => setShowPremiumBanner(false)} 
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeContainer: {
-    flex: 1,
-    backgroundColor: "#00474C"
-  },
   container: {
-    flex: 1,
+    maxHeight: hp(60), // Constrain height within dropdown modal
+    width: '100%',
   },
   loaderContainer: {
-    flex: 1,
+    height: hp(20),
     justifyContent: 'center',
     alignItems: 'center',
   },
   scrollView: {
-    flex: 1,
+    flexGrow: 0,
   },
   scrollContent: {
-    paddingHorizontal: wp(4),
-    paddingTop: hp(2),
-    paddingBottom: hp(4),
+    paddingBottom: hp(2),
   },
   groupContainer: {
-    marginBottom: hp(2),
+    marginBottom: hp(1.5),
   },
   groupLabel: {
     fontFamily: 'AppFont-Bold',
-    fontSize: wp(3.8),
+    fontSize: wp(3.2),
     color: 'rgba(255,255,255,0.6)',
-    marginBottom: hp(2),
+    marginBottom: hp(1),
     marginLeft: wp(1),
     letterSpacing: 1,
   },
   card: {
     backgroundColor: 'rgba(0, 0, 0, 0.30)',
-    borderRadius: wp(5),
-    marginBottom: hp(1.5),
-    padding: wp(4),
+    borderRadius: wp(3),
+    marginBottom: hp(1),
+    padding: wp(3),
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.30)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   cardContent: {
     flexDirection: 'row',
@@ -434,12 +405,12 @@ const styles = StyleSheet.create({
   iconContainer: {
     justifyContent:'center',
     alignItems:'center',
-    marginRight: wp(4),
+    marginRight: wp(3),
   },
   iconPlaceholder: {
-    width: wp(12),
-    height: wp(12),
-    borderRadius: wp(3),
+    width: wp(10),
+    height: wp(10),
+    borderRadius: wp(2.5),
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -456,7 +427,7 @@ const styles = StyleSheet.create({
   },
   titleText: {
     fontFamily: 'AppFont-Bold',
-    fontSize: wp(4.2),
+    fontSize: wp(3.5),
     color: '#FFFFFF',
     flex: 1,
     marginRight: wp(2),
@@ -466,36 +437,28 @@ const styles = StyleSheet.create({
     height: wp(2),
     borderRadius: wp(1),
     position: 'absolute',
-    top: wp(3),
-    right: wp(3),
+    top: wp(2),
+    right: wp(2),
     zIndex: 10,
-  },
-  bodyText: {
-    fontFamily: 'AppFont-Regular',
-    fontSize: wp(3.6),
-    color: 'rgba(255, 255, 255, 0.8)',
-    lineHeight: wp(5),
-    marginBottom: hp(1),
   },
   timeText: {
     fontFamily: 'AppFont-Regular',
-    fontSize: wp(3.2),
+    fontSize: wp(2.8),
     color: 'rgba(255, 255, 255, 0.5)',
   },
   emptyContainer: {
-    flex: 1,
-    height: hp(60),
+    height: hp(20),
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyText: {
     fontFamily: 'AppFont-Bold',
-    fontSize: wp(5),
+    fontSize: wp(4),
     color: 'rgba(255,255,255,0.4)',
-    marginTop: hp(2),
+    marginTop: hp(1),
   },
   pinnedContainer: {
-    marginBottom: hp(2),
+    marginBottom: hp(1.5),
   },
   trialCardPinned: {
     backgroundColor: 'rgba(255, 215, 0, 0.1)',
@@ -509,11 +472,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    width: wp(90),
-    maxHeight: hp(70),
+    width: wp(85),
+    maxHeight: hp(60),
     backgroundColor: '#2e6d5eff',
-    borderRadius: wp(6),
-    padding: wp(6),
+    borderRadius: wp(5),
+    padding: wp(5),
     position: 'relative',
     elevation: 20,
     shadowColor: '#000',
@@ -523,67 +486,61 @@ const styles = StyleSheet.create({
   },
   modalCloseButton: {
     position: 'absolute',
-    top: wp(4),
-    right: wp(4),
+    top: wp(3),
+    right: wp(3),
     zIndex: 10,
   },
   modalIconContainer: {
     alignItems: 'center',
-    marginBottom: hp(2),
-    marginTop: hp(2),
+    marginBottom: hp(1.5),
+    marginTop: hp(1),
   },
   modalIconPlaceholder: {
-    width: wp(20),
-    height: wp(20),
-    borderRadius: wp(5),
+    width: wp(15),
+    height: wp(15),
+    borderRadius: wp(4),
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalTitle: {
     fontFamily: 'AppFont-Bold',
-    fontSize: wp(5.5),
+    fontSize: wp(4.5),
     color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: hp(1.5),
+    marginBottom: hp(1),
   },
   modalDivider: {
     height: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     width: '100%',
-    marginBottom: hp(2),
+    marginBottom: hp(1.5),
   },
   modalBody: {
     fontFamily: 'AppFont-Regular',
-    fontSize: wp(4.2),
+    fontSize: wp(3.8),
     color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: wp(6),
-    marginBottom: hp(3),
+    lineHeight: wp(5.5),
+    marginBottom: hp(2),
     textAlign: 'justify',
   },
   modalTime: {
     fontFamily: 'AppFont-Regular',
-    fontSize: wp(3.5),
-    color: 'rgba(255, 255, 255, 0.5)',
-    textAlign: 'center',
-  },
-  trialFooter: {
-    fontFamily: 'AppFont-Regular',
     fontSize: wp(3.2),
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(255, 255, 255, 0.5)',
     textAlign: 'center',
   },
   menuButton: {
     position: 'absolute',
-    top: wp(4.5),
-    left: wp(4.5),
+    top: wp(3.5),
+    left: wp(3.5),
     zIndex: 10,
     padding: wp(1),
   },
   deleteOption: {
     position: 'absolute',
-    top: wp(12),
-    left: wp(4.5),
+    top: wp(10),
+    left: wp(3.5),
     backgroundColor: '#1f4d42',
     borderRadius: wp(2),
     paddingVertical: hp(1),
@@ -594,10 +551,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
   deleteText: {
     fontFamily: 'AppFont-Bold',
@@ -607,4 +560,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Notification;
+export default NotificationDropdown;

@@ -1,4 +1,4 @@
-import * as Notifications from 'expo-notifications';
+import Notifications from '../config/Notifications';
 import * as FileSystem from 'expo-file-system/legacy';
 
 const REMINDER_IMAGE_URL = 'http://gyrusneet.com/api/assets/practice_reminder.png';
@@ -55,8 +55,9 @@ export const scheduleInactivityReminder = async (userData?: any) => {
       console.error('[NotificationService] Failed to download or resolve notification image:', downloadErr);
     }
 
-    const attachments: Notifications.NotificationContentAttachmentIos[] = localImageUri ? [{
+    const attachments: any[] = localImageUri ? [{
       url: localImageUri,
+      uri: localImageUri,
       identifier: 'practice_reminder',
       type: 'public.png'
     }] : [];

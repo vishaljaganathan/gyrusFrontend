@@ -69,7 +69,7 @@ const PremiumBanner: React.FC<PremiumBannerProps> = ({ isVisible, onClose }) => 
           {buttonsEnabled && (
             <TouchableOpacity
               style={styles.bannerCloseBtn}
-              onPress={onClose}
+              onPress={handleContinue}
               activeOpacity={0.7}
             >
               <Text style={styles.bannerCloseBtnText}>✕</Text>

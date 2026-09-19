@@ -212,11 +212,19 @@ const RetryView: React.FC<RetryViewProps> = ({
             fontFamily: 'AppFont-Bold', fontSize: hp(1.8),
             textAlign: "center",
             marginBottom: hp(2),
-            textTransform: 'capitalize',
+            textTransform: (finalData?.subject || '').toString().toLowerCase().startsWith('chapter_') ? 'none' : 'capitalize',
             opacity: 0.8
           }}
         >
-          {finalData.subject === 'neet' ? 'NEET' : finalData.subject} {std ? `• ${getStdLabel(std)}` : ''}
+          {(() => {
+            const isChapter = (finalData?.subject || '').toString().toLowerCase().startsWith('chapter_');
+             if (isChapter) {
+              const name = finalData.chapterName || finalData.chapter?.topicName || 'Chapter Practice';
+              const chNum = finalData.chapterNumber || finalData.chapter?.chapterNumber;
+              return chNum ? `Chapter ${chNum}\n${name}` : name;
+            }
+            return `${finalData?.subject === 'neet' ? 'NEET' : finalData?.subject} ${std ? `• ${getStdLabel(std)}` : ''}`;
+          })()}
         </Text>
 
         <View style={[styles.resultCard, { width: '90%', alignSelf: 'center' }]}>
@@ -256,7 +264,7 @@ const RetryView: React.FC<RetryViewProps> = ({
                 <Text style={[styles.statValue, { color: '#0AB8AD' }]}>{displayScore}</Text>
               </View>
               <View style={styles.statRow}>
-                <Text style={styles.statLabel}>Wrong</Text>
+                <Text style={styles.statLabel}>Incorrect</Text>
                 <Text style={[styles.statValue, { color: '#ef4444' }]}>{submittedWrong ?? wrongQtsIds.length}</Text>
               </View>
               <View style={styles.statRow}>
@@ -328,18 +336,20 @@ const RetryView: React.FC<RetryViewProps> = ({
           </Text>
         </View>
 
-        <View style={{ width: '90%', marginTop: hp(1.5) }}>
-           <Text
-            style={{
-              color: "#E0E0E0",
-              fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
-              textAlign: "center",
-              lineHeight: hp(2.2)
-            }}
-          >
-            Note: You need to correctly answer at least {Math.ceil(Number(result) / 2)} questions to pass this test.
-          </Text>
-        </View>
+        {!((finalData?.subject || '').toString().toLowerCase().startsWith('chapter_')) && (
+          <View style={{ width: '90%', marginTop: hp(1.5) }}>
+            <Text
+              style={{
+                color: "#E0E0E0",
+                fontFamily: 'AppFont-Regular', fontSize: hp(1.5),
+                textAlign: "center",
+                lineHeight: hp(2.2)
+              }}
+            >
+              Note: You need to correctly answer at least {Math.ceil(Number(result) / 2)} questions to pass this exercise.
+            </Text>
+          </View>
+        )}
 
         {isSharing && (
           <View style={styles.shareBranding}>

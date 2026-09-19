@@ -13,6 +13,8 @@ export interface ModalProps {
   streakData?: { active: number; inactive: number };
   report?: { label: string; value: string }[];
 
+  activeOption?: number | null;
+  activeIcon?: React.ReactNode;
 }
 export interface score {
   id: number;
@@ -118,6 +120,9 @@ export interface userProps {
   plan?: string;
   planValid?: boolean;
   planExpiry?: Date;
+  isTrial?: boolean;
+  trialActivatedAt?: string | Date;
+  planActivatedAt?: string | Date;
   examDate?: string;
   neet?: {
     percentage?: number;

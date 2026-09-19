@@ -17,3 +17,5 @@ export function putRequest({ URL, payload }: any) {
 export function deleteRequest(URL: string) {
   return axiosInstance.delete(`/${URL}`).then((response) => response);
 }
+
+

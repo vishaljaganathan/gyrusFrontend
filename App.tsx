@@ -21,9 +21,8 @@ import { useFonts } from "expo-font";
 
 import BottomBar from "./src/navigation/BottomBar";
 import TesterMcqSearch from "./src/pages/TesterMcqSearch";
-import SignUp from "./src/pages/Signup";
+import Auth from "./src/pages/Auth";
 import Otp from "./src/pages/Otp";
-import Login from "./src/pages/Login";
 import ForgotPassword from "./src/pages/ForgotPassword";
 import Plans from "./src/pages/Plans";
 import Test from "./src/screens/Test";
@@ -156,7 +155,7 @@ export default function App() {
   });
 
   return (
-    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+    <SafeAreaProvider initialMetrics={Platform.OS === 'ios' ? initialWindowMetrics : undefined}>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <NavigationContainer ref={navigationRef}>
@@ -181,7 +180,7 @@ export default function App() {
                   <Stack.Screen
                     name="SignUp"
                     options={{ headerShown: false }}
-                    component={SignUp}
+                    component={Auth}
                   />
                   {/* <Stack.Screen
                     name="ClassSelection"
@@ -212,7 +211,7 @@ export default function App() {
                   <Stack.Screen
                     name="Login"
                     options={{ headerShown: false }}
-                    component={Login}
+                    component={Auth}
                   />
                   <Stack.Screen
                     name="ForgotPassword"

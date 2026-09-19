@@ -100,7 +100,8 @@ const ForgotPassword = ({ navigation }: { navigation: any }) => {
                   borderWidth: 0,
                   paddingHorizontal: wp(3),
                   borderColor: "transparent",
-                  backgroundColor: "white" } }
+                  backgroundColor: "white",
+                  color: "#333" } }
                 keyboardType={"numeric"}
                 placeholder={"Mobile Number"}
                 placeholderTextColor="gray"

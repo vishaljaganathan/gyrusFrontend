@@ -43,7 +43,7 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children } : any) => {
-  const [userData, setUserData] = useState<any>({
+  const [userData, setUserDataRaw] = useState<any>({
     _id: "",
     email: "",
     firstName: "",
@@ -61,6 +61,24 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     plan: "",
     examDate: "",
     planValid: false } );
+
+  const setUserData = React.useCallback((data: any) => {
+    setUserDataRaw((prev: any) => {
+      let resolved = typeof data === 'function' ? data(prev) : data;
+      if (resolved && resolved.planExpiry) {
+        const exp = new Date(resolved.planExpiry);
+        if (!isNaN(exp.getTime()) && exp.getTime() < Date.now()) {
+          resolved = {
+            ...resolved,
+            planValid: false,
+            isTrial: false,
+            planExpiry: null
+          };
+        }
+      }
+      return resolved;
+    });
+  }, []);
   const [signUpData, setSignUpData] = useState<any>({
     firstName: "",
     lastName: "",

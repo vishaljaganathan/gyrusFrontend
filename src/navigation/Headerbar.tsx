@@ -9,10 +9,13 @@ import { COLORS } from "../styles/themes";
 import { PopupModal } from "../interface/Interface";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp} from "react-native-responsive-screen";
+  heightPercentageToDP as hp
+} from "react-native-responsive-screen";
 import { ThemeContext } from "../service/authContext";
 import { moderateScale } from "../styles/Responsive";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
+import { getRequest } from "../config/Requests";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 
@@ -25,10 +28,45 @@ const HeaderBar = () => {
   const [showModal, setShowModal] = useState(false);
   const [showEmoji, setshowEmoji] = useState(false);
   const [streakData, setStreakData] = useState({ active: 0, inactive: 0 });
+  const [activeOption, setActiveOption] = useState<number | null>(null);
 
   // Pulse Animations
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const ekgAnim = useRef(new Animated.Value(0)).current;
+
+  // Animated Opacities for smooth active/inactive transitions
+  const opacities = useRef([
+    new Animated.Value(1),
+    new Animated.Value(1),
+    new Animated.Value(1),
+    new Animated.Value(1),
+    new Animated.Value(1)
+  ]).current;
+
+  useEffect(() => {
+    const animations = opacities.map((anim, index) => {
+      let toValue = 1;
+      if (showModal && activeOption !== null) {
+        if (activeOption === index) {
+          toValue = 0;
+        } else {
+          toValue = 0.3;
+        }
+      }
+      return Animated.timing(anim, {
+        toValue,
+        duration: 150,
+        useNativeDriver: true,
+      });
+    });
+
+    Animated.parallel(animations).start();
+  }, [activeOption, showModal]);
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setActiveOption(null);
+  };
 
   useEffect(() => {
     // Heartbeat pulse animation
@@ -64,7 +102,10 @@ const HeaderBar = () => {
   const DayBg = require("../assets/daybg.png");
 
   const themeContext = useContext(ThemeContext);
-  const { userData, setUserData, appState, setAppState } = themeContext;
+  const { userData, setUserData, appState, setAppState, unreadNotificationCount, setUnreadNotificationCount, notificationRefreshTrigger } = themeContext;
+  const navigation = useNavigation<any>();
+  const route = useRoute();
+  const isNotificationActive = route.name === "Notification";
 
   const FALLBACK_NEET_DATE = "2026-05-03";
   const [neetDate, setNeetDate] = useState<string>(FALLBACK_NEET_DATE);
@@ -76,10 +117,48 @@ const HeaderBar = () => {
         if (res?.data && isMounted) {
           setUserData(res.data);
         }
-      }).catch(() => {});
+      }).catch(() => { });
       return () => { isMounted = false; };
     }, [])
   );
+
+  // Background fetch for unread notification count
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchUnreadNotifications = async () => {
+      if (!userData?._id) return;
+      try {
+        const std = userData?.std || 'all';
+        const [individualRes, groupRes, broadcastRes] = await Promise.all([
+          getRequest(`notifications/individual/${userData._id}`),
+          getRequest(`notifications/group/${std}?userId=${userData._id}`),
+          getRequest(`notifications/broadcast?userId=${userData._id}`)
+        ]);
+
+        if (!isMounted) return;
+
+        const individual = individualRes.data || [];
+        const group = groupRes.data || [];
+        const broadcast = broadcastRes.data || [];
+        const allNotifications = [...individual, ...group, ...broadcast];
+
+        const saved = await AsyncStorage.getItem('readNotificationIds');
+        const readIds = saved ? new Set(JSON.parse(saved)) : new Set();
+
+        const unreadCount = allNotifications.filter((n: any) => !readIds.has(n._id)).length;
+        if (setUnreadNotificationCount) {
+          setUnreadNotificationCount(unreadCount);
+        }
+      } catch (error) {
+        console.error("Error fetching background notifications:", error);
+      }
+    };
+
+    fetchUnreadNotifications();
+
+    return () => { isMounted = false; };
+  }, [userData?._id, notificationRefreshTrigger]);
 
   useEffect(() => {
     let isMounted = true;
@@ -143,13 +222,15 @@ const HeaderBar = () => {
   };
 
   const handleClick = (index: number) => {
+    setActiveOption(index);
     switch (index) {
       case 0:
         setModelData([]);
         setshowEmoji(true);
         setStreakData({
           active: userData?.active?.days || 0,
-          inactive: userData?.inActive || 0});
+          inactive: userData?.inActive || 0
+        });
         break;
 
       case 1:
@@ -162,35 +243,40 @@ const HeaderBar = () => {
               subject: "neet",
               subjectId: "6728835a32ffdd2cd2c55ac3",
               lock: false,
-              openTest: true},
+              openTest: true
+            },
             {
               img: physics,
               sub: "Physics",
               subject: "physics",
               subjectId: "659fc324c2444fa264d2b546",
               lock: !isPlanValid,
-              openTest: isPlanValid},
+              openTest: isPlanValid
+            },
             {
               img: chemistry,
               sub: "Chemistry",
               subject: "chemistry",
               subjectId: "659fc329c2444fa264d2b548",
               lock: !isPlanValid,
-              openTest: isPlanValid},
+              openTest: isPlanValid
+            },
             {
               img: Botany,
               sub: "Botany",
               subject: "botany",
               subjectId: "659fc35dc2444fa264d2b54b",
               lock: !isPlanValid,
-              openTest: isPlanValid},
+              openTest: isPlanValid
+            },
             {
               img: zoology,
               sub: "Zoology",
               subject: "zoology",
               subjectId: "659fc3c2c2444fa264d2b553",
               lock: !isPlanValid,
-              openTest: isPlanValid},
+              openTest: isPlanValid
+            },
           ]);
           setshowEmoji(false);
           break;
@@ -203,11 +289,26 @@ const HeaderBar = () => {
             img: (userData?.planValid && userData?.planId?.img)
               ? { uri: userData?.planId?.img }
               : Silver,
-            title: (userData?.isTrial && userData?.planValid) 
-              ? "7-Day Gold Trial" 
-              : (userData?.planValid ? userData?.planId?.name : "Silver"),
+            title: (() => {
+              if (userData?.isTrial && userData?.planValid) {
+                return "14 Days Gold Trial";
+              }
+              if (userData?.planValid && userData?.planId?.name) {
+                return userData.planId.name;
+              }
+              return "Silver";
+            })(),
             plan: userData?.planValid,
-            expiryDate: userData?.planExpiry},
+            expiryDate: (() => {
+              if (userData?.isTrial && userData?.planValid && userData?.trialActivatedAt) {
+                return new Date(new Date(userData.trialActivatedAt).getTime() + 14 * 24 * 60 * 60 * 1000);
+              }
+              if (userData?.planValid && userData?.planActivatedAt && userData?.planId?.days) {
+                return new Date(new Date(userData.planActivatedAt).getTime() + Number(userData.planId.days) * 24 * 60 * 60 * 1000);
+              }
+              return userData?.planExpiry;
+            })()
+          },
         ]);
         setshowEmoji(false);
         break;
@@ -217,8 +318,13 @@ const HeaderBar = () => {
           {
             id: 1,
             title: "NEET exam will held on",
-            date: neetDate},
+            date: neetDate
+          },
         ]);
+        setshowEmoji(false);
+        break;
+      case 4:
+        setModelData([]);
         setshowEmoji(false);
         break;
 
@@ -252,74 +358,68 @@ const HeaderBar = () => {
     return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
   };
 
-  return (
-    <View style={HeaderMenuStyle.container}>
-      <View style={HeaderMenuStyle.headerContent}>
-        {/* Streak Section */}
-        <Pressable onPress={() => handleClick(0)} style={HeaderMenuStyle.menuItem}>
+  const renderActiveIcon = () => {
+    switch (activeOption) {
+      case 0:
+        return (
           <View style={HeaderMenuStyle.itemContainer}>
-            { (userData?.active?.updatedAt && new Date(userData.active.updatedAt).toDateString() === new Date().toDateString()) ? (
-                  <View style={{ width: 80, height: 40 }}>
-                    <Svg width="80" height="40" viewBox="0 0 80 40">
-                      <Defs>
-                        <LinearGradient id="pulseGradModal" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <Stop offset="0%" stopColor="white" stopOpacity="0" />
-                          <Stop offset="50%" stopColor="white" stopOpacity="0.1" />
-                          <Stop offset="90%" stopColor="white" stopOpacity="1" />
-                          <Stop offset="100%" stopColor="white" stopOpacity="0" />
-                        </LinearGradient>
-                        <Mask id="pulseMaskModal">
-                          <AnimatedRect
-                            x={ekgAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [-80, 80]
-                            })}
-                            y="0"
-                            width="80"
-                            height="40"
-                            fill="url(#pulseGradModal)"
-                          />
-                        </Mask>
-                      </Defs>
-                      <Path
-                        d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
-                        fill="none"
-                        stroke="#00B712"
-                        strokeWidth="2"
-                        opacity={0.15}
+            {(userData?.active?.updatedAt && new Date(userData.active.updatedAt).toDateString() === new Date().toDateString()) ? (
+              <View style={{ width: 80, height: 40 }}>
+                <Svg width="80" height="40" viewBox="0 0 80 40">
+                  <Defs>
+                    <LinearGradient id="pulseGradModalOverlay" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <Stop offset="0%" stopColor="white" stopOpacity="0" />
+                      <Stop offset="50%" stopColor="white" stopOpacity="0.1" />
+                      <Stop offset="90%" stopColor="white" stopOpacity="1" />
+                      <Stop offset="100%" stopColor="white" stopOpacity="0" />
+                    </LinearGradient>
+                    <Mask id="pulseMaskModalOverlay">
+                      <AnimatedRect
+                        x={ekgAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [-80, 80]
+                        })}
+                        y="0"
+                        width="80"
+                        height="40"
+                        fill="url(#pulseGradModalOverlay)"
                       />
-                      <Path
-                        d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
-                        fill="none"
-                        stroke="#00B712"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        mask="url(#pulseMaskModal)"
-                      />
-                    </Svg>
-                  </View>
+                    </Mask>
+                  </Defs>
+                  <Path
+                    d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
+                    fill="none"
+                    stroke="#00B712"
+                    strokeWidth="2"
+                    opacity={0.15}
+                  />
+                  <Path
+                    d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
+                    fill="none"
+                    stroke="#00B712"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    mask="url(#pulseMaskModalOverlay)"
+                  />
+                </Svg>
+              </View>
             ) : (
-              <Image 
-                source={inactiveStreak} 
-                style={HeaderMenuStyle.icon} 
+              <Image
+                source={inactiveStreak}
+                style={HeaderMenuStyle.icon}
               />
             )}
           </View>
-        </Pressable>
-
-        {/* Subject Section */}
-        <Pressable onPress={() => handleClick(1)} style={HeaderMenuStyle.menuItem}>
+        );
+      case 1:
+        return (
           <View style={HeaderMenuStyle.itemContainer}>
             <Image source={subImage} style={HeaderMenuStyle.icon} />
-            {/* <Text style={HeaderMenuStyle.Text}>
-              {appState.home.charAt(0).toUpperCase() + appState.home.slice(1)}
-            </Text> */}
           </View>
-        </Pressable>
-
-        {/* Plan Section */}
-        <Pressable onPress={() => handleClick(2)} style={HeaderMenuStyle.menuItem}>
+        );
+      case 2:
+        return (
           <View style={HeaderMenuStyle.itemContainer}>
             <Image
               source={
@@ -328,11 +428,136 @@ const HeaderBar = () => {
               style={HeaderMenuStyle.icon}
             />
           </View>
+        );
+      case 3:
+        return (
+          <View style={HeaderMenuStyle.neetContainer}>
+            <View style={HeaderMenuStyle.countdownContainer}>
+              <Image
+                source={DayBg}
+                style={HeaderMenuStyle.countdownBackground}
+                resizeMode="cover"
+              />
+              <View style={HeaderMenuStyle.countdownOverlay}>
+                <Text style={HeaderMenuStyle.countdownNumber}>
+                  {daysUntil(neetDate)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        );
+      case 4:
+        return <Ionicons name="notifications" size={wp(8)} color="#F2C112" />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <View style={HeaderMenuStyle.container}>
+      <View style={HeaderMenuStyle.headerContent}>
+        {/* Streak Section */}
+        <Pressable
+          onPress={() => handleClick(0)}
+          style={[
+            HeaderMenuStyle.menuItem,
+            activeOption === 0 && !showModal && HeaderMenuStyle.activeMenuItem,
+          ]}
+        >
+          <Animated.View style={[HeaderMenuStyle.itemContainer, { opacity: opacities[0], width: '100%', alignItems: 'center', justifyContent: 'center' }]}>
+            {(userData?.active?.updatedAt && new Date(userData.active.updatedAt).toDateString() === new Date().toDateString()) ? (
+              <View style={{ width: 80, height: 40 }}>
+                <Svg width="80" height="40" viewBox="0 0 80 40">
+                  <Defs>
+                    <LinearGradient id="pulseGradModal" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <Stop offset="0%" stopColor="white" stopOpacity="0" />
+                      <Stop offset="50%" stopColor="white" stopOpacity="0.1" />
+                      <Stop offset="90%" stopColor="white" stopOpacity="1" />
+                      <Stop offset="100%" stopColor="white" stopOpacity="0" />
+                    </LinearGradient>
+                    <Mask id="pulseMaskModal">
+                      <AnimatedRect
+                        x={ekgAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [-80, 80]
+                        })}
+                        y="0"
+                        width="80"
+                        height="40"
+                        fill="url(#pulseGradModal)"
+                      />
+                    </Mask>
+                  </Defs>
+                  <Path
+                    d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
+                    fill="none"
+                    stroke="#00B712"
+                    strokeWidth="2"
+                    opacity={0.15}
+                  />
+                  <Path
+                    d="M2,20 L20,20 L23,14 L27,20 L30,34 L35,6 L39,20 L43,25 L47,20 L65,20"
+                    fill="none"
+                    stroke="#00B712"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    mask="url(#pulseMaskModal)"
+                  />
+                </Svg>
+              </View>
+            ) : (
+              <Image
+                source={inactiveStreak}
+                style={HeaderMenuStyle.icon}
+              />
+            )}
+          </Animated.View>
+        </Pressable>
+
+        {/* Subject Section */}
+        <Pressable
+          onPress={() => handleClick(1)}
+          style={[
+            HeaderMenuStyle.menuItem,
+            activeOption === 1 && !showModal && HeaderMenuStyle.activeMenuItem,
+          ]}
+        >
+          <Animated.View style={[HeaderMenuStyle.itemContainer, { opacity: opacities[1], width: '100%', alignItems: 'center', justifyContent: 'center' }]}>
+            <Image source={subImage} style={HeaderMenuStyle.icon} />
+            {/* <Text style={HeaderMenuStyle.Text}>
+              {appState.home.charAt(0).toUpperCase() + appState.home.slice(1)}
+            </Text> */}
+          </Animated.View>
+        </Pressable>
+
+        {/* Plan Section */}
+        <Pressable
+          onPress={() => handleClick(2)}
+          style={[
+            HeaderMenuStyle.menuItem,
+            activeOption === 2 && !showModal && HeaderMenuStyle.activeMenuItem,
+          ]}
+        >
+          <Animated.View style={[HeaderMenuStyle.itemContainer, { opacity: opacities[2], width: '100%', alignItems: 'center', justifyContent: 'center' }]}>
+            <Image
+              source={
+                (userData?.planValid && userData?.planId?.img) ? { uri: userData?.planId?.img } : Silver
+              }
+              style={HeaderMenuStyle.icon}
+            />
+          </Animated.View>
         </Pressable>
 
         {/* NEET Countdown Section */}
-        <Pressable onPress={() => handleClick(3)} style={HeaderMenuStyle.menuItem}>
-          <View style={HeaderMenuStyle.neetContainer}>
+        <Pressable
+          onPress={() => handleClick(3)}
+          style={[
+            HeaderMenuStyle.menuItem,
+            activeOption === 3 && !showModal && HeaderMenuStyle.activeMenuItem,
+          ]}
+        >
+          <Animated.View style={[HeaderMenuStyle.neetContainer, { opacity: opacities[3], width: '100%', alignItems: 'center', justifyContent: 'center' }]}>
             <View style={HeaderMenuStyle.countdownContainer}>
               <Image
                 source={DayBg}
@@ -349,18 +574,49 @@ const HeaderBar = () => {
               <Text style={HeaderMenuStyle.daysToText}>Days To</Text>
               <Text style={HeaderMenuStyle.neetText}>NEET</Text>
             </View> */}
-          </View>
+          </Animated.View>
         </Pressable>
+
+        {/* Notification Section */}
+        <Pressable
+          onPress={() => handleClick(4)}
+          style={[
+            HeaderMenuStyle.menuItem,
+            activeOption === 4 && !showModal && HeaderMenuStyle.activeMenuItem,
+          ]}
+        >
+          <Animated.View style={[HeaderMenuStyle.itemContainer, { opacity: opacities[4], width: '100%', alignItems: 'center', justifyContent: 'center' }]}>
+            <View>
+              <Ionicons name="notifications" size={wp(8)} color={COLORS.light || "#FFFFFF"} />
+              {unreadNotificationCount > 0 && (
+                <View 
+                  style={{
+                    position: 'absolute',
+                    top: wp(0.8),
+                    right: wp(0.8),
+                    width: wp(2.5),
+                    height: wp(2.5),
+                    borderRadius: wp(2),
+                    backgroundColor: '#F2C112',
+                  }}
+                />
+              )}
+            </View>
+          </Animated.View>
+        </Pressable>
+
       </View>
 
       <ModalBox
         showModal={showModal}
         modelData={modelData}
-        setShowModal={setShowModal}
+        setShowModal={handleCloseModal}
         showEmoji={showEmoji}
         setSubImage={setSubImage}
         streakData={streakData}
         setSub={setSub}
+        activeOption={activeOption}
+        activeIcon={renderActiveIcon()}
       />
     </View>
   );
@@ -373,59 +629,77 @@ const HeaderMenuStyle = StyleSheet.create({
     borderBottomColor: "#0AB8AD",
     paddingVertical: hp(0.5),
     paddingHorizontal: wp(1),
-    marginTop: 0},
+    marginTop: 0
+  },
   headerContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    height: hp(6)},
+    height: hp(6)
+  },
   menuItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: wp(0.8)},
+    paddingHorizontal: wp(0.8),
+    paddingVertical: hp(0.4),
+  },
+  activeMenuItem: {
+    borderBottomWidth: 2.5,
+    borderBottomColor: "#0AB8AD",
+    backgroundColor: "transparent",
+    paddingBottom: hp(0.9),
+  },
   itemContainer: {
     alignItems: "center",
     justifyContent: "center",
-    width: "100%"},
+    width: "100%"
+  },
   icon: {
     width: wp(10),
     height: hp(4),
-    resizeMode: "contain",
-    marginBottom: hp(0.4)},
+    resizeMode: "contain"
+  },
   Text: {
-    
+
     color: COLORS.light,
     fontFamily: 'AppFont-Regular', fontSize: wp(3),
-    textAlign: "center"},
+    textAlign: "center"
+  },
   neetContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    width: "100%"},
+    width: "100%"
+  },
   neetTextContainer: {
     flex: 1,
     alignItems: "flex-start",
     justifyContent: "center",
-    marginLeft: wp(1.5)},
+    marginLeft: wp(1.5)
+  },
   daysToText: {
-    
+
     color: "white",
     fontFamily: 'AppFont-Regular', fontSize: wp(2.6),
     textAlign: "left",
-    lineHeight: hp(1.8)},
+    lineHeight: hp(1.8)
+  },
   neetText: {
-    
+
     color: "white",
     fontFamily: 'AppFont-Regular', fontSize: wp(3.2),
-        textAlign: "left"},
+    textAlign: "left"
+  },
   countdownContainer: {
     position: "relative",
     width: wp(9),
-    height: wp(8.5)},
+    height: wp(8.5)
+  },
   countdownBackground: {
     width: "100%",
-    height: "100%"},
+    height: "100%"
+  },
   countdownOverlay: {
     position: "absolute",
     top: 0,
@@ -434,12 +708,15 @@ const HeaderMenuStyle = StyleSheet.create({
     bottom: 0,
     textAlign: "center",
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   countdownNumber: {
-    
+
     fontFamily: 'AppFont-Bold', fontSize: wp(3.5),
     color: "white",
-        textAlign: "center",
-      justifyContent: "center"}});
+    textAlign: "center",
+    justifyContent: "center"
+  }
+});
 
 export default HeaderBar;

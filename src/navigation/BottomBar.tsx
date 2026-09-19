@@ -10,16 +10,22 @@ import {
   faHouse,
   faBell,
   faRankingStar,
+  faBook,
+  faLayerGroup,
   faUser} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+
 
 
 import Home from "../pages/Home";
+import ClassSelection from "../pages/ClassSelection";
 import Rewards from "../pages/Rewards";
 import Profile from "../pages/Profile";
 import Bookmark from "../pages/Bookmark";
 import Ranking from "../pages/Ranking";
-import Notification from "../pages/Notification";
 import GyrusNEETAnalytics from "../pages/GyrusNEETAnalytics";
+import ChapterPractice from "../pages/ChapterPractice";
+import SubjectChapters from "../pages/SubjectChapters";
 import { COLORS, FONTS } from "../styles/themes";
 import { Svg, Path, G, Rect, Defs, ClipPath, Circle as SvgCircle } from "react-native-svg";
 import {
@@ -192,6 +198,7 @@ const MagnifyIcon: React.FC<{
 
 const BottomBar: React.FC = () => {
   const { userData, unreadNotificationCount } = useContext(ThemeContext);
+  const lastClassesRouteRef = React.useRef<{ name: string; params?: any }>({ name: "Classes" });
   const [showSubscriptionModal, setShowSubscriptionModal] = React.useState(false);
   const [goldPlan, setGoldPlan] = React.useState<any>({
     title: "EXCLUSIVE GOLD PLAN OFFER",
@@ -219,9 +226,9 @@ const BottomBar: React.FC = () => {
   const isPlanValid = !!userData?.planValid;
   const tabs = [
     { iconName: "Home", icon: faHouse, screenName: Home },
+    { iconName: "Classes", icon: faBook, screenName: ClassSelection },
     // { iconName: "Bookmark", icon: faBookmark, screenName: Bookmark },
     { iconName: "Rewards", icon: faAward, screenName: Rewards },
-    { iconName: "Notification", icon: faBell, screenName: Notification },
     { iconName: "Profile", icon: faUser, screenName: Profile },
     // { iconName: "Ranking", icon: faRankingStar, screenName: Ranking },
   ];
@@ -307,14 +314,31 @@ const BottomBar: React.FC = () => {
                 flexDirection: "row",
                 height: tabBarLayout.height,
                 paddingBottom: tabBarLayout.paddingBottom,
-                paddingTop: tabBarLayout.paddingBottom,
+                paddingTop: 0,
                 backgroundColor: COLORS.secondary01,
                 borderTopColor: "#0AB8AD",
                 borderTopWidth: wp(0.6)}}
             >
               {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
-                const isFocused = state.index === index;
+                
+                if (options.tabBarButton && options.tabBarButton({} as any) === null) {
+                  return null;
+                }
+
+                const activeRouteName = state.routes[state.index].name;
+
+                if (activeRouteName === 'Classes' || activeRouteName === 'SubjectChapters' || activeRouteName === 'ChapterPractice') {
+                  lastClassesRouteRef.current = {
+                    name: activeRouteName,
+                    params: (state.routes[state.index] as any).params
+                  };
+                }
+
+                let isFocused = state.index === index;
+                if (route.name === 'Classes' && (activeRouteName === 'SubjectChapters' || activeRouteName === 'ChapterPractice')) {
+                  isFocused = true;
+                }
 
                 const onPress = () => {
                   const event = navigation.emit({
@@ -322,8 +346,16 @@ const BottomBar: React.FC = () => {
                     target: route.key,
                     canPreventDefault: true});
 
-                  if (!isFocused && !event.defaultPrevented) {
-                    navigation.navigate(route.name);
+                  if (!event.defaultPrevented) {
+                    if (route.name === 'Classes') {
+                      if (!isFocused) {
+                        navigation.navigate(lastClassesRouteRef.current.name, lastClassesRouteRef.current.params);
+                      } else if (activeRouteName !== 'Classes') {
+                        navigation.navigate('Classes');
+                      }
+                    } else if (!isFocused) {
+                      navigation.navigate(route.name);
+                    }
                   }
                 };
 
@@ -374,20 +406,33 @@ const BottomBar: React.FC = () => {
               tabBarIcon: ({ color, focused }) =>
                 renderTabIcon(focused, <HomeIcon color={color} size={iconSize} />)}}
           />
+          <Tab.Screen
+            name={"Classes"}
+            component={ClassSelection}
+            options={{
+              tabBarIcon: ({ color, focused }) =>
+                renderTabIcon(focused, <FontAwesomeIcon icon={faLayerGroup} size={28} color={color} />)}}
+          />
+          <Tab.Screen
+            name={"ChapterPractice"}
+            component={ChapterPractice}
+            options={{
+              tabBarButton: () => null
+            }}
+          />
+          <Tab.Screen
+            name={"SubjectChapters"}
+            component={SubjectChapters}
+            options={{
+              tabBarButton: () => null
+            }}
+          />
           {/* <Tab.Screen
           name={"Bookmark"}
           component={Bookmark}
           options={{
             tabBarIcon: ({ color }: { color: string }) => <BookmarkIcon color={color} />}}
         /> */}
-          <Tab.Screen
-            name={"Rewards"}
-            component={Rewards}
-            options={{
-              tabBarIcon: ({ color, focused }) =>
-                renderTabIcon(focused, <RewardsIcon color={color} size={iconSize} />)}}
-          />
-
           <Tab.Screen
             name={"Analytics"}
             component={GyrusNEETAnalytics}
@@ -413,12 +458,18 @@ const BottomBar: React.FC = () => {
           />
 
           <Tab.Screen
-            name={"Notification"}
-            component={Notification}
+            name={"Rewards"}
+            component={Rewards}
             options={{
               tabBarIcon: ({ color, focused }) =>
-                renderTabIcon(focused, <NotificationIcon color={color} size={iconSize} />, unreadNotificationCount > 0)}}
+                renderTabIcon(
+                  focused,
+                  <View style={{ transform: [{ translateY: 3.5 }] }}>
+                    <RewardsIcon color={color} size={iconSize} />
+                  </View>
+                )}}
           />
+
           <Tab.Screen
             name={"Profile"}
             component={Profile}

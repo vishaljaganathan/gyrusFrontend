@@ -3,9 +3,8 @@ import BottomBar from "./BottomBar";
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import { getSecureStorage } from "../config/SecureStore";
-import SignUp from "../pages/Signup";
+import Auth from "../pages/Auth";
 import Otp from "../pages/Otp";
-import Login from "../pages/Login";
 import ForgotPassword from "../pages/ForgotPassword";
 import Plans from "../pages/Plans";
 import Test from "../screens/Test";
@@ -47,7 +46,7 @@ const Navigation = () => {
             <Stack.Screen
               name="SignUp"
               options={{ headerShown: false }}
-              component={SignUp}
+              component={Auth}
             />
             <Stack.Screen
               name="Otp"
@@ -57,7 +56,7 @@ const Navigation = () => {
             <Stack.Screen
               name="Login"
               options={{ headerShown: false }}
-              component={Login}
+              component={Auth}
             />
             <Stack.Screen
               name="ForgotPassword"

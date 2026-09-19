@@ -1,13 +1,10 @@
 import React from "react";
-import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert } from 'react-native'
-import { CustomText as Text, CustomTextInput as TextInput } from './CustomText';
+import { View, StyleSheet, Image, TouchableOpacity } from 'react-native'
+import { CustomText as Text } from './CustomText';
 
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
-
-
-
-
+import { Ionicons } from '@expo/vector-icons';
 
 interface SubjectRowProps {
   subject: string;
@@ -15,6 +12,7 @@ interface SubjectRowProps {
   percentage?: string;
   isLocked?: boolean;
   isPlanValid?: boolean;
+  isExpanded?: boolean;
   onClick?: () => void;
 }
 
@@ -24,11 +22,17 @@ const SubjectRow: React.FC<SubjectRowProps> = ({
   percentage,
   isLocked,
   isPlanValid,
-  onClick}) => {
+  isExpanded,
+  onClick
+}) => {
   const showLock = subject !== "Neet" && !isPlanValid && isLocked;
 
   return (
-    <Pressable style={styles.container} onPress={onClick}>
+    <TouchableOpacity 
+      style={styles.container} 
+      activeOpacity={0.7} 
+      onPress={onClick}
+    >
       <View style={styles.imageContainer}>
         {image && <Image source={image} style={styles.avatar} />}
       </View>
@@ -40,11 +44,17 @@ const SubjectRow: React.FC<SubjectRowProps> = ({
       <View style={styles.statusContainer}>
         {showLock ? (
           <FontAwesomeIcon icon={faLock} size={20} color="#BDBDBD" />
-        ) : (
+        ) : percentage ? (
           <Text style={styles.percentageText}>{percentage}</Text>
+        ) : (
+          <Ionicons 
+            name={isExpanded ? "chevron-down" : "chevron-forward"} 
+            size={20} 
+            color="rgba(255, 255, 255, 0.5)" 
+          />
         )}
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 };
 
@@ -52,36 +62,49 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#15BBB1",
-    borderRadius: 8,
-    paddingVertical: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.08)", // Removed dark color, using a lighter transparent background
+    borderRadius: 20,
+    paddingVertical: 16,
     paddingHorizontal: 16,
-    marginTop: 8,
-    cursor: "pointer"},
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
   imageContainer: {
-    flex: 1,
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "transparent"},
+    width: 30,
+    height: 30,
+    resizeMode: 'contain',
+  },
   subjectContainer: {
-    flex: 3,
-    justifyContent: "flex-start"},
-  subjectText: {
-    
-    color: "#FFFFFF",
-        fontFamily: 'AppFont-Regular', fontSize: 16,
-    letterSpacing: 0.5},
-  statusContainer: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center"},
-  percentageText: {
-    
+    alignItems: "center", // Centered the text horizontally
+  },
+  subjectText: {
     color: "#FFFFFF",
-        fontFamily: 'AppFont-Regular', fontSize: 16}});
+    fontFamily: 'AppFont-Bold',
+    fontSize: 18,
+    letterSpacing: 0.5,
+    textAlign: "center", // Ensures text is centered
+  },
+  statusContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: 48, // Matched width with imageContainer to ensure subjectText is perfectly centered in the row
+  },
+  percentageText: {
+    color: "#FFFFFF",
+    fontFamily: 'AppFont-SemiBold',
+    fontSize: 16,
+  }
+});
 
 export default SubjectRow;

@@ -252,6 +252,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     backgroundColor: "white",
     height: hp(5.5),
+    color: "#333",
   },
 });
 

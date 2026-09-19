@@ -1,21 +1,24 @@
 import React, { useEffect, useState, useContext, useRef, useCallback } from "react";
-import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Modal, Alert , Linking, Animated} from 'react-native'
+import { View, StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator, Modal, Alert, Linking, Animated } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native';
 import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
 import { CustomVerticalScrollbar } from '../components/CustomVerticalScrollbar';
 import { LinearGradient } from "expo-linear-gradient";
 import {
   faPenToSquare,
-  faRightFromBracket} from "@fortawesome/free-solid-svg-icons";
+  faRightFromBracket
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import Theme, { COLORS, Color, FontFamily } from "../styles/themes";
 import {
   useSafeAreaInsets,
-  SafeAreaView} from "react-native-safe-area-context";
+  SafeAreaView
+} from "react-native-safe-area-context";
 import { horizontalScale, moderateScale } from "../styles/Responsive";
 import {
   widthPercentageToDP as wp,
-  heightPercentageToDP as hp} from "react-native-responsive-screen";
+  heightPercentageToDP as hp
+} from "react-native-responsive-screen";
 import { createProfileFields } from "../service/FormFeilds";
 import { ThemeContext } from "../service/authContext";
 import GradientButton from "../components/GradientButton";
@@ -32,6 +35,8 @@ import { useMutation } from "@tanstack/react-query";
 import LogoutPopup from "../components/LogoutPopup";
 import { Ionicons } from '@expo/vector-icons';
 import { ShineText } from "../components/ShineText";
+import ReminderModal from "../components/ReminderModal";
+import StatusPopup from "../components/StatusPopup";
 
 
 
@@ -58,10 +63,102 @@ const Profile = ({ navigation }: { navigation: any }) => {
     setAppState,
   } = useContext(ThemeContext);
   const [disable, setDisable] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [statusPopup, setStatusPopup] = useState<{
+    visible: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
   const neetDateFromState = appState?.neetDate || userData?.examDate;
   const [formData, setFormData] = useState(() =>
     createProfileFields(neetDateFromState),
   );
+
+  const [orgType, setOrgType] = useState<"school" | "institute" | "others" | "">("");
+  const [institutes, setInstitutes] = useState<{ label: string; value: string }[]>([
+    { label: "Pondicherry University", value: "Pondicherry University" },
+    { label: "Indian Institute of Technology Madras", value: "Indian Institute of Technology Madras" },
+    { label: "Anna University", value: "Anna University" },
+    { label: "National Institute of Technology Tiruchirappalli", value: "National Institute of Technology Tiruchirappalli" },
+    { label: "Vellore Institute of Technology", value: "Vellore Institute of Technology" }
+  ]);
+
+  useEffect(() => {
+    getRequest("authentication/institutes")
+      .then((res: any) => {
+        if (res && Array.isArray(res.data)) {
+          const list = res.data.map((name: string) => ({
+            label: name,
+            value: name
+          }));
+          setInstitutes(list);
+          
+          const currentSchool = userData?.schoolName;
+          if (currentSchool) {
+            const isDbInstitute = res.data.some((name: string) => name === currentSchool);
+            if (isDbInstitute) {
+              setOrgType("institute");
+            } else {
+              setOrgType("school");
+            }
+          } else {
+            setOrgType("");
+          }
+        }
+      })
+      .catch((err) => {
+        console.log("Failed to fetch institutes in profile:", err);
+      });
+  }, [userData?.schoolName]);
+
+  const handleOrgTypeChange = (type: "school" | "institute" | "others" | "") => {
+    setOrgType(type);
+    formik.setFieldValue("schoolName", "");
+  };
+
+  const formatTo12Hour = (time24?: string) => {
+    if (!time24) return '06:00 AM';
+    const [hrsStr, minsStr] = time24.split(':');
+    let hrs = parseInt(hrsStr, 10);
+    const ampm = hrs >= 12 ? 'PM' : 'AM';
+    hrs = hrs % 12;
+    hrs = hrs ? hrs : 12;
+    const hrsFormatted = hrs < 10 ? `0${hrs}` : hrs;
+    return `${hrsFormatted}:${minsStr} ${ampm}`;
+  };
+
+  const handleSaveReminders = async (morning: string, evening: string) => {
+    try {
+      setLoading(true);
+      const res = await postRequest({ URL: "authentication/custom-reminders", payload: { morning, evening } });
+      if (res && res.data) {
+        setUserData(res.data);
+        setStatusPopup({
+          visible: true,
+          type: "success",
+          title: "Success",
+          message: "Reminder times updated successfully!",
+        });
+      }
+      setShowReminderModal(false);
+    } catch (err) {
+      console.error("Failed to save custom reminders:", err);
+      setStatusPopup({
+        visible: true,
+        type: "error",
+        title: "Error",
+        message: "Failed to save settings. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   const [loading, setLoading] = useState(false);
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
@@ -163,7 +260,8 @@ const Profile = ({ navigation }: { navigation: any }) => {
         setLoading(false);
         setUserData((prev: any) => ({
           ...(prev || {}),
-          ...(variable?.payload || {})}));
+          ...(variable?.payload || {})
+        }));
         setDisable(false);
       }
     },
@@ -177,7 +275,8 @@ const Profile = ({ navigation }: { navigation: any }) => {
         console.error("[Profile] onError handling failed:", e);
         Alert.alert("Update Failed", "Unable to update profile. Please try again.");
       }
-    }});
+    }
+  });
 
   const formik: any = useFormik({
     initialValues: {
@@ -194,7 +293,8 @@ const Profile = ({ navigation }: { navigation: any }) => {
       state: userData?.state || "Puducherry",
       targetYear: userData?.targetYear || "",
       schoolName: userData?.schoolName || "",
-      schoolPin: userData?.schoolPin || ""},
+      schoolPin: userData?.schoolPin || ""
+    },
     validate: validate,
     validateOnChange: true,
     validateOnBlur: true,
@@ -209,19 +309,21 @@ const Profile = ({ navigation }: { navigation: any }) => {
         setLoading(false);
         return;
       }
-      
+
       setLoading(true);
-      
+
       // Convert DOB back to ISO format (YYYY-MM-DD) before sending to server
       const payload = {
         ...values,
         dob: values.dob ? values.dob.replaceAll("/", "-") : values.dob
       };
-      
+
       createPostMutation.mutate({
         URL: "authentication/update",
-        payload});
-    }});
+        payload
+      });
+    }
+  });
 
   const EditProfile = () => {
     setDisable((disable) => !disable);
@@ -248,7 +350,8 @@ const Profile = ({ navigation }: { navigation: any }) => {
     Net.fetch().then((state) => {
       setAppState((prev: any) => ({
         ...prev,
-        internetStatus: state.isConnected}));
+        internetStatus: state.isConnected
+      }));
     });
   };
 
@@ -265,31 +368,31 @@ const Profile = ({ navigation }: { navigation: any }) => {
     return firstInitial.toUpperCase();
   };
 
-   const getPlanName = (plan?: string) => {
+  const getPlanName = (plan?: string) => {
     const p = plan?.toLowerCase();
     if (!p || p === 'free' || p === 'silver') return 'SILVER';
     return p.toUpperCase();
   };
 
   const getPlanColors = (plan?: string) => {
-  const p = plan?.toLowerCase();
+    const p = plan?.toLowerCase();
 
-  // Silver / Free → cohesive soft silver-gray palette
-  if (!p || p === "free" || p === "silver") {
+    // Silver / Free → cohesive soft silver-gray palette
+    if (!p || p === "free" || p === "silver") {
+      return {
+        bg: "rgba(192, 192, 192, 0.15)",     // softer background
+        border: "rgba(192, 192, 192, 0.35)", // matching border
+        text: "#e3e1e1ff",                      // same silver tone
+      };
+    }
+
+    // Premium plans → unified blue-cyan palette
     return {
-      bg: "rgba(192, 192, 192, 0.15)",     // softer background
-      border: "rgba(192, 192, 192, 0.35)", // matching border
-      text: "#e3e1e1ff",                      // same silver tone
+      bg: "rgba(0, 166, 255, 0.15)",        // matches text tone
+      border: "rgba(0, 166, 255, 0.35)",    // same family
+      text: "#00A6FF",                       // cleaner consistent blue
     };
-  }
-
-  // Premium plans → unified blue-cyan palette
-  return {
-    bg: "rgba(0, 166, 255, 0.15)",        // matches text tone
-    border: "rgba(0, 166, 255, 0.35)",    // same family
-    text: "#00A6FF",                       // cleaner consistent blue
   };
-};
 
   const getStandardName = (std?: string) => {
     switch (std) {
@@ -315,7 +418,7 @@ const Profile = ({ navigation }: { navigation: any }) => {
     }
   };
 
- 
+
 
   return (
     <SafeAreaView style={styles.safeContainer} edges={["top"]}>
@@ -360,18 +463,115 @@ const Profile = ({ navigation }: { navigation: any }) => {
                   {formData.map((data: any, index: number) => (
                     <View key={data.idx} style={{ marginTop: 2 }}>
                       {data.fieldType == "input" && (
-                        <TextInput
-                          editable={disable}
-                          style={styles.inputField}
-                          onChangeText={formik.handleChange(`${data.id}`)}
-                          onBlur={formik.handleBlur(`${data.id}`)}
-                          value={formik.values[`${data.id}`]}
-                          placeholder={data.placeholderName}
-                          placeholderTextColor="#999"
-                          secureTextEntry={data.id == "password" || data.id == "confirmPassword"}
-                          keyboardType={data.id == "phoneNo" || data.id == "schoolPin" ? "numeric" : "default"}
-                          maxLength={data.id == "phoneNo" ? 10 : data.id == "schoolPin" ? 6 : undefined}
-                        />
+                        data.id === "schoolName" ? (
+                          <View style={{ width: "100%", marginTop: hp(0.5), marginBottom: hp(1) }}>
+                            {/* Radio Buttons Container */}
+                            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: hp(1.5), width: "100%" }}>
+                              {(["school", "institute", "others"] as const).map((type) => {
+                                const isSelected = orgType === type;
+                                const label = type === "school" ? "School" : type === "institute" ? "Institute/Center" : "Others";
+                                return (
+                                  <TouchableOpacity
+                                    key={type}
+                                    onPress={() => handleOrgTypeChange(type)}
+                                    style={{
+                                      flexDirection: "row",
+                                      alignItems: "center",
+                                      paddingVertical: hp(0.5)
+                                    }}
+                                  >
+                                    <View
+                                      style={{
+                                        height: 18,
+                                        width: 18,
+                                        borderRadius: 9,
+                                        borderWidth: 2,
+                                        borderColor: "#0AB8AD",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        marginRight: 6
+                                      }}
+                                    >
+                                      {isSelected && (
+                                        <View
+                                          style={{
+                                            height: 10,
+                                            width: 10,
+                                            borderRadius: 5,
+                                            backgroundColor: "#0AB8AD"
+                                          }}
+                                        />
+                                      )}
+                                    </View>
+                                    <Text style={{ color: "#FFF", fontSize: wp(3.4), fontFamily: "AppFont-Regular" }}>
+                                      {label}
+                                    </Text>
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
+
+                            {/* Conditional input based on selected type */}
+                            {orgType === "school" && (
+                              <TextInput
+                                editable={disable}
+                                style={styles.inputField}
+                                onChangeText={formik.handleChange("schoolName")}
+                                onBlur={formik.handleBlur("schoolName")}
+                                value={String(formik.values.schoolName || "")}
+                                placeholder="School Name"
+                                placeholderTextColor="#999"
+                              />
+                            )}
+
+                            {orgType === "institute" && (
+                              <Dropdown
+                                style={styles.dropdown}
+                                placeholderStyle={styles.placeholderStyle}
+                                selectedTextStyle={styles.selectedTextStyle}
+                                inputSearchStyle={styles.inputSearchStyle}
+                                iconStyle={styles.iconStyle}
+                                itemTextStyle={{ fontFamily: 'AppFont-Regular', color: '#333' }}
+                                data={institutes}
+                                labelField="label"
+                                valueField="value"
+                                disable={!disable}
+                                maxHeight={300}
+                                placeholder="Select Institute/Center"
+                                searchPlaceholder="Search..."
+                                value={formik.values.schoolName}
+                                onChange={(item) => {
+                                  formik.setFieldValue("schoolName", item.value);
+                                }}
+                              />
+                            )}
+
+                            {orgType === "others" && (
+                              <TextInput
+                                editable={disable}
+                                style={styles.inputField}
+                                onChangeText={formik.handleChange("schoolName")}
+                                onBlur={formik.handleBlur("schoolName")}
+                                value={String(formik.values.schoolName || "")}
+                                placeholder="Specify Other Name"
+                                placeholderTextColor="#999"
+                              />
+                            )}
+                          </View>
+                        ) : (
+                          <TextInput
+                            editable={disable}
+                            style={styles.inputField}
+                            onChangeText={formik.handleChange(`${data.id}`)}
+                            onBlur={formik.handleBlur(`${data.id}`)}
+                            value={formik.values[`${data.id}`]}
+                            placeholder={data.placeholderName}
+                            placeholderTextColor="#999"
+                            secureTextEntry={data.id == "password" || data.id == "confirmPassword"}
+                            keyboardType={data.id == "phoneNo" || data.id == "schoolPin" ? "numeric" : "default"}
+                            maxLength={data.id == "phoneNo" ? 10 : data.id == "schoolPin" ? 6 : undefined}
+                          />
+                        )
                       )}
                       {data.fieldType == "select" && (
                         <Dropdown
@@ -440,7 +640,7 @@ const Profile = ({ navigation }: { navigation: any }) => {
                     align="left"
                     gradientId="profile-username-shine"
                   />
-                  
+
                   <View style={styles.badgeRow}>
                     {/* <View style={styles.badgeItem}>
                       <Text style={styles.badgeText}>{String(userData?.accType || 'Student').charAt(0).toUpperCase() + String(userData?.accType || 'Student').slice(1)}</Text>
@@ -448,7 +648,7 @@ const Profile = ({ navigation }: { navigation: any }) => {
                     <View style={[styles.badgeItem, styles.badgeActive]}>
                       <Text style={[styles.badgeText, styles.badgeTextActive]}>{getHeaderCourseName(userData?.std).toUpperCase()}</Text>
                     </View>
-                     {/* <View style={[styles.badgeItem, { backgroundColor: getPlanColors(userData?.plan).bg, borderColor: getPlanColors(userData?.plan).border }]}>
+                    {/* <View style={[styles.badgeItem, { backgroundColor: getPlanColors(userData?.plan).bg, borderColor: getPlanColors(userData?.plan).border }]}>
                       <Text style={[styles.badgeText, { color: getPlanColors(userData?.plan).text, fontFamily: 'AppFont-Bold' }]}>{getPlanName(userData?.plan)}</Text>
                     </View> */}
                     <View style={[styles.badgeItem]}>
@@ -527,6 +727,28 @@ const Profile = ({ navigation }: { navigation: any }) => {
                     </View>
                   </View>
 
+                  {Boolean(userData?.planValid) && (
+                    <>
+                      <Text style={styles.sectionTitle}>STUDY REMINDERS</Text>
+                      <TouchableOpacity
+                        style={styles.contactRowItem}
+                        onPress={() => setShowReminderModal(true)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.contactIconContainer}>
+                          <Ionicons name="time-outline" size={wp(5)} color="#e4fff8ff" />
+                        </View>
+                        <View style={styles.contactDetails}>
+                          <Text style={styles.cardLabel}>CUSTOM PUSH NOTIFICATIONS</Text>
+                          <Text style={styles.cardValue}>
+                            Morning: {formatTo12Hour(userData?.morningReminderTime || '06:00')}{'\n'}Evening: {formatTo12Hour(userData?.eveningReminderTime || '20:00')}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={wp(5)} color="#C5FFF4" style={{ marginLeft: 'auto' }} />
+                      </TouchableOpacity>
+                    </>
+                  )}
+
                   {/* Footer Links & Logout */}
                   <View style={styles.footerActionRow}>
                     <View style={styles.legalLinks}>
@@ -588,14 +810,28 @@ const Profile = ({ navigation }: { navigation: any }) => {
               onPress={toggleSocialMenu}
               activeOpacity={0.9}
             >
-              <Ionicons 
-                name={isSocialExpanded ? "close" : "link-outline"} 
-                size={wp(5)} 
-                color="white" 
+              <Ionicons
+                name={isSocialExpanded ? "close" : "link-outline"}
+                size={wp(5)}
+                color="white"
               />
             </TouchableOpacity>
           </View>
         )}
+        <ReminderModal
+          isVisible={showReminderModal}
+          onClose={() => setShowReminderModal(false)}
+          onSave={handleSaveReminders}
+          initialMorning={userData?.morningReminderTime}
+          initialEvening={userData?.eveningReminderTime}
+        />
+        <StatusPopup
+          visible={statusPopup.visible}
+          type={statusPopup.type}
+          title={statusPopup.title}
+          message={statusPopup.message}
+          onClose={() => setStatusPopup(prev => ({ ...prev, visible: false }))}
+        />
       </LinearGradient>
     </SafeAreaView>
   );
@@ -604,58 +840,68 @@ const Profile = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: "#014b51ff"},
+    backgroundColor: "#014b51ff"
+  },
   androidLarge57: {
     flex: 1,
     overflow: "hidden",
     backgroundColor: "transparent",
-    width: "100%"},
+    width: "100%"
+  },
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingBottom: hp(2)},
+    paddingBottom: hp(2)
+  },
   profileContainer: {
     marginTop: hp(2),
     justifyContent: "center",
     alignItems: "center",
     marginBottom: wp(5),
     width: wp(90),
-    maxWidth: 450},
+    maxWidth: 450
+  },
   profileLogoContainer: {
     marginBottom: hp(2),
-    alignItems: "center"},
+    alignItems: "center"
+  },
   profileLogo: {
     width: wp(20),
     height: wp(20),
     borderRadius: wp(10),
     backgroundColor: "#0A5051",
     justifyContent: "center",
-    alignItems: "center"},
+    alignItems: "center"
+  },
   profileLogoText: {
-    
+
     color: "#FFFFFF",
-    fontFamily: 'AppFont-Bold', fontSize: hp(4)},
+    fontFamily: 'AppFont-Bold', fontSize: hp(4)
+  },
   inputTotalContainer: {
     backgroundColor: "#2f2f2f73",
     paddingHorizontal: wp(5),
     paddingVertical: hp(3),
     borderRadius: 10,
     width: "100%",
-    alignSelf: "center"},
+    alignSelf: "center"
+  },
   profileInfoIcon: {
     display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginVertical: hp(2),
-    paddingHorizontal: wp(2)},
+    paddingHorizontal: wp(2)
+  },
   profileInfoText: {
-    
+
     fontFamily: 'AppFont-Bold', fontSize: hp(1.8),
-        color: Theme.COLORS.light},
+    color: Theme.COLORS.light
+  },
   inputField: {
-    fontFamily: 'AppFont-Regular', 
+    fontFamily: 'AppFont-Regular',
     fontSize: moderateScale(16),
     marginBottom: hp(2),
     height: hp(6),
@@ -663,7 +909,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(4),
     backgroundColor: "white",
     width: "100%",
-    alignSelf: "center"},
+    alignSelf: "center",
+    color: "#333",
+  },
   dropdown: {
     height: hp(6),
     borderBottomColor: "#f0f0f0",
@@ -673,46 +921,56 @@ const styles = StyleSheet.create({
     borderRadius: wp(2),
     marginBottom: hp(2),
     width: "100%",
-    alignSelf: "center"},
-  placeholderStyle: { 
+    alignSelf: "center"
+  },
+  placeholderStyle: {
     fontFamily: 'AppFont-Regular',
     fontSize: moderateScale(16),
-    color: "#999"},
-  selectedTextStyle: { 
+    color: "#999"
+  },
+  selectedTextStyle: {
     fontFamily: 'AppFont-Regular',
-    fontSize: moderateScale(16)},
+    fontSize: moderateScale(16),
+    color: "#333",
+  },
   iconStyle: {
     width: 22,
-    height: 22},
+    height: 22
+  },
   inputSearchStyle: {
     height: 40,
     fontFamily: 'AppFont-Regular', fontSize: 16,
-    backgroundColor: "#FFFFFF"},
+    backgroundColor: "#FFFFFF"
+  },
   errorText: {
-    
+
     fontFamily: 'AppFont-Regular', fontSize: hp(1.7),
     color: "#FFEA00",
     paddingHorizontal: wp(2),
     marginBottom: hp(1),
-    textAlign: "center"},
+    textAlign: "center"
+  },
   linksContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     marginVertical: hp(2),
     width: "100%",
-    alignSelf: "center"},
+    alignSelf: "center"
+  },
   linkText: {
-    
+
     color: "white",
     textDecorationLine: "underline",
-    fontFamily: 'AppFont-Regular', fontSize: hp(1.6)},
+    fontFamily: 'AppFont-Regular', fontSize: hp(1.6)
+  },
   logoutContainer: {
     display: "flex",
     flexDirection: "row",
     justifyContent: "center",
     marginTop: hp(3),
     width: "100%",
-    alignSelf: "center"},
+    alignSelf: "center"
+  },
   logoutButton: {
     display: "flex",
     flexDirection: "row",
@@ -721,7 +979,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(3),
     justifyContent: "space-between",
     borderRadius: wp(2),
-    backgroundColor: "#ffffff1a"},
+    backgroundColor: "#ffffff1a"
+  },
   logoutText: {
     color: COLORS.secondary04,
     fontFamily: 'AppFont-Bold',

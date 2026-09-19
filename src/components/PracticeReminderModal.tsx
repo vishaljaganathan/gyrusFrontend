@@ -68,9 +68,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: wp(4),
   },
-  dismissArea: {
-    ...StyleSheet.absoluteFillObject,
-  },
+  dismissArea: StyleSheet.absoluteFill,
   container: {
     width: wp(92),
     height: hp(14),

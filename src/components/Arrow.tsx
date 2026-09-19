@@ -18,7 +18,7 @@ const returnSide = (index: any) => {
 };
 
 const ArrowSvg = (props: any) => {
-  return (
+  return ( 
     <Svg
       style={returnSide(props.id)}
       width="177"

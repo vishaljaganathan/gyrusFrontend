@@ -248,7 +248,7 @@ const RadioButton = ({
                 ]}
               >
                 <Pressable
-                  style={StyleSheet.absoluteFillObject}
+                  style={StyleSheet.absoluteFill}
                   onPress={handleOptionPress}
                 />
                 <View style={Styles.optionRow} pointerEvents="box-none">

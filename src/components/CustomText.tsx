@@ -1,3 +1,4 @@
+import React from 'react';
 import { Text as RNText, TextProps, TextInput as RNTextInput, TextInputProps, StyleSheet, Animated, TextStyle } from 'react-native';
 import { moderateScale } from '../styles/Responsive';
 import PlaceholderTextInput from './PlaceholderTextInput';
@@ -32,7 +33,7 @@ export const CustomText: React.FC<TextProps> = (props) => {
 };
 
 // Custom TextInput wrapper that forces AppFont-Regular
-export const CustomTextInput: React.FC<TextInputProps & { placeholderStyle?: TextStyle }> = (props) => {
+export const CustomTextInput = React.forwardRef<RNTextInput, TextInputProps & { placeholderStyle?: TextStyle }>((props, ref) => {
   const { style, placeholderStyle, placeholderTextColor, placeholder, ...otherProps } = props as any;
 
   const mergedStyle = {
@@ -53,9 +54,13 @@ export const CustomTextInput: React.FC<TextInputProps & { placeholderStyle?: Tex
   }
   delete mergedStyle.fontStyle;
 
+  if (otherProps.secureTextEntry) {
+    delete mergedStyle.fontFamily;
+  }
+
   const mergedPlaceholderStyle = {
     color: placeholderTextColor || '#999',
-    fontFamily: mergedStyle.fontFamily,
+    fontFamily: 'AppFont-Regular',
     fontSize: mergedStyle.fontSize || moderateScale(15),
     ...StyleSheet.flatten(placeholderStyle),
   } as any;
@@ -66,19 +71,21 @@ export const CustomTextInput: React.FC<TextInputProps & { placeholderStyle?: Tex
     mergedPlaceholderStyle.fontFamily = 'AppFont-Bold';
     mergedPlaceholderStyle.fontWeight = '900';
   } else {
+    mergedPlaceholderStyle.fontFamily = 'AppFont-Regular';
     delete mergedPlaceholderStyle.fontWeight;
   }
 
   return (
     <PlaceholderTextInput
       {...otherProps}
+      ref={ref}
       placeholder={placeholder}
       placeholderStyle={mergedPlaceholderStyle}
       inputStyle={mergedStyle}
       allowFontScaling={false}
     />
   );
-};
+});
 
 export const CustomAnimatedText: React.FC<any> = (props) => {
   const { style, ...otherProps } = props;

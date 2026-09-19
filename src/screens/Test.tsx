@@ -50,6 +50,7 @@ import { Defs, LinearGradient, Path, Rect, Stop, Svg } from "react-native-svg";
 import SuccessView from "../components/SuccessView";
 import RetryView from "../components/RetryView";
 import TestButton from "../components/TestButton";
+import { AppToast, ToastType } from "../components/AppToast";
 
 
 
@@ -90,9 +91,31 @@ const Test = (props: any) => {
     testId: props.route.params?.params?.testId || '',
     scores: 0,
     subject: props.route.params?.params?.subject || 'chemistry',
+    chapterName: props.route.params?.params?.chapterName || props.route.params?.params?.chapter?.topicName || '',
+    chapterNumber: props.route.params?.params?.chapterNumber || props.route.params?.params?.chapter?.chapterNumber || '',
+    chapter: props.route.params?.params?.chapter,
     correctQtsId: [],
     wrongQtsId: []
   });
+
+  useEffect(() => {
+    const sub = String(props.route.params?.params?.subject || finalData?.subject || '');
+    if (sub.startsWith('chapter_') && !finalData.chapterName) {
+      const cId = sub.replace('chapter_', '');
+      axiosInstance.get(`/chapters/${cId}`)
+        .then((res: any) => {
+          if (res.data && res.data.topicName) {
+            setFinalData((prev: any) => ({
+              ...prev,
+              chapterName: res.data.topicName,
+              chapterNumber: res.data.chapterNumber,
+              chapter: res.data
+            }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [props.route.params?.params?.subject]);
   const [score, setScore] = useState(0);
   const [correctQtsIds, setCorrectQtsIds] = useState<any[]>([]);
   const [wrongQtsIds, setWrongQtsIds] = useState<any[]>([]);
@@ -151,6 +174,43 @@ const Test = (props: any) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitFailed, setSubmitFailed] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
+
+  // App Theme Toast State
+  const [toastConfig, setToastConfig] = useState<{
+    visible: boolean;
+    type: ToastType;
+    title: string;
+    message: string;
+    duration?: number;
+  }>({
+    visible: false,
+    type: 'error',
+    title: '',
+    message: '',
+    duration: 4000,
+  });
+
+  const showToast = useCallback(
+    (params: {
+      type?: ToastType;
+      title?: string;
+      message: string;
+      duration?: number;
+    }) => {
+      setToastConfig({
+        visible: true,
+        type: params.type || 'error',
+        title: params.title || '',
+        message: params.message,
+        duration: params.duration ?? 4000,
+      });
+    },
+    []
+  );
+
+  const hideToast = useCallback(() => {
+    setToastConfig((prev) => ({ ...prev, visible: false }));
+  }, []);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
@@ -378,7 +438,11 @@ const Test = (props: any) => {
         const list = res?.data;
         const q = Array.isArray(list) ? (list.find((item: any) => isVisibleQuestion(item)) || null) : null;
         if (!q) {
-          Alert.alert("Not found", `No question found for MCQ ID: ${reviewMcqId}`);
+          showToast({
+            type: 'warning',
+            title: 'Not Found',
+            message: `No question found for MCQ ID: ${reviewMcqId}`,
+          });
           return;
         }
 
@@ -401,7 +465,11 @@ const Test = (props: any) => {
       } catch (err: any) {
         console.error('[Test.tsx] Review mode fetch failed:', err);
         const msg = err?.response?.data?.message;
-        Alert.alert('Error', msg ? String(msg) : 'Failed to fetch MCQ.');
+        showToast({
+          type: 'error',
+          title: 'Error',
+          message: msg ? String(msg) : 'Failed to fetch MCQ.',
+        });
       } finally {
         if (!cancelled) setLoadingQuestions(false);
       }
@@ -433,7 +501,7 @@ const Test = (props: any) => {
       // SAFETY: If a user's subscription expires while they are in a test 
       // or if they deep-link into a large test as a free user, cap the size to 40.
       if (userData && !userData.planValid && Number(type) > 40) {
-        console.warn('[Test.tsx] Capping test size to 40 for free user.');
+        console.warn('[Test.tsx] Capping Exercise size to 40 for free user.');
         type = 40;
       }
 
@@ -467,15 +535,27 @@ const Test = (props: any) => {
           answeredQuestionKeysRef.current = new Set();
         }
 
-        const questions = await strategy.fetchQuestions({
-          subject,
-          std,
-          type: Number(type),
-          offset: offsetValue,
-          usedIds: effectiveUsedIds,
-          cycle: finalCycle,
-          set: finalSet + 1, // backend expects 1-based set
-        });
+        let questions;
+        if (subject.startsWith('chapter_')) {
+          const localQ = props.route.params?.params?.localQuestions;
+          if (localQ && localQ.length > 0) {
+            console.log('[Test.tsx] Using localQuestions for chapter practice, count:', localQ.length);
+            questions = localQ;
+          } else {
+            Alert.alert("Debug", `localQuestions is empty! localQ: ${JSON.stringify(localQ)}`);
+            questions = [];
+          }
+        } else {
+          questions = await strategy.fetchQuestions({
+            subject,
+            std,
+            type: Number(type),
+            offset: offsetValue,
+            usedIds: effectiveUsedIds,
+            cycle: finalCycle,
+            set: finalSet + 1, // backend expects 1-based set
+          });
+        }
 
         console.log('[Test.tsx] Loaded strategy questions count:', questions.length);
         console.log('[Test.tsx] Displayed question IDs:', questions.map((q: any) => q.mcqId));
@@ -487,34 +567,27 @@ const Test = (props: any) => {
             return false;
           }
 
-          if (!isVisibleQuestion(q)) {
-            console.warn('[Test.tsx] Hidden question filtered out:', q.mcqId || q._id, {
-              approved: q?.approved,
-              isDelete: q?.isDelete
-            });
+          const isChapterQ = subject.startsWith('chapter_');
+          if (!isChapterQ && !isVisibleQuestion(q)) {
+            console.warn('[Test.tsx] Hidden question filtered out:', q.mcqId || q._id);
             return false;
           }
 
           // Check if question field exists and has value property
           if (!q.question || typeof q.question !== 'object') {
-            console.warn('[Test.tsx] Invalid question field structure:', q.mcqId || q._id);
+            console.warn('[Test.tsx] Invalid question field structure:', q.mcqId || q._id, 'q.question is:', q.question);
             return false;
           }
 
           // Check if value is a string
           if (!q.question.value || typeof q.question.value !== 'string') {
-            console.warn('[Test.tsx] Invalid question value:', q.mcqId || q._id, 'value type:', typeof q.question.value);
+            console.warn('[Test.tsx] Invalid question value:', q.mcqId || q._id, 'value type:', typeof q.question?.value);
             return false;
           }
 
           // CHECK if all 4 options exist
           if (!q["1"] || !q["2"] || !q["3"] || !q["4"]) {
-            console.warn('[Test.tsx] Missing options for question:', q.mcqId || q._id, {
-              has1: !!q["1"],
-              has2: !!q["2"],
-              has3: !!q["3"],
-              has4: !!q["4"]
-            });
+            console.warn('[Test.tsx] Missing options for question:', q.mcqId || q._id);
             return false;
           }
 
@@ -532,7 +605,13 @@ const Test = (props: any) => {
           return true;
         });
 
+        console.log(`[Test.tsx] Validated ${validatedQuestions.length} out of ${questions.length} questions.`);
+
         if (validatedQuestions && validatedQuestions.length > 0) {
+          if (validatedQuestions.length < questions.length) {
+            console.warn(`[Test.tsx] Filtered out ${questions.length - validatedQuestions.length} questions!`);
+            Alert.alert("Debug", `Filtered out ${questions.length - validatedQuestions.length} questions! The first filtered question had mcqId: ${questions.find((q: any) => !validatedQuestions.includes(q))?.mcqId}`);
+          }
           setMCQs(validatedQuestions);
           setMCQ(validatedQuestions[0] || {});
 
@@ -552,12 +631,19 @@ const Test = (props: any) => {
         } else {
           console.warn('[Test.tsx] No valid questions returned from strategy - total questions received:', questions.length);
           console.error('[Test.tsx] First question structure (for debugging):', questions.length > 0 ? JSON.stringify(questions[0], null, 2) : 'No questions');
+          if (questions.length > 0) {
+            Alert.alert("Debug", `Validation failed! First Q: ${JSON.stringify(questions[0]).substring(0, 200)}`);
+          }
           setMCQs([]);
         }
       }
     } catch (err) {
       console.error('[Test.tsx] Error loading questions from strategy:', err);
-      Alert.alert('Error', 'Failed to load questions. Please check your connection.');
+      showToast({
+        type: 'error',
+        title: 'Connection Error',
+        message: 'Failed to load questions. Please check your connection.',
+      });
     } finally {
       setLoadingQuestions(false);
     }
@@ -582,6 +668,7 @@ const Test = (props: any) => {
   }, [MCQIdx, MCQs]);
 
   const returnContent = (testType: any) => {
+    const isChapter = (props.route?.params?.params?.subject || finalData?.subject || '').toString().toLowerCase().startsWith('chapter_');
     return (
       <View style={{ alignItems: "center", width: "100%" }}>
         <Text
@@ -593,7 +680,7 @@ const Test = (props: any) => {
             width: "100%"
           }}
         >
-          This exercise contains {Number(testType)}-MCQs
+          {isChapter ? `This exercise contains ${Number(testType)}-MCQs` : `This exercise contains ${Number(testType)}-MCQs`}
         </Text>
         <Text
           style={{
@@ -607,18 +694,20 @@ const Test = (props: any) => {
         >
           Would you like to continue?
         </Text>
-        <Text
-          style={{
-            color: "#0AB8AD",
-            fontFamily: 'AppFont-Regular', fontSize: hp(1.68),
-            textAlign: "center",
-            lineHeight: hp(2.4),
-            width: "100%",
-            marginTop: hp(1.5)
-          }}
-        >
-          Note: you need to correctly answer at least {Math.ceil(Number(testType) / 2)} questions to pass this test
-        </Text>
+        {!isChapter && (
+          <Text
+            style={{
+              color: "#0AB8AD",
+              fontFamily: 'AppFont-Regular', fontSize: hp(1.68),
+              textAlign: "center",
+              lineHeight: hp(2.4),
+              width: "100%",
+              marginTop: hp(1.5)
+            }}
+          >
+            Note: you need to correctly answer at least {Math.ceil(Number(testType) / 2)} questions to pass this Exercise
+          </Text>
+        )}
         {Number(testType) >= 180 && (
           <Text
             style={{
@@ -658,7 +747,11 @@ const Test = (props: any) => {
                 // Allow test to start for crash users even if MCQs are empty or mock
                 if (MCQs.length === 0) {
                   // Show fallback message but allow start
-                  Alert.alert('Notice', 'No real questions found. You will get mock questions.');
+                  showToast({
+                    type: 'info',
+                    title: 'Notice',
+                    message: 'Internet connection is slow. Please ensure a stable internet connection for seamless learning.',
+                  });
                 }
                 setTestStarted(true);
               }
@@ -686,13 +779,18 @@ const Test = (props: any) => {
       const setSize = testType;
       if (!setSize || isNaN(setSize)) {
         console.error('[Test.tsx] Invalid setSize:', setSize);
-        Alert.alert('Error', 'Invalid test configuration. Please try again.');
+        showToast({
+          type: 'error',
+          title: 'Configuration Error',
+          message: 'Invalid Exercise configuration. Please try again.',
+        });
         setIsSubmitting(false);
         return;
       }
       const effectiveSize = Math.min(setSize, MCQs.length > 0 ? MCQs.length : setSize);
-      const passMark = Math.ceil(effectiveSize / 2);
-      const passed = correctQtsIds.length >= passMark;
+      const isChapter = finalData.subject && finalData.subject.startsWith('chapter_');
+      const passMark = isChapter ? 1 : Math.ceil(effectiveSize / 2);
+      const passed = isChapter ? correctQtsIds.length > 0 : correctQtsIds.length >= passMark;
 
       // Persist score for the result modal (we reset correct/wrong arrays shortly after to preload next set)
       setSubmittedScore(correctQtsIds.length);
@@ -757,7 +855,7 @@ const Test = (props: any) => {
 
       setIsSubmitting(true);
       AsyncStorage.setItem('pending_test_submit', JSON.stringify(submitPayload)).catch(err => {
-        console.error('[Test.tsx] Error saving pending test to AsyncStorage:', err);
+        console.error('[Test.tsx] Error saving pending Exercise to AsyncStorage:', err);
       });
 
       axiosInstance
@@ -795,7 +893,9 @@ const Test = (props: any) => {
                 } else {
                   // Fallback 2: searching in scores array
                   const subject = finalData.subject;
-                  const scoresRaw = res.data[subject]?.scores;
+                  const scoresRaw = isChapter
+                    ? res.data.chapterProgress?.[subject]?.scores
+                    : res.data[subject]?.scores;
                   const scoresArr = Array.isArray(scoresRaw)
                     ? scoresRaw
                     : typeof scoresRaw === 'string'
@@ -872,23 +972,40 @@ const Test = (props: any) => {
           }, 1000);
         })
         .catch((err) => {
-          console.error('[Test.tsx] Error submitting test:', err);
+          console.error('[Test.tsx] Error submitting Exercise:', err);
           const serverMsg = err?.response?.data?.message;
           const status = err?.response?.status;
-          Alert.alert('Error', serverMsg ? String(serverMsg) : `Failed to submit test results${status ? ` (HTTP ${status})` : ''}.`);
+          const isNetworkErr = !isConnected || !err?.response || err?.message === 'Network Error';
+
+          showToast({
+            type: 'error',
+            title: isNetworkErr ? 'No Internet Connection' : 'Submission Failed',
+            message: isNetworkErr
+              ? 'Unable to submit results. Please check your internet connection and try again.'
+              : (serverMsg ? String(serverMsg) : `Failed to submit Exercise results${status ? ` (HTTP ${status})` : ''}.`),
+            duration: 4500,
+          });
           setIsSubmitting(false);
           setSubmitFailed(true);
         });
     } catch (error) {
       console.error('[Test.tsx] Unexpected error in SubmitTest:', error);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: 'An unexpected error occurred. Please try again.',
+      });
       setIsSubmitting(false);
     }
   };
 
   const handleReportIssue = async () => {
     if (!selectedReportType) {
-      Alert.alert("Error", "Please select an issue type.");
+      showToast({
+        type: 'warning',
+        title: 'Issue Report',
+        message: 'Please select an issue type.',
+      });
       return;
     }
 
@@ -905,13 +1022,21 @@ const Test = (props: any) => {
       };
 
       await axiosInstance.post("/issue-reports", payload);
-      Alert.alert("Success", "Issue reported successfully. Thank you for your feedback!");
       setShowReportModal(false);
       setSelectedReportType("");
       setIssueDescription("");
+      showToast({
+        type: 'success',
+        title: 'Issue Reported',
+        message: 'Thank you for your feedback!',
+      });
     } catch (error: any) {
       console.error("Error reporting issue:", error);
-      Alert.alert("Error", "Failed to report issue. Please try again later.");
+      showToast({
+        type: 'error',
+        title: 'Report Failed',
+        message: 'Failed to report issue. Please try again later.',
+      });
     } finally {
       setReportSubmitting(false);
     }
@@ -1167,33 +1292,60 @@ const Test = (props: any) => {
             </View>
           ) : isSubmitting ? (
             <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, paddingTop: hp(20) }}>
-              <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Regular', fontSize: hp(2) }}>Submitting your test!!</Text>
+              <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Regular', fontSize: hp(2) }}>Submitting your Exercise!!</Text>
               <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Regular', fontSize: hp(1.6), marginTop: hp(1) }}>Please wait a moment.</Text>
             </View>
           ) : submitFailed ? (
             <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, paddingTop: hp(15), paddingHorizontal: wp(5) }}>
-              <Text style={{ color: '#F2C112', fontFamily: 'AppFont-Bold', fontSize: hp(2.4), textAlign: 'center', marginBottom: hp(1) }}>Submission Failed</Text>
-              <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Regular', fontSize: hp(1.8), textAlign: 'center', marginBottom: hp(3), lineHeight: hp(2.5) }}>
-                We could not submit your test results due to an internet connection issue. Please reconnect and try again.
+              <View
+                style={{
+                  width: wp(16),
+                  height: wp(16),
+                  borderRadius: wp(8),
+                  backgroundColor: 'rgba(246, 86, 93, 0.15)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: hp(2),
+                  borderWidth: 1.5,
+                  borderColor: 'rgba(246, 86, 93, 0.4)',
+                }}
+              >
+                <Ionicons name="cloud-offline-outline" size={wp(8.5)} color="#F6565D" />
+              </View>
+              <CustomBoldText style={{ color: '#F6565D', fontSize: hp(2.4), textAlign: 'center', marginBottom: hp(1.2) }}>
+                Submission Failed
+              </CustomBoldText>
+              <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontFamily: 'AppFont-Regular', fontSize: hp(1.75), textAlign: 'center', marginBottom: hp(3.5), lineHeight: hp(2.5), paddingHorizontal: wp(2) }}>
+                We could not submit your Exercise results due to a network connection issue. Please check your internet and tap Retry.
               </Text>
               <TouchableOpacity
-                disabled={!isConnected}
                 onPress={() => {
+                  if (!isConnected) {
+                    showToast({
+                      type: 'warning',
+                      title: 'No Internet Connection',
+                      message: 'Please reconnect to the internet before retrying submission.',
+                      duration: 3500,
+                    });
+                    return;
+                  }
                   setSubmitFailed(false);
                   SubmitTest();
                 }}
+                activeOpacity={0.8}
                 style={{
-                  backgroundColor: isConnected ? '#0AB8AD' : '#888888',
+                  backgroundColor: isConnected ? '#0AB8AD' : '#4A5553',
                   paddingVertical: hp(1.5),
                   paddingHorizontal: wp(8),
-                  borderRadius: hp(1),
-                  elevation: isConnected ? 3 : 0,
-                  opacity: isConnected ? 1 : 0.6
+                  borderRadius: hp(1.2),
+                  elevation: isConnected ? 4 : 1,
+                  borderWidth: 1,
+                  borderColor: isConnected ? 'rgba(10, 184, 173, 0.8)' : 'rgba(255, 255, 255, 0.15)',
                 }}
               >
-                <Text style={{ color: '#FFF', fontFamily: 'AppFont-Bold', fontSize: hp(1.8) }}>
+                <CustomBoldText style={{ color: '#FFF', fontSize: hp(1.8) }}>
                   {isConnected ? "Retry Submission" : "No Internet Connection"}
-                </Text>
+                </CustomBoldText>
               </TouchableOpacity>
             </View>
           ) : (
@@ -1292,7 +1444,9 @@ const Test = (props: any) => {
               setShowAnswer(false);
               setArrNum(0);
               answeredQuestionKeysRef.current = new Set();
-              if (navigation && typeof navigation.reset === 'function') {
+              if (navigation && typeof navigation.goBack === 'function') {
+                navigation.goBack();
+              } else if (navigation && typeof navigation.reset === 'function') {
                 navigation.reset({
                   index: 0,
                   routes: [{ name: 'BottomBar' }]
@@ -1460,7 +1614,7 @@ const Test = (props: any) => {
                     marginBottom: hp(1)
                   }}
                 >
-                  Leave test?
+                  Leave Exercise?
                 </Text>
                 <Text
                   style={{
@@ -1472,7 +1626,7 @@ const Test = (props: any) => {
                     marginBottom: hp(2)
                   }}
                 >
-                  It looks like your test is still incomplete. Do you want to exit?
+                  It looks like your exercise is still incomplete. Do you want to exit?
                 </Text>
                 <View
                   style={{
@@ -1488,16 +1642,16 @@ const Test = (props: any) => {
                 >
                   <View style={{ flex: 1, minWidth: wp(35), maxWidth: wp(40) }}>
                     <TestButton
-                      onPress={handleStayInTest}
+                      onPress={handleExitConfirm}
                       colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-                      text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Stay</Text>}
+                      text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Yes</Text>}
                     />
                   </View>
                   <View style={{ flex: 1, minWidth: wp(35), maxWidth: wp(40) }}>
                     <TestButton
-                      onPress={handleExitConfirm}
+                      onPress={handleStayInTest}
                       colors={["rgba(0, 183, 194, 1)", "rgba(197, 255, 244, 0.5)"]}
-                      text={<Text style={{ fontFamily: 'AppFont-Bold' }}>Exit</Text>}
+                      text={<Text style={{ fontFamily: 'AppFont-Bold' }}>No</Text>}
                     />
                   </View>
                 </View>
@@ -1634,6 +1788,16 @@ const Test = (props: any) => {
           </Modal.Footer>
         </Modal.Content>
       </Modal>
+
+      {/* App Themed Toast Notification */}
+      <AppToast
+        visible={toastConfig.visible}
+        type={toastConfig.type}
+        title={toastConfig.title}
+        message={toastConfig.message}
+        duration={toastConfig.duration}
+        onClose={hideToast}
+      />
     </SafeAreaView>
   );
 };
@@ -1718,6 +1882,7 @@ const styles = StyleSheet.create({
   checkAnswerCon: {
     display: "flex",
     flexDirection: "row",
+    alignItems: "center",
     marginTop: hp(2)
   },
   // BookmarkCon: {

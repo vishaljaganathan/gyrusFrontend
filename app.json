@@ -3,13 +3,13 @@
     "name": "Gyrus NEET",
     "newArchEnabled": true,
     "slug": "gyus-neet",
-    "version": "1.0.15",
+    "version": "1.0.20",
     "orientation": "portrait",
     "icon": "./assets/appLogo.png",
     "splash": {
       "image": "./assets/appLogo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0AB8AD"
     },
     "jsEngine": "hermes",
     "androidStatusBar": {},
@@ -36,7 +36,7 @@
         "backgroundColor": "#004541"
       },
       "package": "com.gyrus.neet",
-      "versionCode": 45
+      "versionCode": 50
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -59,8 +59,11 @@
       "expo-secure-store",
       "expo-video",
       "expo-asset",
-      "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-community/datetimepicker",
+      "expo-sharing",
+      "expo-splash-screen",
+      "expo-status-bar"
     ],
     "owner": "rajeshselvaraj"
   }

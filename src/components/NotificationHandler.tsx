@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useContext } from 'react';
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import Notifications from '../config/Notifications';
 import Constants from 'expo-constants';
 import { ThemeContext } from '../service/authContext';
 import InAppNotification from './InAppNotification';
@@ -28,8 +28,8 @@ const NotificationHandler = () => {
   const [showPracticeModal, setShowPracticeModal] = useState(false);
   const [lastSeenId, setLastSeenId] = useState<string | null>(null);
 
-  const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
-  const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
+  const notificationListener = useRef<any>(undefined);
+  const responseListener = useRef<any>(undefined);
 
   const checkNewNotifications = async () => {
     if (!userData?._id) return;
@@ -119,7 +119,7 @@ const NotificationHandler = () => {
     Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
 
     // Listen for notifications that arrive while the app is foregrounded
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+    notificationListener.current = Notifications.addNotificationReceivedListener((notification: any) => {
       console.log("[NotificationHandler] Received in foreground:", notification);
       
       const data = notification.request.content.data;
@@ -134,12 +134,12 @@ const NotificationHandler = () => {
     });
 
     // Listen for user interaction with a notification
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response: any) => {
       const data = response.notification.request.content.data;
       console.log("[NotificationHandler] User interacted:", data);
       
       // Dismiss all remaining notifications from the notification tray
-      Notifications.dismissAllNotificationsAsync().catch((err) => {
+      Notifications.dismissAllNotificationsAsync().catch((err: any) => {
         console.error("[NotificationHandler] Failed to dismiss notifications:", err);
       });
       
@@ -159,6 +159,13 @@ const NotificationHandler = () => {
   }, []);
 
   async function registerForPushNotificationsAsync() {
+    // Expo Go no longer supports push notifications as of SDK 53.
+    // Return early to avoid the "warnOfExpoGoPushUsage" red screen crash.
+    if (Constants.appOwnership === 'expo') {
+      console.warn('Push notifications are not supported in Expo Go.');
+      return null;
+    }
+
     let token;
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {

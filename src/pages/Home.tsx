@@ -23,7 +23,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from "../styles/themes";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import PremiumBanner from "../components/PremiumBanner";
+import { MilestoneModal } from "../components/MilestoneModal";
 import StopwatchCounter from "../components/StopwatchCounter";
+import ReminderModal from "../components/ReminderModal";
+import StatusPopup from "../components/StatusPopup";
 
 
 
@@ -40,7 +43,19 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
   const [milestoneValue, setMilestoneValue] = useState(0);
+  const [statusPopup, setStatusPopup] = useState<{
+    visible: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
 
   const [goldPlan, setGoldPlan] = useState<any>({
     title: "EXCLUSIVE GOLD PLAN OFFER",
@@ -172,6 +187,7 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
   }, [userData?.planValid, appState?.home]);
 
   useEffect(() => {
+    let timer: any;
     // Show trial modal if user is on free plan and trial has NOT been used
     const checkTrialModal = async () => {
       if (userData && !userData.planValid && !userData.trialUsed) {
@@ -185,17 +201,29 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
               return; // Less than 20 minutes ago, don't show
             }
           }
-          setShowTrialModal(true);
+          // Display the trial page after 10 seconds
+          timer = setTimeout(() => {
+            setShowTrialModal(true);
+          }, 10000);
         } catch (error) {
           console.error("Error reading trial modal state:", error);
-          setShowTrialModal(true); // show by default if error
+          // Display the trial page after 10 seconds
+          timer = setTimeout(() => {
+            setShowTrialModal(true);
+          }, 10000);
         }
       }
     };
     checkTrialModal();
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
   }, [userData]);
 
-  /* useEffect(() => {
+  useEffect(() => {
     if (userData?._id) {
       axiosInstance.get('authentication/check-milestones')
         .then(res => {
@@ -206,7 +234,32 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
         })
         .catch(err => console.error("Milestone check error:", err));
     }
-  }, [userData?._id, userData?.rewards?.earned]); */
+  }, [userData?._id, userData?.rewards?.earned]);
+
+  const handleSaveReminders = (morning: string, evening: string) => {
+    axiosInstance.post("authentication/custom-reminders", { morning, evening })
+      .then(res => {
+        if (res.data) {
+          setUserData(res.data);
+          setStatusPopup({
+            visible: true,
+            type: "success",
+            title: "Success",
+            message: "Reminder times updated successfully!",
+          });
+        }
+        setShowReminderModal(false);
+      })
+      .catch(err => {
+        console.error("Failed to save custom reminders:", err);
+        setStatusPopup({
+          visible: true,
+          type: "error",
+          title: "Error",
+          message: "Failed to save settings. Please try again.",
+        });
+      });
+  };
 
   // Modal activation handled by TrialModal component
 
@@ -286,6 +339,19 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
           >
             <Ionicons name="search" size={26} color={COLORS.light} />
           </Pressable>
+        )}
+
+        {Boolean(userData?.planValid && !userData?.customNotificationSet) && (
+          <TouchableOpacity
+            onPress={() => setShowReminderModal(true)}
+            style={[
+              styles.floatingClock,
+              { bottom: Math.max(10, insets.bottom) + (isTester ? 100 : 30) },
+            ]}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="time" size={26} color="#ffffff" />
+          </TouchableOpacity>
         )}
       </View>
 
@@ -455,10 +521,10 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
                 
                 const percentage = subData.total > 0 ? Math.round((subData.correct / subData.total) * 100) : 0;
                 const colors: any = {
-                  physics: '#2979FF',
-                  chemistry: '#C45EFF',
-                  botany: '#239229',
-                  zoology: '#10b981'
+                  physics: '#8627BC',
+                  chemistry: '#013385',
+                  botany: '#016507',
+                  zoology: '#007750'
                 };
                 const color = colors[subKey] || COLORS.primary03;
 
@@ -552,38 +618,39 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
         onClose={closePremiumBanner} 
       />
 
-      {/* 7-Day Free Trial Modal */}
+      {/* 14-Day Free Trial Modal */}
       <TrialModal 
         isVisible={showTrialModal} 
         onClose={() => setShowTrialModal(false)}
         onSuccess={() => setShowPremiumBanner(true)}
       />
 
-      {/* Reward Milestone Modal 
-      <Modal visible={showMilestoneModal} transparent animationType="fade" statusBarTranslucent>
-        <View style={styles.milestoneOverlay}>
-          <View style={styles.milestoneCard}>
-            <View style={styles.milestoneIconBox}>
-              <Ionicons name="gift" size={wp(14)} color="#0AB8AD" />
-            </View>
-            <Text style={styles.milestoneTitle}>Congratulations!</Text>
-            <Text style={styles.milestoneBody}>
-              You've earned <Text style={{ fontFamily: 'AppFont-Bold', color: '#0AB8AD' }}>{milestoneValue}</Text> reward points! Keep going to unlock more benefits.
-            </Text>
-            <TouchableOpacity 
-              style={styles.milestoneBtn}
-              onPress={() => setShowMilestoneModal(false)}
-            >
-              <LinearGradient
-                colors={["#00b7c2", "#0AB8AD"]}
-                style={styles.milestoneGradient}
-              >
-                <Text style={styles.milestoneBtnText}>AWESOME!</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal> */}
+      {/* Reward Milestone Modal */}
+      <MilestoneModal
+        isVisible={showMilestoneModal}
+        onClose={() => setShowMilestoneModal(false)}
+        milestoneValue={milestoneValue}
+        userData={userData}
+        navigation={navigation}
+      />
+
+      {/* Push Notification Customizer Modal */}
+      <ReminderModal
+        isVisible={showReminderModal}
+        onClose={() => setShowReminderModal(false)}
+        onSave={handleSaveReminders}
+        initialMorning={userData?.morningReminderTime}
+        initialEvening={userData?.eveningReminderTime}
+      />
+
+      {/* Custom Themed Status Popup */}
+      <StatusPopup
+        visible={statusPopup.visible}
+        type={statusPopup.type}
+        title={statusPopup.title}
+        message={statusPopup.message}
+        onClose={() => setStatusPopup(prev => ({ ...prev, visible: false }))}
+      />
 
       {/* Subscription Required Modal */}
       <Modal visible={showSubscriptionModal} transparent animationType="fade" statusBarTranslucent>
@@ -593,7 +660,7 @@ const Home = ({ navigation, route }: { navigation: any; route: any }) => {
               <Text style={styles.subModalTitle}>Subscription required</Text>
               <Text style={styles.subModalBody}>
                 {(!userData?.trialUsed) 
-                  ? "This feature is for premium users. You can try it for free for 7 days!" 
+                  ? "This feature is for premium users. You can try it for free for 14 days!" 
                   : "This feature is available for subscribed users. Please consider upgrading to enjoy full access."}
               </Text>
 
@@ -676,6 +743,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.two,
     elevation: 8,
     zIndex: 20,
+  },
+  floatingClock: {
+    position: "absolute",
+    right: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: '#00B8AC',
+    elevation: 8,
+    zIndex: 20,
+    shadowColor: '#00B8AC',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   Img: {
     width: "100%",
@@ -986,51 +1069,7 @@ const styles = StyleSheet.create({
     fontSize: wp(3.2),
     color: 'rgba(255, 255, 255, 0.4)',
   },
-  milestoneOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  milestoneCard: {
-    width: wp(80),
-    backgroundColor: '#1e293b',
-    borderRadius: wp(6),
-    padding: wp(8),
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#0AB8AD',
-  },
-  milestoneIconBox: {
-    marginBottom: hp(2),
-  },
-  milestoneTitle: {
-    fontFamily: 'AppFont-Bold',
-    fontSize: wp(6.5),
-    color: '#FFFFFF',
-    marginBottom: hp(1),
-  },
-  milestoneBody: {
-    fontFamily: 'AppFont-Regular',
-    fontSize: wp(4),
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-    lineHeight: wp(6),
-    marginBottom: hp(3),
-  },
-  milestoneBtn: {
-    width: '100%',
-  },
-  milestoneGradient: {
-    paddingVertical: hp(1.5),
-    borderRadius: wp(3),
-    alignItems: 'center',
-  },
-  milestoneBtnText: {
-    fontFamily: 'AppFont-Bold',
-    fontSize: wp(4),
-    color: '#FFFFFF',
-  },
+
   watermarkText: {
     position: 'absolute',
     top: '50%',
