@@ -59,16 +59,20 @@ const GyrusNEETAnalytics = () => {
       if (scrollRef.current) {
         scrollRef.current.scrollTo({ y: 0, animated: false });
       }
+    }, [])
+  );
 
+  useEffect(() => {
+    if (!loading && userData) {
       progressAnim.setValue(0);
       Animated.timing(progressAnim, {
         toValue: 1,
-        duration: 2500,
+        duration: 1500,
         easing: Easing.bezier(0.4, 0, 0.2, 1),
         useNativeDriver: false,
       }).start();
-    }, [])
-  );
+    }
+  }, [userData, loading, progressAnim]);
   
   const getStdLabel = (val?: string) => {
     if (!val) return "";
@@ -131,39 +135,41 @@ const GyrusNEETAnalytics = () => {
     };
 
     const extractStats = (sub: any) => {
-      const scoresArr = Array.isArray(sub.scores)
-        ? sub.scores
-        : typeof sub.scores === 'string'
-          ? JSON.parse(sub.scores || '[]')
-          : [];
-      let correct = typeof sub.correct === 'number' ? sub.correct : 0;
-      let wrong = typeof sub.wrong === 'number' ? sub.wrong : 0;
-      let reward = typeof sub.rewardPoints === 'number' ? sub.rewardPoints : Number(sub.reward || 0) || 0;
-      if (typeof sub.correct !== 'number') {
-        if (scoresArr.length > 0 && typeof scoresArr[0] === 'object') {
-          if (scoresArr[0].score !== undefined && scoresArr[0].total !== undefined) {
-            correct = scoresArr.reduce((sum: number, s: any) => sum + (Number(s.score) || 0), 0);
-            wrong = scoresArr.reduce((sum: number, s: any) => sum + Math.max(0, (Number(s.total) || 0) - (Number(s.score) || 0)), 0);
-          } else {
-            correct = scoresArr.filter((s: any) => s.correct === true || s.isCorrect === true || s.status === 'correct' || s.answerCorrect === true).length;
-            wrong = scoresArr.length - correct;
+      let correct = typeof sub?.correct === 'number' ? sub.correct : 0;
+      let wrong = typeof sub?.wrong === 'number' ? sub.wrong : 0;
+      let reward = typeof sub?.rewardPoints === 'number' ? sub.rewardPoints : Number(sub?.reward || 0) || 0;
+
+      // Fallback if correct/wrong are completely missing (e.g. older documents)
+      if (correct === 0 && wrong === 0 && sub?.scores) {
+        const scoresArr = Array.isArray(sub.scores) ? sub.scores : (typeof sub.scores === 'string' ? JSON.parse(sub.scores || '[]') : []);
+        let fallbackCorrect = 0;
+        let fallbackWrong = 0;
+        let fallbackReward = 0;
+
+        scoresArr.forEach((s: any) => {
+          if (typeof s === 'object' && s !== null) {
+            if (typeof s.correct === 'number') {
+              fallbackCorrect += s.correct;
+              fallbackWrong += (s.wrong || 0);
+            } else if (typeof s.score === 'number') {
+              fallbackCorrect += s.score;
+              fallbackWrong += Math.max(0, (s.total || s.score) - s.score);
+            }
+            fallbackReward += (Number(s.rewardPoints || s.points || 0) || 0);
           }
-          const sumReward = scoresArr.reduce((sum: number, s: any) => sum + (Number(s.rewardPoints || s.points || 0) || 0), 0);
-          if (sumReward > 0 && typeof sub.rewardPoints !== 'number') reward = sumReward;
-        } else if (scoresArr.length > 0 && typeof scoresArr[0] !== 'object') {
-          correct = sub.attended || scoresArr.length;
-          wrong = Math.max(0, scoresArr.length - (sub.attended || 0));
-        } else {
-          correct = sub.attended || 0;
-          wrong = 0;
-        }
+        });
+
+        if (fallbackCorrect > 0) correct = fallbackCorrect;
+        if (fallbackWrong > 0) wrong = fallbackWrong;
+        if (fallbackReward > 0 && reward === 0) reward = fallbackReward;
       }
+
       return { correct, wrong, reward };
     };
 
     return subs.map((key) => {
-      const neetSub = userData[neetFieldMap[key]] || {};
-      const indSub = userData[key] || {};
+      const neetSub = userData?.[neetFieldMap[key]] || {};
+      const indSub = userData?.[key] || {};
       const neetStats = extractStats(neetSub);
       const indStats = extractStats(indSub);
 

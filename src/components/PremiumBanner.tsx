@@ -39,10 +39,10 @@ const PremiumBanner: React.FC<PremiumBannerProps> = ({ isVisible, onClose }) => 
   const handleContinue = () => {
     onClose();
     try {
-      navigation.navigate("BottomBar", { screen: "Home" });
+      navigation.reset({ index: 0, routes: [{ name: 'BottomBar' }] });
     } catch (error) {
       try {
-        navigation.navigate("Home");
+        navigation.navigate("BottomBar", { screen: "Home" });
       } catch (err) {
         console.log("[PremiumBanner] Navigation to home failed:", err);
       }

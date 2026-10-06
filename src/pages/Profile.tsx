@@ -38,10 +38,7 @@ import { ShineText } from "../components/ShineText";
 import ReminderModal from "../components/ReminderModal";
 import StatusPopup from "../components/StatusPopup";
 
-
-
-
-
+const Silver = require("../assets/Silver.png");
 const Profile = ({ navigation }: { navigation: any }) => {
   const scrollRef = useRef<any>(null);
 
@@ -656,6 +653,168 @@ const Profile = ({ navigation }: { navigation: any }) => {
                     </View>
                   </View>
 
+                  {/* Membership Card */}
+                  {/* Membership Card */}
+                  {(() => {
+                    const titleText = userData?.isTrial ? "GOLD" : (userData?.planValid && userData?.planId?.name ? userData.planId.name : "SILVER");
+                    const isTrial = !!userData?.isTrial || String(titleText).toLowerCase().includes('trial') || (userData?.planValid && userData?.isTrial);
+                    const isGold = !!userData?.isTrial || String(titleText).toLowerCase().includes('gold');
+                    const isSilver = !userData?.planValid || String(titleText).toLowerCase().includes('silver');
+
+                    // Determine theme styling dynamically
+                    const getTheme = () => {
+                      if (isGold) {
+                        return {
+                          cardStyle: styles.trialCard,
+                          titleColor: '#E5C07B',
+                          subTitleColor: '#E5C07B',
+                          progressColors: ['#F6E27A', '#CB9B51', '#F6E27A'] as const,
+                          progressBorder: 'rgba(203, 155, 81, 0.3)',
+                          trackBorder: 'rgba(203, 155, 81, 0.2)',
+                          btnColors: ["#3A5A58", "#2E4745"] as const,
+                          btnBorder: '#E5C07B',
+                          textColor: '#E5C07B',
+                          subTextColor: '#A0AAB2'
+                        };
+                      } else if (isSilver) {
+                        return {
+                          cardStyle: styles.silverCard,
+                          titleColor: '#E0E0E0',
+                          subTitleColor: '#C0C0C0',
+                          progressColors: ['#E0E0E0', '#909090', '#E0E0E0'] as const,
+                          progressBorder: 'rgba(192, 192, 192, 0.3)',
+                          trackBorder: 'rgba(192, 192, 192, 0.2)',
+                          btnColors: ["#505050", "#2b2b2b"] as const,
+                          btnBorder: '#C0C0C0',
+                          textColor: '#E0E0E0',
+                          subTextColor: '#A0AAB2'
+                        };
+                      } else {
+                        return {
+                          cardStyle: {}, // default transparent teal background applied by actSilver base
+                          titleColor: '#FFFFFF',
+                          subTitleColor: '#15BBB1',
+                          progressColors: ['#22E2D6', '#15BBB1', '#0D7F78'] as const,
+                          progressBorder: 'rgba(21, 187, 177, 0.3)',
+                          trackBorder: 'rgba(21, 187, 177, 0.2)',
+                          btnColors: ["#22E2D6", "#15BBB1", "#0D7F78"] as const,
+                          btnBorder: 'transparent',
+                          textColor: '#15BBB1',
+                          subTextColor: '#D1D5DB'
+                        };
+                      }
+                    };
+
+                    const theme = getTheme();
+
+                    return (
+                      <View style={[styles.actSilver, theme.cardStyle]}>
+                        <Image 
+                          source={(userData?.planValid && userData?.planId?.img) ? { uri: userData?.planId?.img } : Silver} 
+                          style={styles.memberImg} 
+                        />
+                        <View style={styles.memberDetails}>
+                          <Text style={[styles.memberTitle, { color: theme.titleColor, fontSize: wp(5), marginBottom: 0, textTransform: 'uppercase' }]}>{titleText}</Text>
+                          <Text style={[styles.memberTitle, { color: theme.subTitleColor, fontSize: wp(3.5), fontWeight: 'normal', letterSpacing: 2, marginBottom: hp(0.5) }]}>
+                            {isTrial ? "TRIAL" : "MEMBER"}
+                          </Text>
+
+                          {userData?.planValid && (() => {
+                            const expiryDate = (() => {
+                              if (userData?.isTrial && userData?.planValid && userData?.trialActivatedAt) {
+                                return new Date(new Date(userData.trialActivatedAt).getTime() + 14 * 24 * 60 * 60 * 1000);
+                              }
+                              if (userData?.planValid && userData?.planActivatedAt && userData?.planId?.days) {
+                                return new Date(new Date(userData.planActivatedAt).getTime() + Number(userData.planId.days) * 24 * 60 * 60 * 1000);
+                              }
+                              return userData?.planExpiry;
+                            })();
+
+                            return expiryDate ? (
+                              <View style={styles.expiryContainer}>
+                                {(() => {
+                                  const currentMs = new Date().getTime();
+                                  const targetMs = new Date(expiryDate).getTime();
+                                  let startMs = userData?.trialActivatedAt ? new Date(userData.trialActivatedAt).getTime() : 
+                                                userData?.planActivatedAt ? new Date(userData.planActivatedAt).getTime() : 
+                                                (targetMs - ((userData?.isTrial ? 14 : (userData?.planId?.days || 30)) * 24 * 60 * 60 * 1000));
+                                  
+                                  if (startMs >= targetMs) {
+                                    startMs = targetMs - (14 * 24 * 60 * 60 * 1000);
+                                  }
+
+                                  const totalDuration = targetMs - startMs;
+                                  const remainingDuration = targetMs - currentMs;
+                                  const progressPercent = Math.min(100, Math.max(0, (remainingDuration / totalDuration) * 100));
+
+                                  let diff = Math.ceil(remainingDuration / (1000 * 60 * 60 * 24));
+                                  diff = diff < 0 ? 0 : diff;
+
+                                  return (
+                                    <>
+                                      {!isSilver && (
+                                        <View style={[styles.trialProgressBarContainer, { borderColor: theme.progressBorder }]}>
+                                          <View style={[styles.trialProgressBarTrack, { borderColor: theme.trackBorder }]} />
+                                          <LinearGradient
+                                            colors={theme.progressColors}
+                                            start={{ x: 0, y: 0.5 }}
+                                            end={{ x: 1, y: 0.5 }}
+                                            style={[styles.trialProgressBarFill, { width: `${progressPercent}%` }]}
+                                          />
+                                        </View>
+                                      )}
+                                      
+                                      <Text style={[styles.daysRemainingText, { color: theme.textColor, marginBottom: hp(0.5), textAlign: 'center' }]}>
+                                        {diff} Days Remaining
+                                      </Text>
+
+                                      <Text style={[styles.expiryText, { color: theme.subTextColor }]}>
+                                        {isTrial ? '*' : ''}Valid until {new Date(expiryDate).toLocaleDateString("en-GB")}
+                                      </Text>
+                                    </>
+                                  );
+                                })()}
+
+                                {(() => {
+                                  const daysRem = Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                                  const showButton = isTrial || isSilver || daysRem <= 5;
+
+                                  return showButton ? (
+                                    <TouchableOpacity
+                                      style={{ marginTop: hp(1), alignSelf: 'center' }}
+                                      onPress={() => navigation.navigate("Plans")}
+                                    >
+                                      <LinearGradient
+                                        colors={theme.btnColors}
+                                        style={[styles.updateNowButton, { borderColor: theme.btnBorder, borderWidth: theme.btnBorder !== 'transparent' ? 1 : 0 }]}
+                                      >
+                                        <Text style={[styles.updateNowText, { color: theme.btnBorder !== 'transparent' ? theme.btnBorder : '#FFFFFF' }]}>UPGRADE NOW</Text>
+                                      </LinearGradient>
+                                    </TouchableOpacity>
+                                  ) : null;
+                                })()}
+                              </View>
+                            ) : null;
+                          })()}
+                          
+                          {!userData?.planValid && (
+                            <TouchableOpacity
+                              style={{ marginTop: hp(0.5), alignSelf: 'center' }}
+                              onPress={() => navigation.navigate("Plans")}
+                            >
+                              <LinearGradient
+                                colors={theme.btnColors}
+                                style={[styles.updateNowButton, { borderColor: theme.btnBorder, borderWidth: theme.btnBorder !== 'transparent' ? 1 : 0 }]}
+                              >
+                                <Text style={[styles.updateNowText, { color: theme.btnBorder !== 'transparent' ? theme.btnBorder : '#FFFFFF' }]}>UPGRADE NOW</Text>
+                              </LinearGradient>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })()}
+
                   {/* Personal Info */}
                   <Text style={styles.sectionTitle}>PERSONAL INFO</Text>
                   <View style={styles.gridRow}>
@@ -1215,6 +1374,113 @@ const styles = StyleSheet.create({
     height: wp(8),
     resizeMode: "contain",
   },
+  actSilver: {
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.30)",
+    marginTop: hp(2),
+    marginBottom: hp(2),
+    padding: wp(4),
+    borderRadius: wp(4),
+    borderWidth: 0,
+    // shadowColor: "#000",
+    // shadowOffset: { width: 0, height: 4 },
+    // shadowOpacity: 0.15,
+    // shadowRadius: 8,
+    // elevation: 4,
+  },
+  memberImg: {
+    width: wp(20),
+    height: wp(20),
+    resizeMode: "contain",
+    marginBottom: hp(2),
+  },
+  memberDetails: {
+    width: '100%',
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  memberTitle: {
+    fontFamily: 'AppFont-Bold', 
+    fontSize: wp(4.5),
+    color: "#FFFFFF",
+    marginBottom: hp(0.5),
+    textAlign: "center",
+  },
+  expiryContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    width: '100%',
+  },
+  expiryText: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(3),
+    color: 'rgba(153, 209, 193, 0.9)',
+    marginBottom: hp(0.5),
+    textAlign: "center",
+  },
+  daysRemainingBadge: {
+    backgroundColor: 'rgba(21, 187, 177, 0.15)',
+    paddingHorizontal: wp(2.5),
+    paddingVertical: hp(0.4),
+    borderRadius: wp(1.5),
+    borderWidth: 1,
+    borderColor: 'rgba(21, 187, 177, 0.5)',
+    marginBottom: hp(1),
+  },
+  daysRemainingText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(2.8),
+    color: '#15BBB1',
+    textAlign: "center",
+  },
+  updateNowButton: {
+    paddingVertical: hp(0.8),
+    paddingHorizontal: wp(5),
+    borderRadius: wp(5),
+    marginTop: hp(0.5),
+  },
+  updateNowText: {
+    color: '#FFFFFF',
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3),
+    textTransform: 'uppercase',
+  },
+  trialCard: {
+    backgroundColor: 'rgba(0, 0, 0, 0.30)',
+    borderColor: '#CB9B51',
+    borderWidth: 1.5,
+  },
+  silverCard: {
+    backgroundColor: 'rgba(0, 0, 0, 0.30)',
+    borderColor: '#C0C0C0',
+    borderWidth: 1.5,
+  },
+  trialProgressBarContainer: {
+    width: '100%',
+    height: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 5,
+    marginTop: hp(0.5),
+    marginBottom: hp(1),
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(203, 155, 81, 0.3)',
+  },
+  trialProgressBarTrack: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    borderRadius: 4,
+  },
+  trialProgressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  }
 });
 
 export default Profile;

@@ -1,0 +1,21 @@
+diff --git a/node_modules/react-native-mathjax-svg/index.js b/node_modules/react-native-mathjax-svg/index.js
+index a2e063d..d4fd967 100644
+--- a/node_modules/react-native-mathjax-svg/index.js
++++ b/node_modules/react-native-mathjax-svg/index.js
+@@ -18,7 +18,7 @@ const params = {
+   width: 80,
+   inline: true,
+   packages: AllPackages.sort().join(", "),
+-  fontCache: true
++  fontCache: false
+ };
+ 
+ const getScale = _svgString => {
+@@ -68,6 +68,7 @@ const texToSvg = (textext = "", fontSize = 8) => {
+     /\<mjx-container.*?\>(.*)\<\/mjx-container\>/gi,
+     "$1"
+   );
++  svgString = svgString.replace(/<rect\s+data-background="true"[^>]*><\/rect>/gi, "");
+ 
+   const [width, height] = getScale(svgString);
+   svgString = applyScale(svgString, [width * fontSize, height * fontSize]);

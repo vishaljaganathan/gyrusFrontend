@@ -3,7 +3,7 @@
     "name": "Gyrus NEET",
     "newArchEnabled": true,
     "slug": "gyus-neet",
-    "version": "1.0.20",
+    "version": "1.0.22",
     "orientation": "portrait",
     "icon": "./assets/appLogo.png",
     "splash": {
@@ -36,7 +36,7 @@
         "backgroundColor": "#004541"
       },
       "package": "com.gyrus.neet",
-      "versionCode": 50
+      "versionCode": 52
     },
     "web": {
       "favicon": "./assets/favicon.png"

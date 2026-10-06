@@ -54,7 +54,7 @@ const normalizeStdCategory = (std: string = ''): 'regular' | 'repeater' | 'crash
 
 const isNeetSubject = (subject: string = ''): boolean => {
     const s = String(subject || '').trim().toLowerCase();
-    return s === 'neet';
+    return s === 'neet' || s === 'mocktest';
 };
 
 const getIndividualPattern = (std: string = ''): number[] => {
@@ -88,16 +88,12 @@ export const getCyclePattern = (std: string = '', subject: string = '', isPaid: 
         return getIndividualPattern(std);
     }
 
-    // Paid NEET users get the ascending pattern
-    // NEET pattern requirements (combined 4 subjects):
-    // - XI/XII: [20, 40, 100] x3 then 180
-    // - Repeater: [20, 40, 100] x2 then 180
-    // - Crash: [20, 40, 100] x1 then 180
+    // NEET pattern requirements:
+    // ALL categories (regular, repeater, crash) get ONLY [20, 40]
     const category = normalizeStdCategory(std);
     const repeats = category === 'regular' ? 3 : category === 'repeater' ? 2 : 1;
     const pattern: number[] = [];
-    for (let i = 0; i < repeats; i += 1) pattern.push(20, 40, 100);
-    pattern.push(180);
+    for (let i = 0; i < repeats; i += 1) pattern.push(20, 40);
     return pattern;
 };
 
@@ -122,7 +118,12 @@ export const getProgressionLogic = (
     const nextSetIndex = (currentSetIndex + 1) % pattern.length;
     const isNewCycle = nextSetIndex === 0;
     const nextCycleIndex = isNewCycle ? currentCycle + 1 : currentCycle;
-    const nextSetSize = pattern[nextSetIndex];
+    let nextSetSize = pattern[nextSetIndex];
+
+    const category = normalizeStdCategory(std);
+    if (category === 'regular' && nextSetSize > 40) {
+        nextSetSize = 40;
+    }
 
     console.log('[baseStrategy] getProgressionLogic:', {
         subject,

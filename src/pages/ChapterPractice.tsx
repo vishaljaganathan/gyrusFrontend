@@ -101,23 +101,12 @@ const ChapterPractice = ({ navigation, route }: { navigation: any; route: any })
         const progress = userData?.chapterProgress?.[chapterSubjectKey] || {};
         const scores = progress.scores || [];
         
-        // Sort questions strictly by mcqId (extracting the numeric part for proper ordering)
+        // Sort questions strictly by questionNumber
         if (fullChapter.questions && Array.isArray(fullChapter.questions)) {
           const sortedQuestions = [...fullChapter.questions].sort((a, b) => {
-            const idA = a.mcqId || '';
-            const idB = b.mcqId || '';
-            
-            const matchA = idA.match(/^[A-Za-z]+0*(\d+)$/);
-            const matchB = idB.match(/^[A-Za-z]+0*(\d+)$/);
-            
-            if (matchA && matchB && matchA[1] && matchB[1]) {
-              const numA = parseInt(matchA[1], 10);
-              const numB = parseInt(matchB[1], 10);
-              if (numA !== numB) return numA - numB;
-            }
-            
-            // Fallback to alphabetical if format doesn't match
-            return idA.localeCompare(idB);
+            const numA = a.questionNumber || 0;
+            const numB = b.questionNumber || 0;
+            return numA - numB;
           });
 
           // 1. Calculate base batches for the chapter

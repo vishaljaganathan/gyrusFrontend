@@ -9,10 +9,11 @@ const SimpleProgressBar = ({ progress = 0, height = 16, style = {} }) => {
   const barHeight = height;
   const fillColor = '#0AB8AD';
   const bgColor = '#E0E0E0';
+  const validProgress = Number.isFinite(progress) ? Math.max(0, Math.min(progress, 100)) : 0;
   return (
     <View style={[{ height: barHeight, backgroundColor: bgColor, borderRadius: barHeight / 2, overflow: 'hidden', justifyContent: 'center', width: '100%' }, style]}>
-      <View style={{ width: `${Math.max(0, Math.min(progress, 100))}%`, height: barHeight, backgroundColor: fillColor, borderRadius: barHeight / 2 }} />
-      <Text style={{ position: 'absolute', width: '100%', textAlign: 'center', color: '#333', fontFamily: 'AppFont-Bold', fontSize: barHeight * 0.7 }}>{`${Math.round(progress)}%`}</Text>
+      <View style={{ width: `${validProgress}%`, height: barHeight, backgroundColor: fillColor, borderRadius: barHeight / 2 }} />
+      <Text style={{ position: 'absolute', width: '100%', textAlign: 'center', color: '#333', fontFamily: 'AppFont-Bold', fontSize: barHeight * 0.7 }}>{`${Math.round(validProgress)}%`}</Text>
     </View>
   );
 };
@@ -58,6 +59,9 @@ const Test = (props: any) => {
   const reviewMcqIdRaw = props?.route?.params?.params?.reviewMcqId;
   const isReviewMode = !!(typeof reviewMcqIdRaw === 'string' && reviewMcqIdRaw.trim());
   const reviewMcqId = isReviewMode ? String(reviewMcqIdRaw).trim() : "";
+  const fullReviewTrackIdRaw = props?.route?.params?.params?.fullReviewTrackId;
+  const isFullReviewMode = !!(typeof fullReviewTrackIdRaw === 'string' && fullReviewTrackIdRaw.trim());
+  const fullReviewTrackId = isFullReviewMode ? String(fullReviewTrackIdRaw).trim() : "";
 
   // const [bookMarked, setBookMarked] = useState(false);
   const VectorWin = require("../../assets/winning.png");
@@ -84,7 +88,7 @@ const Test = (props: any) => {
     appState,
     setAppState } = context;
   const isTesterBuildUser = ['tester', 'tct', 'teacher come tester'].includes(String(userData?.accType || '').trim().toLowerCase());
-  const showTestMeta = isReviewMode || isTesterBuildUser;
+  const showTestMeta = isReviewMode || isFullReviewMode || isTesterBuildUser;
 
   const [finalData, setFinalData] = useState<any>({
     subjectId: props.route.params?.params?.subjectId || '',
@@ -123,7 +127,7 @@ const Test = (props: any) => {
   const [submittedWrong, setSubmittedWrong] = useState<number | null>(null);
   const [submittedTotal, setSubmittedTotal] = useState<number | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
-  const [selectedIndex, setSelectedIdx] = useState(undefined);
+  const [selectedIndex, setSelectedIdx] = useState<number | undefined>(undefined);
 
 
   const [tipShown, setTipShown] = React.useState(false);
@@ -158,7 +162,7 @@ const Test = (props: any) => {
   ];
 
   const strategy = useMemo(() => {
-    if (isReviewMode) return null;
+    if (isReviewMode || isFullReviewMode) return null;
     const std = props.route.params?.params?.std || userData?.std;
     const isPaid = userData?.planValid || false;
     const subject = props.route.params?.params?.subject || 'neet';
@@ -220,8 +224,10 @@ const Test = (props: any) => {
   }, []);
 
   // Sanitize test size for display and logic
+  const stdUpper = String(props.route.params?.params?.std || userData?.std || '').toUpperCase().trim();
+  const isRegular = stdUpper !== 'R' && stdUpper !== 'C' && stdUpper !== 'REPEATER' && stdUpper !== 'CRASH';
   const rawTestType = Number(props.route.params?.params?.type) || 20;
-  const testType = (!userData?.planValid && rawTestType > 40) ? 40 : rawTestType;
+  const testType = ((!userData?.planValid || isRegular) && rawTestType > 40) ? 40 : rawTestType;
 
   const answeredQuestionKeysRef = useRef<Set<string>>(new Set());
 
@@ -290,7 +296,7 @@ const Test = (props: any) => {
 
   // Initialize indices once or when subject changes, and fetch initial questions with restored values
   useEffect(() => {
-    if (isReviewMode || !userData || !strategy) return;
+    if (isReviewMode || isFullReviewMode || !userData || !strategy) return;
 
     const initializeTest = async () => {
       // Avoid re-fetching if we already have questions or if we are already loading
@@ -350,7 +356,7 @@ const Test = (props: any) => {
 
   useEffect(() => {
     // Show initial instructions popup only once per mount
-    if (!isReviewMode) {
+    if (!isReviewMode && !isFullReviewMode) {
       setShowPopup(true);
     } else {
       setShowPopup(false);
@@ -481,6 +487,52 @@ const Test = (props: any) => {
     };
   }, [isReviewMode, isVisibleQuestion, reviewMcqId]);
 
+  // Full Review mode: fetch track details and populate MCQs
+  useEffect(() => {
+    if (!isFullReviewMode) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setLoadingQuestions(true);
+        const res = await axiosInstance.get(`authentication/test-track/review/${fullReviewTrackId}`);
+        if (!res?.data) return;
+        const track = res.data;
+        const questions: any = [];
+        const correct = track.correctQtsId || [];
+        const wrong = track.wrongQtsId || [];
+        
+        for (const item of correct) {
+          if (item?.questionId) {
+            questions.push({ ...item.questionId, userSelected: item.streak, isCorrectHit: true });
+          } else if (item?._id || item?.mcqId) {
+            questions.push({ ...item, userSelected: item.streak || '', isCorrectHit: true });
+          }
+        }
+        for (const item of wrong) {
+          if (item?.questionId) {
+            questions.push({ ...item.questionId, userSelected: item.streak, isCorrectHit: false });
+          } else if (item?._id || item?.mcqId) {
+            questions.push({ ...item, userSelected: item.streak || '', isCorrectHit: false });
+          }
+        }
+        
+        if (!cancelled && questions.length > 0) {
+          setMCQs(questions);
+          setMCQ(questions[0]);
+          setMCQIdx(0);
+          setShowAnswer(true);
+        }
+      } catch (err) {
+        console.error('[Test.tsx] Full Review mode fetch failed:', err);
+      } finally {
+        if (!cancelled) setLoadingQuestions(false);
+      }
+    };
+
+    run();
+    return () => { cancelled = true; };
+  }, [isFullReviewMode, fullReviewTrackId]);
+
   // Log the IDs of the questions currently displayed whenever MCQs updates
   useEffect(() => {
     if (Array.isArray(MCQs) && MCQs.length) {
@@ -498,10 +550,12 @@ const Test = (props: any) => {
       const subject = props.route.params?.params?.subject;
       let type = forcedType || props.route.params?.params?.type;
 
-      // SAFETY: If a user's subscription expires while they are in a test 
-      // or if they deep-link into a large test as a free user, cap the size to 40.
-      if (userData && !userData.planValid && Number(type) > 40) {
-        console.warn('[Test.tsx] Capping Exercise size to 40 for free user.');
+      // SAFETY: If a user's subscription expires while they are in a test,
+      // or if they are regular 11th/12th students, cap the size to 40.
+      const currentStd = String(std || userData?.std || '').toUpperCase().trim();
+      const isRegularStd = currentStd !== 'R' && currentStd !== 'C' && currentStd !== 'REPEATER' && currentStd !== 'CRASH';
+      if (((userData && !userData.planValid) || isRegularStd) && Number(type) > 40) {
+        console.warn('[Test.tsx] Capping Exercise size to 40 for regular 11th/12th or free user.');
         type = 40;
       }
 
@@ -663,9 +717,15 @@ const Test = (props: any) => {
       const currentQuestion = MCQs[MCQIdx];
       if (currentQuestion && typeof currentQuestion === 'object') {
         setMCQ(currentQuestion);
+        if (isFullReviewMode) {
+          setSelectedIdx(Number(currentQuestion.userSelected));
+          setShowAnswer(true);
+        } else {
+          // Keep it as is or reset if necessary
+        }
       }
     }
-  }, [MCQIdx, MCQs]);
+  }, [MCQIdx, MCQs, isFullReviewMode]);
 
   const returnContent = (testType: any) => {
     const isChapter = (props.route?.params?.params?.subject || finalData?.subject || '').toString().toLowerCase().startsWith('chapter_');
@@ -789,8 +849,9 @@ const Test = (props: any) => {
       }
       const effectiveSize = Math.min(setSize, MCQs.length > 0 ? MCQs.length : setSize);
       const isChapter = finalData.subject && finalData.subject.startsWith('chapter_');
+      const isMockTest = finalData.subject && finalData.subject.toLowerCase() === 'mocktest';
       const passMark = isChapter ? 1 : Math.ceil(effectiveSize / 2);
-      const passed = isChapter ? correctQtsIds.length > 0 : correctQtsIds.length >= passMark;
+      const passed = isMockTest ? true : (isChapter ? correctQtsIds.length > 0 : correctQtsIds.length >= passMark);
 
       // Persist score for the result modal (we reset correct/wrong arrays shortly after to preload next set)
       setSubmittedScore(correctQtsIds.length);
@@ -814,6 +875,10 @@ const Test = (props: any) => {
         nextSetSize = progression.nextSetSize ?? 20;
       }
 
+      if (isRegular && nextSetSize > 40) {
+        nextSetSize = 40;
+      }
+
       // Enforce no progression if they failed (but answered all)
       if (!passed) {
         nextCycle = cycleIndex;
@@ -831,16 +896,16 @@ const Test = (props: any) => {
       });
 
       const questionIdsForSubmit = MCQs.map((q: any) => getQuestionIdForPayload(q)).filter((id: any) => typeof id === 'string');
-      const correctForSubmit = (correctQtsIds || []).filter((x: any) => typeof x?.questionId === 'string' && /^[0-9a-fA-F]{24}$/.test(x.questionId));
-      const wrongForSubmit = (wrongQtsIds || []).filter((x: any) => typeof x?.questionId === 'string' && /^[0-9a-fA-F]{24}$/.test(x.questionId));
+      const correctForSubmit = (correctQtsIds || []).filter((x: any) => typeof x?.questionId === 'string' && x.questionId.length > 0);
+      const wrongForSubmit = (wrongQtsIds || []).filter((x: any) => typeof x?.questionId === 'string' && x.questionId.length > 0);
 
       const submitPayload = {
         subjectId: finalData.subjectId,
         testId: finalData.testId,
         scores: correctForSubmit.length,
         subject: finalData.subject,
-        correctQtsId: correctForSubmit.map((x: any) => x.questionId),
-        wrongQtsId: wrongForSubmit.map((x: any) => x.questionId),
+        correctQtsId: correctForSubmit.map((x: any) => ({ questionId: x.questionId, streak: x.streak })),
+        wrongQtsId: wrongForSubmit.map((x: any) => ({ questionId: x.questionId, streak: x.streak })),
         cycle: cycleIndex, // current cycle
         set: setIndexInCycle, // current set
         nextCycle, // calculated next cycle
@@ -1108,7 +1173,7 @@ const Test = (props: any) => {
         <View style={{ flex: 1, marginRight: wp(2), justifyContent: 'center' }}>
           {/* Simple linear progress bar stretched to cup image */}
           <SimpleProgressBar
-            progress={testStarted ? (correctQtsIds.length + wrongQtsIds.length) / MCQs.length * 100 : 0}
+            progress={testStarted && MCQs.length > 0 ? (correctQtsIds.length + wrongQtsIds.length) / MCQs.length * 100 : 0}
             height={hp(2.5)}
           />
         </View>
@@ -1348,6 +1413,27 @@ const Test = (props: any) => {
                 </CustomBoldText>
               </TouchableOpacity>
             </View>
+          ) : !loadingQuestions && MCQs.length === 0 ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, paddingTop: hp(15), paddingHorizontal: wp(5) }}>
+              <Text style={{ color: '#0AB8AD', fontFamily: 'AppFont-Bold', fontSize: hp(2.2), textAlign: 'center', marginBottom: hp(1.5) }}>
+                Unable to load questions
+              </Text>
+              <Text style={{ color: '#C6CDD0', fontFamily: 'AppFont-Regular', fontSize: hp(1.8), textAlign: 'center', marginBottom: hp(3) }}>
+                Please check your network connection or server status.
+              </Text>
+              <TouchableOpacity
+                onPress={() => fetchQuestions(0, usedIds, 0, cycleIndex, setIndexInCycle, testType)}
+                activeOpacity={0.8}
+                style={{
+                  backgroundColor: '#0AB8AD',
+                  paddingVertical: hp(1.5),
+                  paddingHorizontal: wp(8),
+                  borderRadius: hp(1.2),
+                }}
+              >
+                <CustomBoldText style={{ color: '#FFF', fontSize: hp(1.8) }}>Retry</CustomBoldText>
+              </TouchableOpacity>
+            </View>
           ) : (
             <></>
           )}
@@ -1362,11 +1448,11 @@ const Test = (props: any) => {
           justifyContent: "space-evenly"
         }}
       >
-        {(!isSubmitting && !submitTest && !submitFailed) && (
+        {(!isSubmitting && !submitTest && !submitFailed && !isFullReviewMode) && (
           <View>
             <CheckButton
               onPress={() => {
-                if (isReviewMode) return;
+                if (isReviewMode || isFullReviewMode) return;
                 if (!testStarted) return;
                 const setSize = testType;
                 if (selectedIndex != undefined && showAnswer == true) {
@@ -1412,6 +1498,35 @@ const Test = (props: any) => {
               text={showAnswer == false ? "Check" : "Next"}
               disable={selectedIndex == undefined}
             />
+          </View>
+        )}
+        {isFullReviewMode && (
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: wp(4), paddingHorizontal: 20 }}>
+            <TouchableOpacity
+              onPress={() => {
+                if (MCQIdx > 0) {
+                  setMCQIdx(MCQIdx - 1);
+                }
+              }}
+              style={{ paddingVertical: hp(2), paddingHorizontal: wp(6), borderRadius: hp(3.5), backgroundColor: '#0AB8AD', opacity: MCQIdx > 0 ? 1 : 0.5, flex: 1, alignItems: 'center' }}
+              disabled={MCQIdx === 0}
+            >
+              <Text style={{ color: '#ffffff', fontFamily: 'AppFont-Bold', fontSize: hp(2.2) }}>Previous</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                if (MCQIdx < MCQs.length - 1) {
+                  setMCQIdx(MCQIdx + 1);
+                } else {
+                  if (navigation.canGoBack()) navigation.goBack();
+                }
+              }}
+              style={{ paddingVertical: hp(2), paddingHorizontal: wp(6), borderRadius: hp(3.5), backgroundColor: '#0AB8AD', flex: 1, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#ffffff', fontFamily: 'AppFont-Bold', fontSize: hp(2.2) }}>
+                {MCQIdx < MCQs.length - 1 ? 'Next' : 'Exit Review'}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>

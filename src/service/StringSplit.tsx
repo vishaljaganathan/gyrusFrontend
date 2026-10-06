@@ -12,6 +12,38 @@ import {
   heightPercentageToDP as hp} from "react-native-responsive-screen";
 import MathJaxSvg from "react-native-mathjax-svg";
 import { Ionicons as Icon } from '@expo/vector-icons';
+import { axiosInstance } from '../config/indeceptor';
+
+export const formatImageUrl = (url: string) => {
+  if (!url) return '';
+  let finalUrl = String(url);
+  
+  // Do not modify base64 image strings
+  if (finalUrl.startsWith('data:')) {
+    return finalUrl;
+  }
+  
+  // Handle protocol-relative URLs
+  if (finalUrl.startsWith('//')) {
+    return `https:${finalUrl}`;
+  }
+  
+  const baseURL = axiosInstance.defaults.baseURL || '';
+  
+  // Extract the origin (e.g., "http://192.168.0.108:3000") from the baseURL
+  const match = baseURL.match(/^(https?:\/\/[^\/]+)/);
+  const origin = match ? match[1] : 'http://192.168.0.108:3000';
+
+  // If the DB stores the image with localhost, replace it with our network IP
+  if (finalUrl.includes('localhost')) {
+    finalUrl = finalUrl.replace(/https?:\/\/localhost(:\d+)?/, origin);
+  } else if (!finalUrl.startsWith('http')) {
+    // If it's a relative URL, prepend the origin
+    finalUrl = finalUrl.startsWith('/') ? `${origin}${finalUrl}` : `${origin}/${finalUrl}`;
+  }
+  
+  return finalUrl;
+};
 
 const debounce = (func: Function, wait: number) => {
   let timeout: any;
@@ -40,6 +72,12 @@ const preprocessChemTex = (input: string) => {
   // Unwrap \ce{...} if present
   s = s.replace(/\\ce\{([^}]*)\}/g, (_m, inner) => inner);
 
+  // Protect superscript/subscript negative and positive charges followed immediately by comparison operators
+  // (e.g. O_2^->O_2, SO_4^2->SO_3^2-, Cl^->Br^-, O_2^+>O_2)
+  // In formulas like O_2^->O_2, the '-' and '>' form '->', which would falsely be converted into a reaction arrow \rightarrow
+  s = s.replace(/\^([0-9]*[-+])\s*([<>=])/g, (_m, p1, op) => '^{' + p1 + '} ' + op + ' ');
+  s = s.replace(/\_([0-9]*[-+])\s*([<>=])/g, (_m, p1, op) => '_{' + p1 + '} ' + op + ' ');
+
   // Replace arrow with labeled forms: ->[above][below] -> \xrightarrow[below]{above}
   s = s.replace(/->\s*\[(.*?)\]\s*\[(.*?)\]/g, (_m, aboveRaw, belowRaw) => {
     const labelToTex = (lbl: string) => {
@@ -65,8 +103,17 @@ const preprocessChemTex = (input: string) => {
     return `\\overset{${above}}{\\xrightarrow[${below}]{\\hspace{${lenEm}em}}}`;
   });
 
-  // Fallback: simple arrow to \rightarrow
-  s = s.replace(/->/g, '\\rightarrow');
+  // Long arrow: -->
+  s = s.replace(/(?<![\^_{])-->/g, ' \\longrightarrow ');
+
+  // Fallback: simple arrow to \rightarrow (only if not preceded by superscript/subscript indicators)
+  s = s.replace(/(?<![\^_{])->/g, ' \\rightarrow ');
+
+  // If the equation contains line breaks (\\) but is not already in a multi-line environment,
+  // wrap it in an array to ensure MathJax renders it as multiple lines instead of one long line.
+  if (s.includes('\\\\') && !s.includes('\\begin{')) {
+    s = '\\begin{array}{l} ' + s + ' \\end{array}';
+  }
 
   return s;
 };
@@ -156,7 +203,7 @@ const ZoomablePreviewImage = ({ uri }: { uri: string }) => {
     >
       <GestureDetector gesture={composed}>
         <Animated.Image
-          source={{ uri }}
+          source={{ uri: formatImageUrl(uri) }}
           style={[style.previewImage, animatedStyle]}
         />
       </GestureDetector>
@@ -232,8 +279,7 @@ export const StringSplitQuestion = (props: any) => {
                 style={{
                 alignSelf: "stretch",
                 width: "100%",
-                marginBottom: CHUNK_V_GAP,
-                flex: props.isOptionContent ? 1 : undefined}}
+                marginBottom: CHUNK_V_GAP }}
               scrollEventThrottle={16}
               onScroll={RNAnimated.event(
                 [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -343,7 +389,7 @@ export const StringSplitQuestion = (props: any) => {
             {props.isOptionContent ? (
               <View style={{ width: "100%", position: "relative" }}>
                 <Image
-                  source={{ uri: props.MCQ }}
+                  source={{ uri: formatImageUrl(String(props.MCQ)) }}
                   style={
                     props.content === "explanation"
                       ? {
@@ -388,7 +434,7 @@ export const StringSplitQuestion = (props: any) => {
                   style={{ width: "100%" }}
                 >
                   <Image
-                    source={{ uri: props.MCQ }}
+                    source={{ uri: formatImageUrl(String(props.MCQ)) }}
                     style={
                       props.content === "explanation"
                         ? {

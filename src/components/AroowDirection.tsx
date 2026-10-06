@@ -21,7 +21,7 @@ import SingleStage from "./SingleStage";
 
 
 
-const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { track: any; subName: string; chapterBatches?: any[]; chapter?: any; onScorePress?: (score: any, index: number) => void }) => {
+const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress, hideStartButton, forceLockDummy }: { track: any; subName: string; chapterBatches?: any[]; chapter?: any; onScorePress?: (score: any, index: number) => void; hideStartButton?: boolean; forceLockDummy?: boolean }) => {
   const [stageTrack, setStageTrack] = useState([]);
   const [loading, setLoading] = useState(false);
   const [testSize, setTestSize] = useState<number | null>(null);
@@ -114,13 +114,13 @@ const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { tra
     return Math.floor(n);
   };
 
+  const isRegularStudent = (std: string = ''): boolean => {
+    const s = String(std || '').trim().toUpperCase();
+    return s !== 'R' && s !== 'REPEATER' && s !== 'C' && s !== 'CRASH';
+  };
+
   const getDefaultSizeForSubject = (subject: string): number => {
-    const s = String(subject || '').trim().toLowerCase();
-    const isPaid = !!userData?.planValid;
-    if (s === 'neet') {
-      return isPaid ? 100 : 20;
-    }
-    return 40;
+    return 20;
   };
 
   const getDerivedNextSizeFromProgress = (subjectState: any, subject: string, trackLength?: number): number | null => {
@@ -187,7 +187,8 @@ const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { tra
       final: finalNextSize
     });
 
-    const cappedSize = (!isPaid && finalNextSize > 40) ? 40 : finalNextSize;
+    const isRegular = isRegularStudent(userData?.std);
+    const cappedSize = ((!isPaid || isRegular) && finalNextSize > 40) ? 40 : finalNextSize;
     setTestSize(cappedSize);
     setNextSetSize(cappedSize);
     setIsNextSetSizeReady(true);
@@ -217,8 +218,15 @@ const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { tra
     const derived = getDerivedNextSizeFromProgress(subjectState, homeSubject, trackLength);
     const stored = normalizePositiveNumber(subjectState.nextSetSize);
     const isPaid = !!userData?.planValid;
-    const final = derived ?? stored ?? nextSetSize;
-    const result = (!isPaid && final > 40) ? 40 : final;
+    const isRegular = isRegularStudent(userData?.std);
+
+    // If regular student (11th/12th), ignore legacy stored values > 40
+    const sanitizedStored = (isRegular && stored && stored > 40) ? null : stored;
+    const final = derived ?? sanitizedStored ?? nextSetSize;
+    let result = (!isPaid && final > 40) ? 40 : final;
+    if (isRegular && result > 40) {
+      result = 40;
+    }
 
     console.log('[AroowDirection] liveNextSize calculation:', {
       trackLength,
@@ -312,7 +320,9 @@ const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { tra
     axiosInstance.post("authentication/test-track", { subject: homeSubject, nextSetSize: preferredClientSize })
       .then((res: any) => {
         const generatedTypeSize = Number(res.data.type);
-        const size = isPaid ? generatedTypeSize : (generatedTypeSize > 40 ? 40 : generatedTypeSize);
+        const isRegular = isRegularStudent(userData?.std);
+        let size = isPaid ? generatedTypeSize : (generatedTypeSize > 40 ? 40 : generatedTypeSize);
+        if (isRegular && size > 40) size = 40;
 
         console.log('[AroowDirection] Backend synced! Starting test with type:', size);
         setNextSetSize(size);
@@ -333,8 +343,11 @@ const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { tra
       .catch((e: any) => {
         console.error('[AroowDirection] test-track error:', e.message);
         // Local Fallback Route:
+        const isRegular = isRegularStudent(userData?.std);
         let size = preferredClientSize ?? fallbackSize;
-        if (!isPaid && size > 40) size = 40;
+        if ((!isPaid || isRegular) && size > 40) size = 40;
+        let testTypeParam = fallbackSize;
+        if (isRegular && testTypeParam > 40) testTypeParam = size;
 
         console.log('[AroowDirection] Using fallback local navigation for test with size:', size);
         setNextSetSize(size);
@@ -342,7 +355,7 @@ const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { tra
         navigation.navigate("Test", {
           params: {
             subject: homeSubject,
-            type: fallbackSize,
+            type: testTypeParam,
             testId: subjectState.testId,
             subjectId: subjectState.subjectId,
             std: userData.std
@@ -418,7 +431,7 @@ const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { tra
         ref={scrollBottomRef}
         indicatorColor="hsla(185, 100%, 93%, 1.00)"
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: hp(2) }}
+        contentContainerStyle={{ paddingBottom: subName === 'mockTest' ? hp(15) : hp(2) }}
       >
         <View
           style={{
@@ -506,8 +519,15 @@ const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { tra
                   const absoluteIndex = (currentSetIndex + offsetFromCurrent) % pattern.length;
                   let rawQCount = pattern[absoluteIndex];
 
-                  // ABSOLUTE GATE: Force non-paid users to 40 max for locked display.
-                  qCount = (!userData?.planValid && rawQCount > 40) ? 40 : rawQCount;
+                  const isRegular = isRegularStudent(userData?.std);
+                  // ABSOLUTE GATE: Force non-paid users and regular 11th/12th students to 40 max for locked display.
+                  if (!userData?.planValid && rawQCount > 40) {
+                    qCount = 40;
+                  } else if (isRegular && rawQCount > 40) {
+                    qCount = 40;
+                  } else {
+                    qCount = rawQCount;
+                  }
                 }
               }
             } catch (e) {
@@ -544,11 +564,11 @@ const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { tra
                   loading={loading}
                   questionCount={qCount}
                   label={label}
-                  showNumber={qCount > 0}
+                  showNumber={forceLockDummy ? false : qCount > 0}
                   practiceLabel={dummyPracticeLabel}
-                  isLocked={isChapterComplete}
+                  isLocked={forceLockDummy || isChapterComplete}
                   onLayout={isChapterComplete ? handleStartLayout : undefined}
-                  hideArrow={shouldHideArrow}
+                  hideArrow={shouldHideArrow || (forceLockDummy && index === dummyData.length - 1 && stageTrack.length === 0)}
                 />
                 {isChapterComplete && dummyRoundEndLabel && dummyRoundEndStats && (
                   renderPracticeResultSection(
@@ -650,7 +670,7 @@ const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { tra
                     questionCount={questionCount}
                     label={setLabel}
                     showNumber={false}
-                    isLatest={isLatest}
+                    isLatest={isLatest && !hideStartButton}
                     onLayout={isLatest ? handleStartLayout : undefined}
                     hideArrow={Boolean(roundEndLabel) || index === track.length - 1}
                     isBottomStage={index === track.length - 1}
@@ -708,12 +728,14 @@ const Arrows = ({ subName, track, chapterBatches, chapter, onScorePress }: { tra
                 style={{ width: wp(50), left: wp(50), bottom: hp(0.5) }}
                 onLayout={handleStartLayout}
               >
-                <StartButton
-                  onPress={StartTest}
-                  Text={`Start - ${liveNextSize}`}
-                  loading={loading}
-                  questionCount={liveNextSize}
-                />
+                {!hideStartButton && (
+                  <StartButton
+                    onPress={StartTest}
+                    Text={`Start - ${liveNextSize}`}
+                    loading={loading}
+                    questionCount={liveNextSize}
+                  />
+                )}
               </View>
             );
           })()}

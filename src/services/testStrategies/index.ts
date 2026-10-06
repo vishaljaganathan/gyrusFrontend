@@ -21,7 +21,7 @@ export type TestStrategy = {
 
 export const getTestStrategy = (userProfile: UserProfile, subject: string): any => {
     const subjectLower = (subject || '').toLowerCase().trim();
-    const isPaidIndividual = userProfile.planValid && subjectLower !== 'neet';
+    const isPaidIndividual = userProfile.planValid && subjectLower !== 'neet' && subjectLower !== 'mocktest';
     const isPaid = userProfile.planValid;
 
     if (isPaidIndividual) {

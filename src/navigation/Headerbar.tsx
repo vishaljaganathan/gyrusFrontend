@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CustomText as Text } from '../components/CustomText';
 import { axiosInstance } from "../config/indeceptor";
 import ModalBox from "../components/Modal";
+import LottieView from "lottie-react-native";
 import { COLORS } from "../styles/themes";
 import { PopupModal } from "../interface/Interface";
 import {
@@ -16,7 +17,6 @@ import { moderateScale } from "../styles/Responsive";
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { getRequest } from "../config/Requests";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 
 
 
@@ -105,6 +105,7 @@ const HeaderBar = () => {
   const { userData, setUserData, appState, setAppState, unreadNotificationCount, setUnreadNotificationCount, notificationRefreshTrigger } = themeContext;
   const navigation = useNavigation<any>();
   const route = useRoute();
+  const isProfileActive = route.name === "Profile";
   const isNotificationActive = route.name === "Notification";
 
   const FALLBACK_NEET_DATE = "2026-05-03";
@@ -286,47 +287,21 @@ const HeaderBar = () => {
         setModelData([
           {
             id: 1,
-            img: (userData?.planValid && userData?.planId?.img)
-              ? { uri: userData?.planId?.img }
-              : Silver,
-            title: (() => {
-              if (userData?.isTrial && userData?.planValid) {
-                return "14 Days Gold Trial";
-              }
-              if (userData?.planValid && userData?.planId?.name) {
-                return userData.planId.name;
-              }
-              return "Silver";
-            })(),
-            plan: userData?.planValid,
-            expiryDate: (() => {
-              if (userData?.isTrial && userData?.planValid && userData?.trialActivatedAt) {
-                return new Date(new Date(userData.trialActivatedAt).getTime() + 14 * 24 * 60 * 60 * 1000);
-              }
-              if (userData?.planValid && userData?.planActivatedAt && userData?.planId?.days) {
-                return new Date(new Date(userData.planActivatedAt).getTime() + Number(userData.planId.days) * 24 * 60 * 60 * 1000);
-              }
-              return userData?.planExpiry;
-            })()
-          },
-        ]);
-        setshowEmoji(false);
-        break;
-
-      case 3:
-        setModelData([
-          {
-            id: 1,
             title: "NEET exam will held on",
             date: neetDate
           },
         ]);
         setshowEmoji(false);
         break;
-      case 4:
+      case 3:
         setModelData([]);
         setshowEmoji(false);
         break;
+      case 4:
+        setShowModal(false);
+        setActiveOption(null);
+        navigation.navigate("Profile");
+        return;
 
       default:
         break;
@@ -420,17 +395,6 @@ const HeaderBar = () => {
         );
       case 2:
         return (
-          <View style={HeaderMenuStyle.itemContainer}>
-            <Image
-              source={
-                (userData?.planValid && userData?.planId?.img) ? { uri: userData?.planId?.img } : Silver
-              }
-              style={HeaderMenuStyle.icon}
-            />
-          </View>
-        );
-      case 3:
-        return (
           <View style={HeaderMenuStyle.neetContainer}>
             <View style={HeaderMenuStyle.countdownContainer}>
               <Image
@@ -446,8 +410,8 @@ const HeaderBar = () => {
             </View>
           </View>
         );
-      case 4:
-        return <Ionicons name="notifications" size={wp(8)} color="#F2C112" />;
+      case 3:
+        return <LottieView source={{ uri: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f514/lottie.json" }} autoPlay loop style={{ width: wp(8), height: wp(8) }} />;
       default:
         return null;
     }
@@ -531,7 +495,7 @@ const HeaderBar = () => {
           </Animated.View>
         </Pressable>
 
-        {/* Plan Section */}
+        {/* NEET Countdown Section */}
         <Pressable
           onPress={() => handleClick(2)}
           style={[
@@ -539,25 +503,7 @@ const HeaderBar = () => {
             activeOption === 2 && !showModal && HeaderMenuStyle.activeMenuItem,
           ]}
         >
-          <Animated.View style={[HeaderMenuStyle.itemContainer, { opacity: opacities[2], width: '100%', alignItems: 'center', justifyContent: 'center' }]}>
-            <Image
-              source={
-                (userData?.planValid && userData?.planId?.img) ? { uri: userData?.planId?.img } : Silver
-              }
-              style={HeaderMenuStyle.icon}
-            />
-          </Animated.View>
-        </Pressable>
-
-        {/* NEET Countdown Section */}
-        <Pressable
-          onPress={() => handleClick(3)}
-          style={[
-            HeaderMenuStyle.menuItem,
-            activeOption === 3 && !showModal && HeaderMenuStyle.activeMenuItem,
-          ]}
-        >
-          <Animated.View style={[HeaderMenuStyle.neetContainer, { opacity: opacities[3], width: '100%', alignItems: 'center', justifyContent: 'center' }]}>
+          <Animated.View style={[HeaderMenuStyle.neetContainer, { opacity: opacities[2], width: '100%', alignItems: 'center', justifyContent: 'center' }]}>
             <View style={HeaderMenuStyle.countdownContainer}>
               <Image
                 source={DayBg}
@@ -570,24 +516,20 @@ const HeaderBar = () => {
                 </Text>
               </View>
             </View>
-            {/* <View style={HeaderMenuStyle.neetTextContainer}>
-              <Text style={HeaderMenuStyle.daysToText}>Days To</Text>
-              <Text style={HeaderMenuStyle.neetText}>NEET</Text>
-            </View> */}
           </Animated.View>
         </Pressable>
 
         {/* Notification Section */}
         <Pressable
-          onPress={() => handleClick(4)}
+          onPress={() => handleClick(3)}
           style={[
             HeaderMenuStyle.menuItem,
-            activeOption === 4 && !showModal && HeaderMenuStyle.activeMenuItem,
+            activeOption === 3 && !showModal && HeaderMenuStyle.activeMenuItem,
           ]}
         >
-          <Animated.View style={[HeaderMenuStyle.itemContainer, { opacity: opacities[4], width: '100%', alignItems: 'center', justifyContent: 'center' }]}>
+          <Animated.View style={[HeaderMenuStyle.itemContainer, { opacity: opacities[3], width: '100%', alignItems: 'center', justifyContent: 'center' }]}>
             <View>
-              <Ionicons name="notifications" size={wp(8)} color={COLORS.light || "#FFFFFF"} />
+              <LottieView source={{ uri: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f514/lottie.json" }} autoPlay loop style={{ width: wp(8), height: wp(8) }} />
               {unreadNotificationCount > 0 && (
                 <View 
                   style={{
@@ -597,11 +539,27 @@ const HeaderBar = () => {
                     width: wp(2.5),
                     height: wp(2.5),
                     borderRadius: wp(2),
-                    backgroundColor: '#F2C112',
+                    backgroundColor: '#00B712',
                   }}
                 />
               )}
             </View>
+          </Animated.View>
+        </Pressable>
+
+        {/* Profile Section */}
+        <Pressable
+          onPress={() => handleClick(4)}
+          style={[
+            HeaderMenuStyle.menuItem,
+            ((activeOption === 4 && !showModal) || isProfileActive) && HeaderMenuStyle.activeMenuItem,
+          ]}
+        >
+          <Animated.View style={[HeaderMenuStyle.itemContainer, { opacity: opacities[4], width: '100%', alignItems: 'center', justifyContent: 'center' }]}>
+            <Image 
+              source={{ uri: "https://img.icons8.com/fluency/48/user-male-circle--v1.png" }} 
+              style={{ width: wp(9.5), height: wp(9.5) }} 
+            />
           </Animated.View>
         </Pressable>
 

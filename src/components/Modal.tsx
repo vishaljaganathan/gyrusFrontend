@@ -317,7 +317,7 @@ const ModalBox = ({
 
           {/* Modal Body */}
           <View style={{ marginBottom: 0 }}>
-            {activeOption === 4 ? (
+            {activeOption === 3 ? (
               <NotificationDropdown />
             ) : (
               modelData?.map((res) => (
@@ -441,7 +441,7 @@ const ModalBox = ({
                                   end={{ x: 0.5, y: 1 }}
                                   style={ModalStyle.updateNowButton}
                                 >
-                                  <Text style={ModalStyle.updateNowText}>Update Now</Text>
+                                  <Text style={ModalStyle.updateNowText}>UPGRADE NOW</Text>
                                 </ExpoLinearGradient>
                               </TouchableOpacity>
                             ) : null;
@@ -462,7 +462,7 @@ const ModalBox = ({
                             end={{ x: 0.5, y: 1 }}
                             style={ModalStyle.updateNowButton}
                           >
-                            <Text style={ModalStyle.updateNowText}>Update Now</Text>
+                            <Text style={ModalStyle.updateNowText}>UPGRADE NOW</Text>
                           </ExpoLinearGradient>
                         </TouchableOpacity>
                       )}
