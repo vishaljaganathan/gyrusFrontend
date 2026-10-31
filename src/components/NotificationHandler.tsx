@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useContext } from 'react';
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import Notifications from '../config/Notifications';
 import Constants from 'expo-constants';
 import { ThemeContext } from '../service/authContext';
@@ -9,15 +9,58 @@ import { axiosInstance } from '../config/indeceptor';
 import GlobalNotificationModal from './GlobalNotificationModal';
 import PracticeReminderModal from './PracticeReminderModal';
 
+// Helper to identify if a notification is a practice/inactivity reminder
+export const isReminderNotification = (notification: any): boolean => {
+  if (!notification) return false;
+  const content = notification?.request?.content;
+  const data = content?.data;
+
+  // 1. Check data payload type
+  if (data?.type === 'reminder') return true;
+  if (typeof data === 'string' && data.includes('"type":"reminder"')) return true;
+
+  // 2. Check title and body for reminder indicators
+  const title = (content?.title || '').toLowerCase();
+  const body = (content?.body || '').toLowerCase();
+
+  if (
+    title.includes('reminder') ||
+    title.includes('practice today') ||
+    title.includes('keep your pulse alive') ||
+    (title.includes('good morning') && body.includes('practice')) ||
+    title.includes('daily test reminder') ||
+    title.includes('study time reminder') ||
+    body.includes('streak alive') ||
+    body.includes('quick practice')
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
 // Configure how notifications are handled when the app is foregrounded
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification: any) => {
+    // If the user is already inside the app, do NOT show reminder notifications
+    if (isReminderNotification(notification)) {
+      return {
+        shouldShowAlert: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: false,
+        shouldShowList: false,
+      };
+    }
+
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    };
+  },
 });
 
 const NotificationHandler = () => {
@@ -103,6 +146,8 @@ const NotificationHandler = () => {
             console.error("[NotificationHandler] Failed to update push token in backend:", err);
           });
         }
+      }).catch(err => {
+        console.warn("[NotificationHandler] Push notification registration error:", err);
       });
 
       return () => {
@@ -118,19 +163,31 @@ const NotificationHandler = () => {
     // Force cancel all previously scheduled push notifications that might still exist on the device.
     Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
 
+    // When the app resumes/becomes active, clear any lingering reminder notifications from the tray
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        Notifications.dismissAllNotificationsAsync().catch(() => {});
+        Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+      }
+    });
+
     // Listen for notifications that arrive while the app is foregrounded
     notificationListener.current = Notifications.addNotificationReceivedListener((notification: any) => {
       console.log("[NotificationHandler] Received in foreground:", notification);
       
-      const data = notification.request.content.data;
-      if (data?.type === 'reminder') {
-        // Do not show the modal inside the app
-        console.log("[NotificationHandler] Practice reminder received, only showing in notification bar");
-      } else {
-        setNotification(notification);
-        setNotificationRefreshTrigger(prev => prev + 1);
-        setShowModal(true);
+      if (isReminderNotification(notification)) {
+        // User is already inside the app - suppress reminder completely
+        console.log("[NotificationHandler] User is inside the app; completely suppressing reminder push notification");
+        const identifier = notification?.request?.identifier;
+        if (identifier) {
+          Notifications.dismissNotificationAsync(identifier).catch(() => {});
+        }
+        return;
       }
+
+      setNotification(notification);
+      setNotificationRefreshTrigger(prev => prev + 1);
+      setShowModal(true);
     });
 
     // Listen for user interaction with a notification
@@ -143,7 +200,7 @@ const NotificationHandler = () => {
         console.error("[NotificationHandler] Failed to dismiss notifications:", err);
       });
       
-      if (data?.type === 'reminder') {
+      if (isReminderNotification(response.notification)) {
         // Do not show the modal inside the app when clicked
         console.log("[NotificationHandler] Practice reminder clicked");
       } else {
@@ -155,6 +212,7 @@ const NotificationHandler = () => {
     return () => {
       if (notificationListener.current) notificationListener.current.remove();
       if (responseListener.current) responseListener.current.remove();
+      appStateSub.remove();
     };
   }, []);
 
@@ -168,12 +226,27 @@ const NotificationHandler = () => {
 
     let token;
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
-      });
+      try {
+        const importanceValue = Notifications?.AndroidImportance?.MAX ?? 5;
+        if (typeof Notifications?.setNotificationChannelAsync === 'function') {
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: importanceValue,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#FF231F7C',
+          }).catch(async (e: any) => {
+            console.warn('[NotificationHandler] primary setNotificationChannelAsync failed, trying fallback:', e);
+            await Notifications.setNotificationChannelAsync('default', {
+              name: 'default',
+              importance: 5,
+            }).catch((innerErr: any) => {
+              console.warn('[NotificationHandler] setNotificationChannelAsync fallback skipped:', innerErr);
+            });
+          });
+        }
+      } catch (channelErr) {
+        console.warn('[NotificationHandler] setNotificationChannelAsync skipped:', channelErr);
+      }
     }
 
     const { status: existingStatus } = await Notifications.getPermissionsAsync();

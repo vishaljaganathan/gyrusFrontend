@@ -1,6 +1,6 @@
 import { axiosInstance } from '../config/indeceptor';
 import React, { useEffect, useState, useContext } from "react";
-import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Alert, ScrollView, NativeModules } from 'react-native'
+import { View,  StyleSheet, Pressable, Image, TouchableOpacity, ActivityIndicator,  Alert, ScrollView, NativeModules, Linking, Share } from 'react-native'
 import { CustomText as Text, CustomTextInput as TextInput } from '../components/CustomText';
 import { Modal } from "@gluestack-ui/themed-native-base";
 import { LinearGradient } from "expo-linear-gradient";
@@ -12,11 +12,99 @@ import {
 import {
   faCircleCheck,
   faCircleXmark,
-  faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+  faTriangleExclamation,
+  faQrcode,
+  faShareNodes,
+  faExternalLinkAlt,
+  faBolt,
+  faCopy } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import RazorpayCheckout from "react-native-razorpay";
+import { WebView } from "react-native-webview";
+import Svg, { Path, Circle, Rect, G } from "react-native-svg";
+import ViewShot from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
 import { ThemeContext } from "../service/authContext";
 import SubscribeBtn from "../components/SubscribeButton";
+
+// Branded vector icons for UPI payment apps
+const GPayIcon = ({ size = 20 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Circle cx="12" cy="12" r="11.5" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth={0.8} />
+    <Path
+      fill="#4285F4"
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+    />
+    <Path
+      fill="#34A853"
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+    />
+    <Path
+      fill="#FBBC05"
+      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+    />
+    <Path
+      fill="#EA4335"
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+    />
+  </Svg>
+);
+
+const PhonePeIcon = ({ size = 20 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 32 32">
+    <Circle cx="16" cy="16" r="15" fill="#5F259F" />
+    <Path
+      d="M17.8 6.5 C19.2 5 21.5 5.5 21.8 7 C21.2 8.2 19.5 9 17.5 9.8 Z"
+      fill="#FFFFFF"
+    />
+    <Rect x="8.5" y="10" width="14.5" height="2.2" rx="1.1" fill="#FFFFFF" />
+    <Rect x="18" y="10" width="2.4" height="13" rx="1.2" fill="#FFFFFF" />
+    <Path
+      d="M11 10 V16.5 C11 18.2 12.5 19.5 14.5 19.5 H18 V17.3 H14.5 C13.7 17.3 13.2 16.8 13.2 16 V10 Z"
+      fill="#FFFFFF"
+    />
+  </Svg>
+);
+
+const PaytmIcon = ({ size = 20 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 36 36">
+    <Rect x="1" y="1" width="34" height="34" rx="8" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth={1} />
+    <Path
+      d="M6 13h4.2c1.8 0 3 1.1 3 2.7 0 1.7-1.2 2.8-3 2.8H8.5V23H6V13zm2.5 3.8h1.5c.5 0 .9-.3.9-.9 0-.5-.4-.8-.9-.8H8.5v1.7z"
+      fill="#002970"
+    />
+    <Path
+      d="M14.5 17.5c0-1.8 1.3-2.8 2.8-2.8 1.4 0 2.4.9 2.6 2.1h-1.8c-.1-.4-.4-.6-.8-.6-.6 0-1 .4-1 1.3s.4 1.3 1 1.3c.4 0 .7-.2.8-.6h1.8c-.2 1.2-1.2 2.1-2.6 2.1-1.6 0-2.8-1-2.8-2.8z"
+      fill="#002970"
+    />
+    <Path
+      d="M21.5 15h3.6v1.7h-1v6.3h-1.7v-6.3h-.9V15z"
+      fill="#00BAF2"
+    />
+    <Path
+      d="M25.6 15h1.7v1.2c.3-.8 1-1.3 1.9-1.3.8 0 1.5.4 1.8 1.2.4-.8 1.1-1.2 2-1.2 1.2 0 2 .8 2 2.2V23h-1.7v-4.5c0-.6-.3-.9-.8-.9s-.8.3-.8.9V23h-1.7v-4.5c0-.6-.3-.9-.8-.9s-.8.3-.8.9V23h-1.7V15z"
+      fill="#00BAF2"
+    />
+  </Svg>
+);
+
+const BhimIcon = ({ size = 20 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 32 32">
+    <Circle cx="16" cy="16" r="15" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth={1} />
+    <Path d="M9 22 L14 10 H17.5 L12.5 22 Z" fill="#00A651" />
+    <Path d="M15 22 L20 10 H23.5 L18.5 22 Z" fill="#F37021" />
+  </Svg>
+);
+
+const CredIcon = ({ size = 20 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 32 32">
+    <Circle cx="16" cy="16" r="15" fill="#121212" />
+    <Path
+      d="M16 8 C12 8 10 10 10 14 V19 C10 22.5 13 25 16 25 C19 25 22 22.5 22 19 V14 C22 10 20 8 16 8 Z M19.5 18.5 C19.5 20.5 18 22.5 16 22.5 C14 22.5 12.5 20.5 12.5 18.5 V14 C12.5 12 13.5 10.5 16 10.5 C18.5 10.5 19.5 12 19.5 14 V18.5 Z"
+      fill="#FFFFFF"
+    />
+  </Svg>
+);
 
 
 
@@ -38,6 +126,25 @@ const Plans = ({ navigation }: any) => {
   const [couponError, setCouponError] = useState("");
   const [verifiedCoupon, setVerifiedCoupon] = useState<any>(null);
   const [useRedeemedPoints, setUseRedeemedPoints] = useState(false);
+
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrOrderData, setQrOrderData] = useState<{
+    orderId?: string;
+    virtualAccountId?: string;
+    upiId?: string;
+    upiIntentUri?: string;
+    qrCodeId?: string;
+    paymentLinkId?: string;
+    paymentUrl?: string;
+    qrImageUrl?: string;
+    amount?: number;
+    planName?: string;
+  } | null>(null);
+  const [qrPolling, setQrPolling] = useState(false);
+  const [verifyingStatus, setVerifyingStatus] = useState(false);
+  const [copiedUpi, setCopiedUpi] = useState(false);
+  const [inAppWebPaymentUrl, setInAppWebPaymentUrl] = useState<string | null>(null);
 
   const [order, setOrder] = useState({
     _id: "",
@@ -123,20 +230,24 @@ const Plans = ({ navigation }: any) => {
     }
   };
 
-  const subTotal = Number(
+  const planAmount = Number(
     order.discountApplicable
       ? order.prices.discountPrice
       : order.prices.price
   );
 
-  const mrp = Number(order.prices?.price || subTotal);
+  const mrp = Number(order.prices?.price || planAmount);
+  const planOffer = Number(order.prices?.offer || (mrp > planAmount ? Math.round(((mrp - planAmount) / mrp) * 100) : 0));
+  const hasPlanDiscount = mrp > planAmount;
 
-  const couponDiscountPercentage = verifiedCoupon
-    ? (Number(verifiedCoupon.discountAmount) / Number(verifiedCoupon.originalAmount))
+  const couponDiscountPercentage = (couponChecked && verifiedCoupon)
+    ? (Number(verifiedCoupon.discountAmount) / Number(verifiedCoupon.originalAmount || mrp || 1))
     : 0;
 
-  const couponDiscountValue = verifiedCoupon
-    ? Math.round(mrp * couponDiscountPercentage * 100) / 100
+  const couponDiscountValue = (couponChecked && verifiedCoupon)
+    ? (verifiedCoupon.discountAmount !== undefined
+        ? Number(verifiedCoupon.discountAmount)
+        : Math.round(mrp * couponDiscountPercentage * 100) / 100)
     : 0;
 
   const rewardPercentage = Number(userData?.availableDiscountPercentage || 0);
@@ -145,9 +256,13 @@ const Plans = ({ navigation }: any) => {
     ? Math.round(mrp * (rewardPercentageUsed / 100) * 100) / 100
     : 0;
 
-  const taxableSubtotal = subTotal - couponDiscountValue - rewardDiscountValue;
-  const gstPrice = Math.round(subTotal * (Number(order.gst || 18) / 100) * 100) / 100;
-  const finalPayableAmount = Math.max(0, taxableSubtotal + gstPrice);
+  const effectiveCouponDiscount = couponChecked ? couponDiscountValue : 0;
+  const effectiveRewardDiscount = useRedeemedPoints ? rewardDiscountValue : 0;
+  const totalDiscount = Math.min(planAmount, Math.round((effectiveCouponDiscount + effectiveRewardDiscount) * 100) / 100);
+  const subTotal = Math.max(0, Math.round((planAmount - totalDiscount) * 100) / 100);
+  const gstRate = Number(order.gst || 18);
+  const gstPrice = subTotal > 0 ? Math.round(subTotal * (gstRate / 100) * 100) / 100 : 0;
+  const finalPayableAmount = Math.max(0, Math.round((subTotal + gstPrice) * 100) / 100);
   const displayTotalAmount = subTotal + gstPrice;
 
   const verifyCoupon = () => {
@@ -230,10 +345,11 @@ const Plans = ({ navigation }: any) => {
   // Create order API
   const createOrder = (planId: any) => {
     setLoading(true);
+    const activeCouponCode = (couponChecked && verifiedCoupon?.couponCode) ? verifiedCoupon.couponCode : undefined;
     axiosInstance
       .post("authentication/create-order", {
         planId,
-        couponCode: verifiedCoupon?.couponCode || undefined,
+        couponCode: activeCouponCode,
         useRedeemedPoints: useRedeemedPoints } )
       .then((orderResponse) => {
         const orderData = orderResponse?.data;
@@ -242,8 +358,9 @@ const Plans = ({ navigation }: any) => {
           axiosInstance
             .put("authentication/payment/update", {
               planId,
-              couponCode: verifiedCoupon?.couponCode || undefined,
-              useRedeemedPoints: useRedeemedPoints } )
+              couponCode: activeCouponCode,
+              useRedeemedPoints: useRedeemedPoints,
+              state: userData?.state } )
             .then((res) => {
               const emailSent = !!res?.data?.emailSent;
               const downloadUrl = res?.data?.downloadUrl;
@@ -267,11 +384,12 @@ const Plans = ({ navigation }: any) => {
         }
 
         if (orderData && orderData.orderId) {
+          setShowOrder(false);
           openRazorpay(
             orderData.orderId,
             orderData.key,
             Number(orderData.amount || finalPayableAmount),
-            verifiedCoupon?.couponCode || undefined
+            activeCouponCode
           );
         } else {
           setLoading(false);
@@ -286,6 +404,195 @@ const Plans = ({ navigation }: any) => {
       });
   };
 
+
+  // Start UPI & QR Payment flow
+  const startUpiQrPayment = async () => {
+    setQrLoading(true);
+    setLoading(true);
+    try {
+      const activeCouponCode = (couponChecked && verifiedCoupon?.couponCode) ? verifiedCoupon.couponCode : undefined;
+      const res = await axiosInstance.post("authentication/create-qr-order", {
+        planId: order._id,
+        couponCode: activeCouponCode,
+        useRedeemedPoints: useRedeemedPoints,
+      });
+
+      setLoading(false);
+      setQrLoading(false);
+
+      if (res?.data) {
+        if (!res.data.requiresPayment) {
+          // 100% discount or free
+          setShowOrder(false);
+          setShowPayment(true);
+          setshowPaymentStatus(true);
+          refreshUserAndResolvePaymentStatus();
+          return;
+        }
+
+        const effectiveAmount = res.data.amount || finalPayableAmount;
+        const formattedAmount = Number(effectiveAmount).toFixed(2);
+        // Verified active working UPI ID for Gyrus NEET / Sri Aurobindo Infotech
+        const upiId = (res.data.upiId && !res.data.upiId.startsWith('rpy.payto'))
+          ? res.data.upiId
+          : 'gyrusneet996295.rzp@rxairtel';
+        const upiUri = `upi://pay?pa=${upiId}&pn=GYRUSNEET&am=${formattedAmount}&cu=INR`;
+        const cleanQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=10&data=${encodeURIComponent(upiUri)}`;
+
+        setQrOrderData({
+          orderId: res.data.orderId,
+          virtualAccountId: res.data.virtualAccountId,
+          upiId: upiId,
+          upiIntentUri: upiUri,
+          qrCodeId: res.data.qrCodeId,
+          paymentLinkId: res.data.paymentLinkId,
+          paymentUrl: res.data.paymentUrl,
+          qrImageUrl: cleanQrUrl,
+          amount: effectiveAmount,
+          planName: res.data.planName || (order as any)?.name || "Plan",
+        });
+
+        setShowOrder(false);
+        if (res.data.paymentUrl) {
+          setInAppWebPaymentUrl(res.data.paymentUrl);
+        } else {
+          setShowQrModal(true);
+        }
+        setQrPolling(true);
+      }
+    } catch (err: any) {
+      console.error("Failed to generate UPI QR order", err);
+      setLoading(false);
+      setQrLoading(false);
+      Alert.alert(
+        "UPI Payment Issue",
+        err?.response?.data?.message || "Failed to initialize UPI QR payment. Please try again or pay with cards/netbanking."
+      );
+    }
+  };
+
+  // Manual payment status check for QR flow
+  const checkPaymentStatusManually = async () => {
+    if (!qrOrderData) return;
+    setVerifyingStatus(true);
+    try {
+      const res = await axiosInstance.get("authentication/check-payment-status", {
+        params: {
+          virtualAccountId: qrOrderData.virtualAccountId,
+          orderId: qrOrderData.orderId,
+          qrCodeId: qrOrderData.qrCodeId,
+          paymentLinkId: qrOrderData.paymentLinkId,
+          planId: order._id,
+          couponCode: verifiedCoupon?.couponCode || undefined,
+          useRedeemedPoints: useRedeemedPoints,
+        },
+      });
+
+      setVerifyingStatus(false);
+      if (res?.data?.paid) {
+        setQrPolling(false);
+        setShowQrModal(false);
+        setShowPayment(true);
+        setshowPaymentStatus(true);
+        refreshUserAndResolvePaymentStatus();
+      } else {
+        Alert.alert(
+          "Payment Pending",
+          "We haven't received confirmation for this payment yet. If you have already paid, it may take a few seconds to update. Please check again shortly."
+        );
+      }
+    } catch (err) {
+      setVerifyingStatus(false);
+      Alert.alert("Status Check", "Could not check payment status at this moment. Please try again.");
+    }
+  };
+
+  const qrCardViewShotRef = React.useRef<any>(null);
+  const [isSharingQr, setIsSharingQr] = useState(false);
+
+  const handleShareQrWithUpi = async () => {
+    if (isSharingQr) return;
+    setIsSharingQr(true);
+
+    const upiMessage = qrOrderData?.upiId
+      ? `Pay \u20B9${qrOrderData.amount ?? finalPayableAmount} to Gyrus NEET via UPI ID: ${qrOrderData.upiId}`
+      : `Payment for Gyrus NEET: \u20B9${qrOrderData?.amount ?? finalPayableAmount}`;
+
+    try {
+      let imageUri: string | null = null;
+
+      // 1. Capture the QR card containing QR code, plan amount, and UPI ID
+      if (qrCardViewShotRef.current?.capture) {
+        try {
+          imageUri = await qrCardViewShotRef.current.capture();
+        } catch (captureErr) {
+          console.warn("[Plans] ViewShot capture error:", captureErr);
+        }
+      }
+
+      // 2. Share the captured image file containing QR and UPI ID
+      if (imageUri && (await Sharing.isAvailableAsync())) {
+        await Sharing.shareAsync(imageUri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Share Gyrus NEET QR Code & UPI ID',
+        });
+      } else {
+        await Share.share({ message: upiMessage });
+      }
+    } catch (err) {
+      console.error("[Plans] Failed to share QR with UPI:", err);
+      try {
+        await Share.share({ message: upiMessage });
+      } catch (_) {}
+    } finally {
+      setIsSharingQr(false);
+    }
+  };
+
+  const closeQrModal = () => {
+    setQrPolling(false);
+    setShowQrModal(false);
+    setCopiedUpi(false);
+  };
+
+  // Auto-polling for UPI / QR payment
+  useEffect(() => {
+    if ((!showQrModal && !inAppWebPaymentUrl) || !qrPolling || !qrOrderData) return;
+
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await axiosInstance.get("authentication/check-payment-status", {
+          params: {
+            virtualAccountId: qrOrderData.virtualAccountId,
+            orderId: qrOrderData.orderId,
+            qrCodeId: qrOrderData.qrCodeId,
+            paymentLinkId: qrOrderData.paymentLinkId,
+            planId: order._id,
+            couponCode: verifiedCoupon?.couponCode || undefined,
+            useRedeemedPoints: useRedeemedPoints,
+          },
+        });
+
+        if (isMounted && res?.data?.paid) {
+          clearInterval(interval);
+          setQrPolling(false);
+          setShowQrModal(false);
+          setInAppWebPaymentUrl(null);
+          setShowPayment(true);
+          setshowPaymentStatus(true);
+          refreshUserAndResolvePaymentStatus();
+        }
+      } catch (err) {
+        // silent catch during polling
+      }
+    }, 3500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [showQrModal, inAppWebPaymentUrl, qrPolling, qrOrderData, order._id, verifiedCoupon?.couponCode, useRedeemedPoints]);
 
   // Open Razorpay Checkout
   const openRazorpay = async (
@@ -334,7 +641,7 @@ const Plans = ({ navigation }: any) => {
 
     const amountInPaise = Math.round(Number(payableOverride ?? finalPayableAmount) * 100);
 
-    const options = {
+    const options: any = {
       key: razorpayKey,
       amount: amountInPaise,
       currency: "INR",
@@ -343,10 +650,45 @@ const Plans = ({ navigation }: any) => {
       image: logo,
       order_id: orderId,
       prefill: {
-        email: userData.email,
-        contact: userData.phoneNo,
-        name: userData.firstName + " " + userData.lastName }, theme: {
-     color: "rgba(2, 134, 134, 1)" } };
+        email: userData?.email || "",
+        contact: userData?.phoneNo || "",
+        name: ((userData?.firstName || "") + " " + (userData?.lastName || "")).trim(),
+      },
+      theme: {
+        color: "rgba(2, 134, 134, 1)",
+      },
+      config: {
+        display: {
+          blocks: {
+            upi: {
+              name: "Pay via UPI / QR",
+              instruments: [
+                {
+                  method: "upi",
+                  flows: ["qr", "collect", "intent"],
+                  apps: ["google_pay", "phonepe", "paytm", "bhim", "cred"],
+                },
+              ],
+            },
+            other: {
+              name: "Cards, Netbanking & Wallets",
+              instruments: [
+                { method: "card" },
+                { method: "netbanking" },
+                { method: "wallet" },
+                { method: "emi" },
+              ],
+            },
+          },
+          sequence: ["block.upi", "block.other"],
+          preferences: {
+            show_default_blocks: true,
+          },
+        },
+      },
+    };
+
+
 
     try {
       const checkoutPromise = RazorpayCheckout.open(options);
@@ -357,6 +699,7 @@ const Plans = ({ navigation }: any) => {
             planId: order._id,
             couponCode: appliedCouponCode,
             useRedeemedPoints: useRedeemedPoints,
+            state: userData?.state,
             razorpay_payment_id: paymentData?.razorpay_payment_id,
             razorpay_order_id: paymentData?.razorpay_order_id,
             razorpay_signature: paymentData?.razorpay_signature } )
@@ -579,58 +922,88 @@ const Plans = ({ navigation }: any) => {
                     </View>
                   </Modal.Header>
                   <Modal.Body style={{ marginVertical: wp(2) }}>
-                    <View
-                      style={{
-                        display: "flex",
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        marginVertical: hp(0.5) } }
-                    >
-                      <Text>Sub Total</Text>
-                      <Text>
-                        {"\u20B9"}
-                        {subTotal}
+                    {/* 1. Plan Price(MRP) */}
+                    <View style={styles.orderSummaryRow}>
+                      <Text style={styles.orderSummaryLabel}>Plan Price (MRP)</Text>
+                      <Text
+                        style={[
+                          styles.orderSummaryValue,
+                          hasPlanDiscount ? styles.orderSummaryStrikethrough : null,
+                        ]}
+                      >
+                        {"\u20B9"} {hasPlanDiscount ? mrp : planAmount}
                       </Text>
                     </View>
 
-                    {verifiedCoupon ? (
-                      <View
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          marginVertical: hp(0.5) } }
-                      >
-                        <Text style={{ color: '#028464' }}>Coupon Discount</Text>
-                        <Text style={{ color: '#028464' }}>- {"\u20B9"} {couponDiscountValue}</Text>
+                    {/* 2. Discounted Price(xx%) */}
+                    {hasPlanDiscount && (
+                      <View style={styles.orderSummaryRow}>
+                        <Text style={styles.orderSummaryLabel}>
+                          Discounted Price {planOffer > 0 ? `(-${planOffer}%)` : ""}
+                        </Text>
+                        <Text style={styles.orderSummaryValue}>
+                          {"\u20B9"} {planAmount}
+                        </Text>
                       </View>
-                    ) : null}
+                    )}
 
-                    {useRedeemedPoints && rewardDiscountValue > 0 ? (
-                      <View
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          marginVertical: hp(0.5) } }
-                      >
-                        <Text style={{ color: '#028464' }}>Reward Discount ({rewardPercentageUsed}%)</Text>
-                        <Text style={{ color: '#028464' }}>- {"\u20B9"} {rewardDiscountValue}</Text>
+                    {/* 3. Coupon Discount - only show when apply coupon check box is selected */}
+                    {couponChecked && (
+                      <View style={styles.orderSummaryRow}>
+                        <Text style={styles.orderSummaryLabel}>Coupon Discount</Text>
+                        <Text
+                          style={[
+                            styles.orderSummaryValue,
+                            couponDiscountValue > 0 ? { color: "#028464", fontWeight: "600" } : null,
+                          ]}
+                        >
+                          {couponDiscountValue > 0 ? `- \u20B9 ${couponDiscountValue}` : `\u20B9 0`}
+                        </Text>
                       </View>
-                    ) : null}
+                    )}
 
-                    <View
-                      style={{
-                        display: "flex",
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        marginVertical: hp(0.5) } }
-                    >
-                      <Text>Gst ({order.gst}%) </Text>
-                      <Text>
+                    {/* Reward Discount if applied */}
+                    {rewardDiscountValue > 0 && (
+                      <View style={styles.orderSummaryRow}>
+                        <Text style={styles.orderSummaryLabel}>Reward Discount</Text>
+                        <Text style={[styles.orderSummaryValue, { color: "#028464", fontWeight: "600" }]}>
+                          {`- \u20B9 ${rewardDiscountValue}`}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Divider 1 */}
+                    <View style={styles.orderSummaryDashedLine} />
+
+                    {/* 4. Sub Total */}
+                    <View style={styles.orderSummaryRow}>
+                      <Text style={styles.orderSummaryLabel}>Sub Total</Text>
+                      <Text style={styles.orderSummaryValue}>
+                        {"\u20B9"} {subTotal}
+                      </Text>
+                    </View>
+
+                    {/* 5. GST(18%) */}
+                    <View style={styles.orderSummaryRow}>
+                      <Text style={styles.orderSummaryLabel}>GST({order.gst || 18}%)</Text>
+                      <Text style={styles.orderSummaryValue}>
                         {"\u20B9"} {gstPrice}
                       </Text>
                     </View>
+
+                    {/* Divider 2 */}
+                    <View style={styles.orderSummaryDashedLine} />
+
+                    {/* 6. Final Price */}
+                    <View style={styles.orderSummaryRow}>
+                      <Text style={styles.orderSummaryFinalLabel}>Final Price</Text>
+                      <Text style={styles.orderSummaryFinalValue}>
+                        {"\u20B9"} {finalPayableAmount}
+                      </Text>
+                    </View>
+
+                    {/* Divider 3 */}
+                    <View style={styles.orderSummaryDashedLine} />
 
                     {/* Reward Discount Selector Row */}
                     {rewardPercentage > 0 && (
@@ -656,19 +1029,6 @@ const Plans = ({ navigation }: any) => {
                         </Text>
                       </TouchableOpacity>
                     )}
-
-                    <View style={styles.line} />
-                    <View
-                      style={{
-                        display: "flex",
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        marginVertical: hp(0.5) } }
-                    >
-                      <Text style={{ fontWeight: 'bold' }}>Final Amount</Text>
-                      <Text style={{ fontWeight: 'bold' }}>{"\u20B9"} {finalPayableAmount}</Text>
-                    </View>
-                    <View style={styles.line} />
                     <View style={styles.couponContainer}>
                       <TouchableOpacity
                         style={styles.couponToggleRow}
@@ -724,14 +1084,349 @@ const Plans = ({ navigation }: any) => {
                         </>
                       ) : null}
                     </View>
-                    <View style={{ alignItems: "center" }}>
-                      <SubscribeBtn
-                        disable={loading || couponLoading}
-                        text={"Continue"}
-                        textStyle={{ fontWeight: "bold" }}
+                    <View style={{ alignItems: "center", marginTop: hp(1.5), width: "100%" }}>
+                      {/* Primary Option: Pay via UPI / QR Code */}
+                      <TouchableOpacity
+                        style={styles.upiPayButton}
+                        disabled={loading || couponLoading}
+                        onPress={startUpiQrPayment}
+                      >
+                        {loading && qrLoading ? (
+                          <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+                            <FontAwesomeIcon icon={faQrcode} size={18} color="#FFF" style={{ marginRight: 8 }} />
+                            <Text style={styles.upiPayButtonText}>Pay via UPI / QR Code</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                      <Text style={styles.upiPaySubtext}>
+                        Scan QR with GPay, PhonePe, Paytm, or pay via UPI link
+                      </Text>
+
+                      {/* Secondary Option: Cards, Netbanking & Wallets */}
+                      <TouchableOpacity
+                        style={styles.cardPayButton}
+                        disabled={loading || couponLoading}
                         onPress={() => createOrder(order._id)}
-                      />
+                      >
+                        {loading && !qrLoading ? (
+                          <ActivityIndicator size="small" color="#028464" />
+                        ) : (
+                          <Text style={styles.cardPayButtonText}>Cards, Netbanking & Wallets</Text>
+                        )}
+                      </TouchableOpacity>
                     </View>
+                  </Modal.Body>
+                </Modal.Content>
+              </Modal>
+
+              {/* Dedicated UPI & QR Payment Modal */}
+              <Modal
+                isOpen={showQrModal}
+                onClose={closeQrModal}
+              >
+                <Modal.Content
+                  maxWidth="360"
+                  style={styles.qrModalContent}
+                >
+                  <Modal.CloseButton />
+                  <Modal.Header style={styles.qrModalHeader}>
+                    <Text style={styles.qrModalTitle}>Pay via UPI / QR</Text>                
+
+                    <View style={styles.qrHeaderBadge}>
+                      <Text style={styles.qrHeaderBadgePlan}>
+                        {qrOrderData?.planName || (order as any)?.name || "Plan"}
+                      </Text>
+                      <Text style={styles.qrHeaderBadgeDot}>•</Text>
+                      <Text style={styles.qrHeaderBadgeAmount}>
+                        {"\u20B9"}{qrOrderData?.amount ?? finalPayableAmount}
+                      </Text>
+                    </View>
+                  </Modal.Header>
+                  <Modal.Body style={styles.qrModalBody}>
+                    <View style={styles.qrModalBodyContent}>
+                    {/* QR Code Image Container */}
+                    {qrLoading ? (
+                      <View style={styles.qrLoadingBox}>
+                        <ActivityIndicator size="large" color="#028464" />
+                        <Text style={styles.qrLoadingText}>Generating UPI QR Code...</Text>
+                      </View>
+                    ) : (
+                      <ViewShot
+                        ref={qrCardViewShotRef}
+                        options={{ format: 'png', quality: 1.0 }}
+                        style={styles.qrCardContainer}
+                      >
+                        <View style={styles.qrCardHeaderRow}>
+                          <Text style={styles.qrCardHeaderTitle}>
+                            {qrOrderData?.planName || (order as any)?.name || "Gyrus NEET"}
+                          </Text>
+                          <Text style={styles.qrCardHeaderAmount}>
+                            {"\u20B9"}{qrOrderData?.amount ?? finalPayableAmount}
+                          </Text>
+                        </View>
+
+                        <View style={styles.qrImageWrapper}>
+                          {qrOrderData?.qrImageUrl ? (
+                            <Image
+                              source={{ uri: qrOrderData.qrImageUrl }}
+                              style={styles.qrImage}
+                              resizeMode="contain"
+                            />
+                          ) : (
+                            <View style={[styles.qrImage, { alignItems: 'center', justifyContent: 'center' }]}>
+                              <ActivityIndicator size="small" color="#028464" />
+                              <Text style={[styles.qrLoadingText, { marginTop: 6 }]}>Loading QR...</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Supported Apps Row under QR */}
+                        <View style={styles.qrSupportedAppsContainer}>
+                          <Text style={styles.qrSupportedAppsTitle}>Scan with any UPI app</Text>
+                          <View style={styles.qrIconsRow}>
+                            <View style={styles.appIconPill}><GPayIcon size={20} /></View>
+                            <View style={styles.appIconPill}><PhonePeIcon size={20} /></View>
+                            <View style={styles.appIconPill}><PaytmIcon size={20} /></View>
+                            <View style={styles.appIconPill}><BhimIcon size={20} /></View>
+                            <View style={styles.appIconPill}><CredIcon size={20} /></View>
+                          </View>
+                        </View>
+
+                        {/* Payee UPI ID display embedded in the card */}
+                        {qrOrderData?.upiId ? (
+                          <View style={styles.qrCardUpiPill}>
+                            <Text style={styles.qrCardUpiPillLabel}>UPI ID:</Text>
+                            <Text style={styles.qrCardUpiPillValue} numberOfLines={1} ellipsizeMode="middle">
+                              {qrOrderData.upiId}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={styles.qrCardUpiPill}>
+                            <Text style={styles.qrCardUpiPillLabel}>SECURE:</Text>
+                            <Text style={styles.qrCardUpiPillValue}>Razorpay Verified UPI</Text>
+                          </View>
+                        )}
+                      </ViewShot>
+                    )}
+
+                    {/* Direct on-device UPI pay button with Brand Badges */}
+                    <TouchableOpacity
+                      style={styles.qrPrimaryPayBtn}
+                      onPress={() => {
+                        setShowQrModal(false);
+                        setQrPolling(false);
+                        createOrder(order._id);
+                      }}
+                    >
+                      <View style={styles.qrPrimaryPayLeft}>
+                        <FontAwesomeIcon icon={faBolt} size={15} color="#FFF" />
+                        <Text style={styles.qrPrimaryPayBtnText}>Pay with UPI App (GPay / PhonePe / Paytm)</Text>
+                      </View>
+                      <View style={styles.qrPrimaryPayIcons}>
+                        <View style={styles.miniIconBadge}><GPayIcon size={16} /></View>
+                        <View style={[styles.miniIconBadge, { marginLeft: -5 }]}><PhonePeIcon size={16} /></View>
+                        <View style={[styles.miniIconBadge, { marginLeft: -5 }]}><PaytmIcon size={16} /></View>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Payee UPI ID display with integrated Copy and Share */}
+                    {qrOrderData?.upiId ? (
+                      <View style={styles.qrUpiIdBar}>
+                        <View style={styles.qrUpiIdLeft}>
+                          <Text style={styles.qrUpiIdLabel}>PAYEE UPI ID</Text>
+                          <Text style={styles.qrUpiIdValue} numberOfLines={1} ellipsizeMode="middle">
+                            {qrOrderData.upiId}
+                          </Text>
+                        </View>
+                        <View style={styles.qrUpiActionsGroup}>
+                          <TouchableOpacity
+                            style={styles.qrActionChip}
+                            onPress={async () => {
+                              const upi = qrOrderData?.upiId || '';
+                              let copied = false;
+                              try {
+                                const RNCClipboard = (NativeModules as any)?.RNCClipboard;
+                                if (RNCClipboard?.setString) {
+                                  RNCClipboard.setString(upi);
+                                  copied = true;
+                                }
+                              } catch (_) {}
+                              if (!copied) {
+                                try {
+                                  if (Share?.share) {
+                                    await Share.share({ message: upi });
+                                  }
+                                } catch (_) {}
+                              }
+                              setCopiedUpi(true);
+                              setTimeout(() => setCopiedUpi(false), 2000);
+                            }}
+                          >
+                            <FontAwesomeIcon icon={copiedUpi ? faCircleCheck : faCopy} size={11} color="#028464" />
+                            <Text style={styles.qrActionChipText}>{copiedUpi ? "Copied" : "Copy"}</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.qrActionChip}
+                            disabled={isSharingQr}
+                            onPress={handleShareQrWithUpi}
+                          >
+                            {isSharingQr ? (
+                              <ActivityIndicator size="small" color="#028464" />
+                            ) : (
+                              <>
+                                <FontAwesomeIcon icon={faShareNodes} size={11} color="#028464" />
+                                <Text style={styles.qrActionChipText}>Share</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={styles.qrUpiIdBar}>
+                        <View style={styles.qrUpiIdLeft}>
+                          <Text style={styles.qrUpiIdLabel}>PAYMENT METHOD</Text>
+                          <Text style={styles.qrUpiIdValue} numberOfLines={1}>
+                            Razorpay Verified UPI
+                          </Text>
+                        </View>
+                        <View style={styles.qrUpiActionsGroup}>
+                          <TouchableOpacity
+                            style={styles.qrActionChip}
+                            disabled={isSharingQr}
+                            onPress={handleShareQrWithUpi}
+                          >
+                            {isSharingQr ? (
+                              <ActivityIndicator size="small" color="#028464" />
+                            ) : (
+                              <>
+                                <FontAwesomeIcon icon={faShareNodes} size={11} color="#028464" />
+                                <Text style={styles.qrActionChipText}>Share QR</Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Live Polling Status */}
+                    <View style={styles.qrLiveStatusPill}>
+                      <ActivityIndicator size="small" color="#028464" />
+                      <Text style={styles.qrLiveStatusText}>Waiting for payment confirmation...</Text>
+                    </View>
+
+                    {/* Secondary Actions in 2-Column Row */}
+                    <View style={styles.qrBottomActionsRow}>
+                      <TouchableOpacity
+                        style={styles.qrVerifyColBtn}
+                        disabled={verifyingStatus}
+                        onPress={checkPaymentStatusManually}
+                      >
+                        <Text style={styles.qrVerifyColText}>
+                          {verifyingStatus ? "Checking..." : "I Have Paid \u2022 Verify"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {order?._id ? (
+                        <TouchableOpacity
+                          style={styles.qrInAppColBtn}
+                          onPress={() => {
+                            setShowQrModal(false);
+                            setQrPolling(false);
+                            createOrder(order._id);
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faBolt} size={12} color="#028464" />
+                          <Text style={styles.qrInAppColText}>Pay in App</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+
+                    {/* Fallback to Cards / Netbanking */}
+                    <TouchableOpacity
+                      style={styles.qrSwitchBtn}
+                      onPress={() => {
+                        setShowQrModal(false);
+                        setQrPolling(false);
+                        createOrder(order._id);
+                      }}
+                    >
+                      <Text style={styles.qrSwitchText}>Pay with Cards / Netbanking instead</Text>
+                    </TouchableOpacity>
+                    </View>
+                  </Modal.Body>
+                </Modal.Content>
+              </Modal>
+
+              {/* In-App Razorpay Checkout Modal (shows QR & UPI entering field inside app) */}
+              <Modal
+                isOpen={!!inAppWebPaymentUrl}
+                onClose={() => {
+                  setInAppWebPaymentUrl(null);
+                  setQrPolling(false);
+                }}
+                size="full"
+              >
+                <Modal.Content style={styles.webViewModalContent}>
+                  <Modal.CloseButton />
+                  <Modal.Header style={styles.webViewModalHeader}>
+                    <Text style={styles.webViewModalTitle}>Gyrus NEET Secure Payment</Text>
+                  </Modal.Header>
+                  <Modal.Body style={styles.webViewModalBody} p={0}>
+                    {inAppWebPaymentUrl ? (
+                      <WebView
+                        source={{ uri: inAppWebPaymentUrl }}
+                        originWhitelist={['https://*', 'http://*', 'upi://*', 'intent://*']}
+                        onShouldStartLoadWithRequest={(event) => {
+                          const { url } = event;
+                          if (
+                            url.startsWith('upi://') ||
+                            url.startsWith('intent://') ||
+                            url.startsWith('gpay://') ||
+                            url.startsWith('phonepe://') ||
+                            url.startsWith('paytmmp://')
+                          ) {
+                            let targetUrl = url;
+                            if (url.startsWith('intent://')) {
+                              const upiMatch = url.match(/intent:\/\/pay\?(.*?)#Intent/);
+                              if (upiMatch && upiMatch[1]) {
+                                targetUrl = `upi://pay?${upiMatch[1]}`;
+                              }
+                            }
+                            Linking.openURL(targetUrl).catch((e) => console.log('Could not open UPI url', e));
+                            return false;
+                          }
+                          if (
+                            url.includes('payment_id') ||
+                            url.includes('payment/success') ||
+                            url.includes('payment-status') ||
+                            url.includes('payment.success') ||
+                            url.includes('status=paid')
+                          ) {
+                            setInAppWebPaymentUrl(null);
+                            setQrPolling(false);
+                            setShowPayment(true);
+                            setshowPaymentStatus(true);
+                            refreshUserAndResolvePaymentStatus();
+                            return false;
+                          }
+                          return true;
+                        }}
+                        javaScriptEnabled={true}
+                        domStorageEnabled={true}
+                        startInLoadingState={true}
+                        renderLoading={() => (
+                          <View style={styles.webViewLoading}>
+                            <ActivityIndicator size="large" color="#028464" />
+                            <Text style={styles.webViewLoadingText}>
+                              Loading Razorpay Checkout...
+                            </Text>
+                          </View>
+                        )}
+                        style={styles.webViewStyle}
+                      />
+                    ) : null}
                   </Modal.Body>
                 </Modal.Content>
               </Modal>
@@ -969,6 +1664,470 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#166534',
     flex: 1,
+  },
+  upiPayButton: {
+    backgroundColor: '#028464',
+    borderRadius: 12,
+    paddingVertical: hp(1.5),
+    paddingHorizontal: wp(5),
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#028464',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  upiPayButtonText: {
+    color: '#FFF',
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(4.1),
+    fontWeight: 'bold',
+  },
+  upiPaySubtext: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(2.9),
+    color: '#666',
+    marginTop: 4,
+    marginBottom: hp(1.2),
+    textAlign: 'center',
+  },
+  cardPayButton: {
+    backgroundColor: '#FFF',
+    borderWidth: 1.5,
+    borderColor: '#028464',
+    borderRadius: 12,
+    paddingVertical: hp(1.2),
+    paddingHorizontal: wp(5),
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardPayButtonText: {
+    color: '#028464',
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.7),
+    fontWeight: '600',
+  },
+  qrModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: wp(3.5),
+    paddingTop: hp(1.5),
+    paddingBottom: hp(1.2),
+  },
+  qrModalHeader: {
+    borderBottomWidth: 0,
+    paddingBottom: hp(0.5),
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection:"column"
+  },
+  qrModalTitle: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(4.5),
+    fontWeight: 'bold',
+    color: '#0f172a',
+    textAlign: 'center',
+  },
+  qrHeaderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    paddingVertical: 3,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#dcfce7',
+  },
+  qrHeaderBadgePlan: {
+    fontFamily: 'AppFont-Bold',
+    textAlign:'center',
+    fontSize: wp(3.2),
+    color: '#166534',
+    fontWeight: '700',
+  },
+  qrHeaderBadgeDot: {
+    color: '#86efac',
+    marginHorizontal: 6,
+    fontSize: wp(3.2),
+  },
+  qrHeaderBadgeAmount: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.6),
+    color: '#15803d',
+    fontWeight: '800',
+  },
+  qrModalBody: {
+    paddingTop: hp(0.5),
+    paddingHorizontal: 0,
+  },
+  qrModalBodyContent: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  qrCardContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: wp(2.5),
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: hp(1),
+  },
+  qrCardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 6,
+    paddingBottom: 6,
+    marginBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  qrCardHeaderTitle: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.4),
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  qrCardHeaderAmount: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.8),
+    color: '#028464',
+    fontWeight: '800',
+  },
+  qrCardUpiPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    marginTop: 8,
+    width: '100%',
+  },
+  qrCardUpiPillLabel: {
+    fontSize: wp(2.6),
+    fontFamily: 'AppFont-Bold',
+    color: '#64748b',
+    marginRight: 5,
+    letterSpacing: 0.4,
+  },
+  qrCardUpiPillValue: {
+    fontSize: wp(2.9),
+    fontFamily: 'AppFont-Bold',
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  qrImageWrapper: {
+    backgroundColor: '#FFFFFF',
+    padding: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  qrImage: {
+    width: wp(45),
+    height: wp(45),
+  },
+  qrSupportedAppsContainer: {
+    alignItems: 'center',
+    marginTop: 8,
+    width: '100%',
+  },
+  qrSupportedAppsTitle: {
+    fontFamily: 'AppFont-Medium',
+    fontSize: wp(2.7),
+    color: '#64748b',
+    marginBottom: 5,
+  },
+  qrIconsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  appIconPill: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  qrLoadingBox: {
+    width: wp(45),
+    height: wp(45),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: hp(1.2),
+  },
+  qrLoadingText: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(3.2),
+    color: '#666',
+    marginTop: 8,
+  },
+  qrPrimaryPayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#028464',
+    paddingVertical: hp(1.2),
+    paddingHorizontal: wp(4),
+    borderRadius: 12,
+    width: '100%',
+    marginBottom: hp(1),
+    shadowColor: '#028464',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  qrPrimaryPayLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  qrPrimaryPayBtnText: {
+    color: '#FFF',
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.4),
+    marginLeft: 8,
+    fontWeight: '700',
+  },
+  qrPrimaryPayIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  miniIconBadge: {
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#028464',
+    backgroundColor: '#FFF',
+    overflow: 'hidden',
+  },
+  qrUpiIdBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingVertical: hp(0.8),
+    paddingHorizontal: wp(3),
+    width: '100%',
+    marginBottom: hp(1),
+  },
+  qrUpiIdLeft: {
+    flex: 1,
+    marginRight: 6,
+  },
+  qrUpiIdLabel: {
+    fontSize: wp(2.3),
+    fontFamily: 'AppFont-Bold',
+    color: '#64748b',
+    letterSpacing: 0.5,
+  },
+  qrUpiIdValue: {
+    fontSize: wp(3),
+    fontFamily: 'AppFont-Bold',
+    color: '#0f172a',
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  qrUpiActionsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  qrActionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e6f4ea',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  qrActionChipText: {
+    fontSize: wp(2.7),
+    fontFamily: 'AppFont-Bold',
+    color: '#028464',
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  qrLiveStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    marginBottom: hp(1),
+  },
+  qrLiveStatusText: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(2.8),
+    color: '#64748b',
+    marginLeft: 6,
+  },
+  qrBottomActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: hp(0.8),
+    gap: 8,
+  },
+  qrVerifyColBtn: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    paddingVertical: hp(1),
+    paddingHorizontal: wp(2),
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrVerifyColText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3),
+    color: '#334155',
+    fontWeight: '600',
+  },
+  qrInAppColBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#028464',
+    paddingVertical: hp(1),
+    paddingHorizontal: wp(2),
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrInAppColText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3),
+    color: '#028464',
+    marginLeft: 5,
+    fontWeight: '600',
+  },
+  qrSwitchBtn: {
+    paddingVertical: hp(0.5),
+    alignItems: 'center',
+  },
+  qrSwitchText: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(2.9),
+    color: '#028464',
+    textDecorationLine: 'underline',
+  },
+  webViewModalContent: {
+    width: '95%',
+    height: '92%',
+    maxHeight: '92%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+  },
+  webViewModalHeader: {
+    backgroundColor: '#f8fafc',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    paddingVertical: 12,
+  },
+  webViewModalTitle: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.8),
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  webViewModalBody: {
+    height: hp(75),
+    minHeight: hp(75),
+    padding: 0,
+    backgroundColor: '#fff',
+  },
+  webViewStyle: {
+    width: '100%',
+    height: hp(75),
+  },
+  webViewLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  webViewLoadingText: {
+    marginTop: 10,
+    fontFamily: 'AppFont-Medium',
+    fontSize: wp(3.2),
+    color: '#028464',
+  },
+  orderSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: hp(0.4),
+  },
+  orderSummaryLabel: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(3.5),
+    color: '#334155',
+  },
+  orderSummaryValue: {
+    fontFamily: 'AppFont-Medium',
+    fontSize: wp(3.5),
+    color: '#0f172a',
+  },
+  orderSummaryStrikethrough: {
+    textDecorationLine: 'line-through',
+    color: '#94a3b8',
+  },
+  orderSummaryFinalLabel: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.8),
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  orderSummaryFinalValue: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.9),
+    color: '#028464',
+    fontWeight: '700',
+  },
+  orderSummaryDashedLine: {
+    borderBottomWidth: 1,
+    borderColor: '#cbd5e1',
+    borderStyle: 'dashed',
+    width: '100%',
+    marginVertical: hp(0.8),
   },
 });
 
