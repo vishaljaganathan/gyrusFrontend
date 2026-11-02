@@ -20,6 +20,7 @@ import {
   faCopy,
   faChevronDown,
   faChevronUp,
+  faChevronRight,
   faCheck,
   faArrowRight,
   faClock,
@@ -881,10 +882,21 @@ const Plans = ({ navigation }: any) => {
                         {data.title || `${data.days} Days Access`}
                       </Text>
                     </View>
-                    <View style={styles.planDurationPill}>
+                    <TouchableOpacity
+                      style={styles.planDurationBadgeTouch}
+                      onPress={() => togglePlanExpand(planId)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
                       <FontAwesomeIcon icon={faClock} size={11} color="#0AB8AD" />
                       <Text style={styles.planDurationPillText}>{data.days} Days</Text>
-                    </View>
+                      <FontAwesomeIcon
+                        icon={isExpanded ? faChevronDown : faChevronRight}
+                        size={11}
+                        color="#0AB8AD"
+                        style={{ marginLeft: 5 }}
+                      />
+                    </TouchableOpacity>
                   </View>
 
                   {/* Price Section */}
@@ -917,116 +929,101 @@ const Plans = ({ navigation }: any) => {
                     </View>
                   </View>
 
-                  {/* Dropdown Toggle to See Full Plan Details */}
-                  <TouchableOpacity
-                    style={styles.planDetailsToggle}
-                    onPress={() => togglePlanExpand(planId)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.planDetailsToggleLeft}>
-                      <Text style={styles.planDetailsToggleTitle}>
-                        {isExpanded ? "Hide Plan Details" : "View Full Plan Details"}
-                      </Text>
-                      <Text style={styles.planDetailsToggleSubtitle}>
-                        {isExpanded ? "Tap to collapse" : "Features, MCQ coverage & benefits"}
-                      </Text>
-                    </View>
-                    <View style={styles.planChevronCircle}>
-                      <FontAwesomeIcon
-                        icon={isExpanded ? faChevronUp : faChevronDown}
-                        size={13}
-                        color="#0AB8AD"
-                      />
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* Collapsible Details Content */}
+                  {/* Expanded Small Card View with Complete Details strictly from DB & Subscribe Button */}
                   {isExpanded && (
-                    <View style={styles.planExpandedContent}>
-                      <View style={styles.planDividerLine} />
+                    <View style={styles.detailsCardView}>
+                      <View style={styles.detailsCardHeader}>
+                        <View style={styles.detailsCardHeaderLeft}>
+                          <Text style={styles.detailsCardHeaderTitle}>
+                            {data.name || 'Plan Details'}
+                          </Text>
+                          {data.title ? (
+                            <Text style={styles.detailsCardHeaderSubtitle}>
+                              {data.title}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <View style={styles.detailsDaysTag}>
+                          <Text style={styles.detailsDaysTagText}>{data.days} Days</Text>
+                        </View>
+                      </View>
 
-                      <Text style={styles.planFeaturesHeading}>WHAT'S INCLUDED:</Text>
-
-                      {/* Items from backend database desc */}
-                      {data.desc && data.desc.length > 0
-                        ? data.desc.map((descItem: any, i: number) => (
-                            <View key={i} style={styles.planFeatureItem}>
-                              <View style={styles.featureCheckCircle}>
-                                <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
+                      {/* Items strictly from backend database desc ONLY */}
+                      {data.desc && data.desc.length > 0 ? (
+                        <View style={styles.dbDescContainer}>
+                          {data.desc.map((descItem: any, i: number) => {
+                            const descText =
+                              typeof descItem === 'string'
+                                ? descItem
+                                : descItem?.desc || '';
+                            if (!descText) return null;
+                            return (
+                              <View key={i} style={styles.dbDescItem}>
+                                <View style={styles.dbCheckCircle}>
+                                  <FontAwesomeIcon
+                                    icon={faCheck}
+                                    size={10}
+                                    color="#10B981"
+                                  />
+                                </View>
+                                <Text style={styles.dbDescText}>{descText}</Text>
                               </View>
-                              <Text style={styles.planFeatureText}>
-                                {descItem.desc || descItem}
-                              </Text>
-                            </View>
-                          ))
-                        : null}
-
-                      {/* Core NEET preparation features */}
-                      <View style={styles.planFeatureItem}>
-                        <View style={styles.featureCheckCircle}>
-                          <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
+                            );
+                          })}
                         </View>
-                        <Text style={styles.planFeatureText}>
-                          Complete Physics, Chemistry & Biology Question Bank
-                        </Text>
-                      </View>
+                      ) : null}
 
-                      <View style={styles.planFeatureItem}>
-                        <View style={styles.featureCheckCircle}>
-                          <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
-                        </View>
-                        <Text style={styles.planFeatureText}>
-                          Chapterwise Practice & Unlimited Timed Mock Tests
-                        </Text>
-                      </View>
-
-                      <View style={styles.planFeatureItem}>
-                        <View style={styles.featureCheckCircle}>
-                          <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
-                        </View>
-                        <Text style={styles.planFeatureText}>
-                          Step-by-Step Solutions with In-Depth Explanations
-                        </Text>
-                      </View>
-
-                      <View style={styles.planFeatureItem}>
-                        <View style={styles.featureCheckCircle}>
-                          <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
-                        </View>
-                        <Text style={styles.planFeatureText}>
-                          Real-time All India Rank & Accuracy Analytics
-                        </Text>
-                      </View>
-
-                      <View style={styles.planFeatureItem}>
-                        <View style={styles.featureCheckCircle}>
-                          <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
-                        </View>
-                        <Text style={styles.planFeatureText}>
-                          {data.days} Days Unrestricted Premium Access
-                        </Text>
-                      </View>
+                      {/* Subscribe Button inside the Details Card */}
+                      <TouchableOpacity
+                        style={styles.detailsSubscribeBtn}
+                        onPress={() => openOrderSummary(data)}
+                        activeOpacity={0.85}
+                      >
+                        <LinearGradient
+                          colors={['#0AB8AD', '#028464']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.modernSubscribeBtnGradient}
+                        >
+                          <Text style={styles.modernSubscribeBtnText}>
+                            Subscribe to {data.name || 'Plan'}
+                          </Text>
+                          <FontAwesomeIcon
+                            icon={faArrowRight}
+                            size={14}
+                            color="#FFFFFF"
+                            style={{ marginLeft: 8 }}
+                          />
+                        </LinearGradient>
+                      </TouchableOpacity>
                     </View>
                   )}
 
-                  {/* Modern Subscribe Button */}
-                  <TouchableOpacity
-                    style={styles.modernSubscribeBtn}
-                    onPress={() => openOrderSummary(data)}
-                    activeOpacity={0.85}
-                  >
-                    <LinearGradient
-                      colors={['#0AB8AD', '#028464']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.modernSubscribeBtnGradient}
+                  {/* Collapsed Subscribe Button (shown when not expanded) */}
+                  {!isExpanded && (
+                    <TouchableOpacity
+                      style={styles.modernSubscribeBtn}
+                      onPress={() => openOrderSummary(data)}
+                      activeOpacity={0.85}
                     >
-                      <Text style={styles.modernSubscribeBtnText}>
-                        Subscribe to {data.name || 'Plan'}
-                      </Text>
-                      <FontAwesomeIcon icon={faArrowRight} size={14} color="#FFFFFF" style={{ marginLeft: 8 }} />
-                    </LinearGradient>
-                  </TouchableOpacity>
+                      <LinearGradient
+                        colors={['#0AB8AD', '#028464']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.modernSubscribeBtnGradient}
+                      >
+                        <Text style={styles.modernSubscribeBtnText}>
+                          Subscribe to {data.name || 'Plan'}
+                        </Text>
+                        <FontAwesomeIcon
+                          icon={faArrowRight}
+                          size={14}
+                          color="#FFFFFF"
+                          style={{ marginLeft: 8 }}
+                        />
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
                 </View>
               );
             })}
@@ -1762,6 +1759,17 @@ const Plans = ({ navigation }: any) => {
     borderRadius: 12,
     gap: 4,
   },
+  planDurationBadgeTouch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(10, 184, 173, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(10, 184, 173, 0.5)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    gap: 4,
+  },
   planDurationPillText: {
     fontFamily: 'AppFont-Bold',
     fontSize: wp(2.8),
@@ -1831,84 +1839,86 @@ const Plans = ({ navigation }: any) => {
     color: 'rgba(255, 255, 255, 0.65)',
     marginTop: 4,
   },
-  planDetailsToggle: {
+  detailsCardView: {
+    backgroundColor: 'rgba(0, 0, 0, 0.28)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(10, 184, 173, 0.35)',
+    padding: wp(3.5),
+    marginBottom: hp(1.5),
+  },
+  detailsCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(3.5),
-    marginBottom: hp(1.5),
+    marginBottom: hp(1.2),
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    paddingBottom: hp(1),
   },
-  planDetailsToggleLeft: {
+  detailsCardHeaderLeft: {
     flex: 1,
+    paddingRight: wp(2),
   },
-  planDetailsToggleTitle: {
+  detailsCardHeaderTitle: {
     fontFamily: 'AppFont-Bold',
-    fontSize: wp(3.2),
+    fontSize: wp(3.6),
     color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  planDetailsToggleSubtitle: {
-    fontFamily: 'AppFont-Regular',
-    fontSize: wp(2.6),
-    color: '#A7F3D0',
-    marginTop: 1,
-  },
-  planChevronCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(10, 184, 173, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-  },
-  planExpandedContent: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderRadius: 14,
-    padding: wp(3.5),
-    marginBottom: hp(1.5),
-    borderWidth: 1,
-    borderColor: 'rgba(10, 184, 173, 0.25)',
-  },
-  planDividerLine: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: hp(1),
-  },
-  planFeaturesHeading: {
-    fontFamily: 'AppFont-Bold',
-    fontSize: wp(2.7),
-    color: '#0AB8AD',
     fontWeight: '700',
-    letterSpacing: 0.8,
-    marginBottom: hp(0.8),
   },
-  planFeatureItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginVertical: hp(0.4),
-  },
-  featureCheckCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
+  detailsCardHeaderSubtitle: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(2.7),
+    color: '#A7F3D0',
     marginTop: 2,
   },
-  planFeatureText: {
+  detailsDaysTag: {
+    backgroundColor: 'rgba(10, 184, 173, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 0.8,
+    borderColor: 'rgba(10, 184, 173, 0.5)',
+  },
+  detailsDaysTagText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(2.6),
+    color: '#E0F2FE',
+    fontWeight: '600',
+  },
+  dbDescContainer: {
+    marginBottom: hp(1.5),
+  },
+  dbDescItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: hp(0.5),
+  },
+  dbCheckCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 9,
+  },
+  dbDescText: {
     fontFamily: 'AppFont-Regular',
     fontSize: wp(3.1),
     color: '#F1F5F9',
     flex: 1,
-    lineHeight: wp(4.4),
+  },
+  detailsSubscribeBtn: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: hp(0.5),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 4,
   },
   modernSubscribeBtn: {
     width: '100%',
