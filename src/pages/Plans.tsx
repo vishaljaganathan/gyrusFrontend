@@ -810,9 +810,6 @@ const Plans = ({ navigation }: any) => {
         <View style={styles.plansHeaderBar}>
           <View style={styles.plansHeaderLeft}>
             <Text style={styles.plansHeaderTitle}>Subscription Plans</Text>
-            <Text style={styles.plansHeaderSubtitle}>
-              Unlock complete NEET preparation with 37+ years of solved papers
-            </Text>
           </View>
           <TouchableOpacity
             style={styles.plansCloseButton}
@@ -833,38 +830,12 @@ const Plans = ({ navigation }: any) => {
             {plans.map((data: any, index: number) => {
               const planId = String(data._id || index);
               const isExpanded = !!expandedPlanIds[planId];
-              const isBestValue = data.order === 3 || data.days === '365' || Number(data.days) >= 365;
-              const isPopular = data.order === 2 || data.days === '180';
 
               return (
                 <View
                   key={planId}
-                  style={[
-                    styles.modernCardContainer,
-                    isBestValue && styles.bestValueCardBorder,
-                  ]}
+                  style={styles.modernCardContainer}
                 >
-                  {/* Top Badge for Best Value / Popular */}
-                  {isBestValue ? (
-                    <View style={styles.topBadgeContainer}>
-                      <LinearGradient
-                        colors={['#F59E0B', '#D97706']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.topBadgeGradient}
-                      >
-                        <FontAwesomeIcon icon={faCrown} size={10} color="#FFFFFF" />
-                        <Text style={styles.topBadgeText}>BEST VALUE • 1 YEAR</Text>
-                      </LinearGradient>
-                    </View>
-                  ) : isPopular ? (
-                    <View style={styles.topBadgeContainer}>
-                      <View style={styles.popularBadge}>
-                        <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
-                      </View>
-                    </View>
-                  ) : null}
-
                   {/* Plan Header: Image + Bold Name + Duration Badge */}
                   <View style={styles.planCardHeader}>
                     <View style={styles.planIconWrapper}>
@@ -882,21 +853,34 @@ const Plans = ({ navigation }: any) => {
                         {data.title || `${data.days} Days Access`}
                       </Text>
                     </View>
-                    <TouchableOpacity
-                      style={styles.planDurationBadgeTouch}
-                      onPress={() => togglePlanExpand(planId)}
-                      activeOpacity={0.7}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <FontAwesomeIcon icon={faClock} size={11} color="#0AB8AD" />
-                      <Text style={styles.planDurationPillText}>{data.days} Days</Text>
-                      <FontAwesomeIcon
-                        icon={isExpanded ? faChevronDown : faChevronRight}
-                        size={11}
-                        color="#0AB8AD"
-                        style={{ marginLeft: 5 }}
-                      />
-                    </TouchableOpacity>
+                    <View style={styles.planHeaderRightCol}>
+                      <TouchableOpacity
+                        style={styles.planDurationPill}
+                        onPress={() => togglePlanExpand(planId)}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 6, bottom: 2, left: 6, right: 6 }}
+                      >
+                        <FontAwesomeIcon icon={faClock} size={11} color="#0AB8AD" />
+                        <Text style={styles.planDurationPillText}>{data.days} Days</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.moreDetailsBtn}
+                        onPress={() => togglePlanExpand(planId)}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 4, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={styles.moreDetailsText}>
+                          {isExpanded ? "Less details" : "More details"}
+                        </Text>
+                        <FontAwesomeIcon
+                          icon={isExpanded ? faChevronUp : faChevronRight}
+                          size={9}
+                          color="#0AB8AD"
+                          style={{ marginLeft: 4 }}
+                        />
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   {/* Price Section */}
@@ -980,9 +964,10 @@ const Plans = ({ navigation }: any) => {
                         activeOpacity={0.85}
                       >
                         <LinearGradient
-                          colors={['#0AB8AD', '#028464']}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
+                          colors={['#22E2D6', '#15BBB1', '#0D7F78']}
+                          locations={[0, 0.4, 1]}
+                          start={{ x: 0.5, y: 0 }}
+                          end={{ x: 0.5, y: 1 }}
                           style={styles.modernSubscribeBtnGradient}
                         >
                           <Text style={styles.modernSubscribeBtnText}>
@@ -1007,9 +992,10 @@ const Plans = ({ navigation }: any) => {
                       activeOpacity={0.85}
                     >
                       <LinearGradient
-                        colors={['#0AB8AD', '#028464']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
+                        colors={['#22E2D6', '#15BBB1', '#0D7F78']}
+                        locations={[0, 0.4, 1]}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
                         style={styles.modernSubscribeBtnGradient}
                       >
                         <Text style={styles.modernSubscribeBtnText}>
@@ -1642,7 +1628,7 @@ const Plans = ({ navigation }: any) => {
   },
   plansHeaderTitle: {
     fontFamily: 'AppFont-Bold',
-    fontSize: wp(6),
+    fontSize: wp(8),
     color: '#FFFFFF',
     fontWeight: '700',
     letterSpacing: 0.3,
@@ -1671,45 +1657,6 @@ const Plans = ({ navigation }: any) => {
     padding: wp(4.5),
     marginVertical: hp(1.2),
     overflow: 'hidden',
-  },
-  bestValueCardBorder: {
-    borderColor: '#0AB8AD',
-    borderWidth: 1.8,
-    backgroundColor: 'rgba(11, 73, 55, 0.75)',
-  },
-  topBadgeContainer: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    zIndex: 2,
-  },
-  topBadgeGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderBottomLeftRadius: 14,
-    gap: 5,
-  },
-  topBadgeText: {
-    fontFamily: 'AppFont-Bold',
-    fontSize: wp(2.7),
-    color: '#FFFFFF',
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  popularBadge: {
-    backgroundColor: '#0AB8AD',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderBottomLeftRadius: 14,
-  },
-  popularBadgeText: {
-    fontFamily: 'AppFont-Bold',
-    fontSize: wp(2.7),
-    color: '#FFFFFF',
-    fontWeight: '800',
-    letterSpacing: 0.5,
   },
   planCardHeader: {
     flexDirection: 'row',
@@ -1748,6 +1695,10 @@ const Plans = ({ navigation }: any) => {
     color: '#A7F3D0',
     marginTop: 2,
   },
+  planHeaderRightCol: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
   planDurationPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1759,16 +1710,18 @@ const Plans = ({ navigation }: any) => {
     borderRadius: 12,
     gap: 4,
   },
-  planDurationBadgeTouch: {
+  moreDetailsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 184, 173, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(10, 184, 173, 0.5)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-    gap: 4,
+    marginTop: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 2,
+  },
+  moreDetailsText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(2.6),
+    color: '#0AB8AD',
+    fontWeight: '600',
   },
   planDurationPillText: {
     fontFamily: 'AppFont-Bold',
