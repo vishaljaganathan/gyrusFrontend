@@ -17,7 +17,13 @@ import {
   faShareNodes,
   faExternalLinkAlt,
   faBolt,
-  faCopy } from "@fortawesome/free-solid-svg-icons";
+  faCopy,
+  faChevronDown,
+  faChevronUp,
+  faCheck,
+  faArrowRight,
+  faClock,
+  faCrown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import RazorpayCheckout from "react-native-razorpay";
 import { WebView } from "react-native-webview";
@@ -119,6 +125,14 @@ const Plans = ({ navigation }: any) => {
   const [showPayment, setShowPayment] = useState(false);
   const [showPaymentStatus, setshowPaymentStatus] = useState(false);
   const [plans, setPlans] = useState<any[]>([]);
+  const [expandedPlanIds, setExpandedPlanIds] = useState<{ [key: string]: boolean }>({});
+
+  const togglePlanExpand = (planId: string) => {
+    setExpandedPlanIds((prev) => ({
+      ...prev,
+      [planId]: !prev[planId],
+    }));
+  };
   const [loading, setLoading] = useState(false);
   const [couponChecked, setCouponChecked] = useState(false);
   const [couponCode, setCouponCode] = useState("");
@@ -751,7 +765,12 @@ const Plans = ({ navigation }: any) => {
       .get("authentication/plans")
       .then((res) => {
         if (res && res.data) {
-          setPlans(res.data);
+          const sorted = [...(res.data || [])].sort((a: any, b: any) => {
+            const orderA = a.order !== undefined && a.order !== null ? Number(a.order) : 999;
+            const orderB = b.order !== undefined && b.order !== null ? Number(b.order) : 999;
+            return orderA - orderB;
+          });
+          setPlans(sorted);
         }
       })
       .catch(() => {
@@ -786,119 +805,231 @@ const Plans = ({ navigation }: any) => {
           paddingBottom: insets.bottom,
           paddingLeft: insets.left } }
       >
-        {/* Close Button */}
-        <View
-          style={{
-            width: "90%",
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "flex-end" } }
-        >
-          <TouchableOpacity onPress={Navigate}>
-            <FontAwesomeIcon icon={faCircleXmark} size={wp(8)} color={Theme.COLORS.grey01} />
+        {/* Header Bar with Screen Title & Close Button */}
+        <View style={styles.plansHeaderBar}>
+          <View style={styles.plansHeaderLeft}>
+            <Text style={styles.plansHeaderTitle}>Subscription Plans</Text>
+            <Text style={styles.plansHeaderSubtitle}>
+              Unlock complete NEET preparation with 37+ years of solved papers
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.plansCloseButton}
+            onPress={Navigate}
+            hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+          >
+            <FontAwesomeIcon icon={faCircleXmark} size={wp(7.5)} color="rgba(255, 255, 255, 0.85)" />
           </TouchableOpacity>
         </View>
 
-        {/* Plans */}
-        <View style={{ flex: 2 }}>
-          <View style={{ display: "flex", alignItems: "center" }}>
-            <ScrollView style={{ paddingHorizontal: wp(2) }}>
-              {plans.map((data: any, index: number) => {
-                return (
-                  <View key={index}
-            style={styles.cardContainer}>
-                    <View style={{ alignItems: "center" }}>
-                      <View style={{ display: "flex", flexDirection: "row" }}>
-                        <Image
-                          source={{ uri: data.img }}
-            style={{ width: 70, height: 70 }}
-                        />
-                        <Text style={styles.features}>{data.title}</Text>
-                      </View>
+        {/* Plans List */}
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={styles.plansScrollContainer}
+            showsVerticalScrollIndicator={false}
+            style={{ width: "100%" }}
+          >
+            {plans.map((data: any, index: number) => {
+              const planId = String(data._id || index);
+              const isExpanded = !!expandedPlanIds[planId];
+              const isBestValue = data.order === 3 || data.days === '365' || Number(data.days) >= 365;
+              const isPopular = data.order === 2 || data.days === '180';
 
-                      {/* Price Section */}
-                      <View
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          gap: wp(2),
-                          margin: wp(1) } }
+              return (
+                <View
+                  key={planId}
+                  style={[
+                    styles.modernCardContainer,
+                    isBestValue && styles.bestValueCardBorder,
+                  ]}
+                >
+                  {/* Top Badge for Best Value / Popular */}
+                  {isBestValue ? (
+                    <View style={styles.topBadgeContainer}>
+                      <LinearGradient
+                        colors={['#F59E0B', '#D97706']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.topBadgeGradient}
                       >
-                        <View
-                          style={{
-                            width: wp(14),
-                            justifyContent: "flex-start" } }
-                        >
-                          {data.discountApplicable && (
-                            <>
-                              <Text
-                                style={{
-                                  color: "#FFFFFF",
-                                  textDecorationLine: "line-through",
-                                  fontFamily: 'AppFont-Regular', fontSize: wp(4) } }
-                              >
-                                {"\u20B9"}
-                                {data.prices.price}
-                              </Text>
-                              <Text
-                                style={{
-                                  marginVertical: wp(1.2),
-                                  color: "#002B7B" } }
-                              >
-                                {data.prices.offer}
-                                {"% off"}
-                              </Text>
-                            </>
-                          )}
-                        </View>
-                        <View>
-                          <Text style={{ color: "#FFFFFF", fontFamily: 'AppFont-Regular', fontSize: wp(5) }}>
-                            {"\u20B9"}
-                            {data.discountApplicable
-                              ? data.prices.discountPrice
-                              : data.prices.price}{" "}
-                            + GST
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Description */}
-                      <View>
-                        {data.desc.map((desc: any, i: number) => (
-                          <View
-                            key={i}
-            style={{
-                              display: "flex",
-                              flexDirection: "row",
-                              justifyContent: "flex-start" } }
-                          >
-                            <Image
-                              source={check}
-            style={{ width: 20, height: 20, margin: wp(1) }}
-                            />
-                            <Text
-                              style={{
-                                color: "#FFFFFF",
-                                marginVertical: hp(0.6) } }
-                            >
-                              {desc.desc}
-                            </Text>
-                          </View>
-                        ))}
+                        <FontAwesomeIcon icon={faCrown} size={10} color="#FFFFFF" />
+                        <Text style={styles.topBadgeText}>BEST VALUE • 1 YEAR</Text>
+                      </LinearGradient>
+                    </View>
+                  ) : isPopular ? (
+                    <View style={styles.topBadgeContainer}>
+                      <View style={styles.popularBadge}>
+                        <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
                       </View>
                     </View>
+                  ) : null}
 
-                    {/* Subscribe Button */}
-                    <SubscribeBtn
-                      onPress={() => {
-                        openOrderSummary(plans[index]);
-                      }}
-                      text={"Subscribe Now"}
-                      textStyle={{ fontWeight: "bold" }}
-                    />
+                  {/* Plan Header: Image + Bold Name + Duration Badge */}
+                  <View style={styles.planCardHeader}>
+                    <View style={styles.planIconWrapper}>
+                      <Image
+                        source={{ uri: data.img }}
+                        style={styles.planIcon}
+                        resizeMode="contain"
+                      />
+                    </View>
+                    <View style={styles.planTitleCol}>
+                      <Text style={styles.planNameBold}>
+                        {data.name || data.title}
+                      </Text>
+                      <Text style={styles.planSubtitle} numberOfLines={1}>
+                        {data.title || `${data.days} Days Access`}
+                      </Text>
+                    </View>
+                    <View style={styles.planDurationPill}>
+                      <FontAwesomeIcon icon={faClock} size={11} color="#0AB8AD" />
+                      <Text style={styles.planDurationPillText}>{data.days} Days</Text>
+                    </View>
                   </View>
-                );
-              })}
+
+                  {/* Price Section */}
+                  <View style={styles.planPriceSection}>
+                    <View style={styles.planPriceLeft}>
+                      <View style={styles.planPriceRow}>
+                        <Text style={styles.planCurrencySymbol}>₹</Text>
+                        <Text style={styles.planMainPrice}>
+                          {data.discountApplicable
+                            ? data.prices.discountPrice
+                            : data.prices.price}
+                        </Text>
+                        <Text style={styles.planGstText}>+ GST</Text>
+                        {data.discountApplicable && (
+                          <>
+                            <Text style={styles.planOriginalPrice}>
+                              ₹{data.prices.price}
+                            </Text>
+                            <View style={styles.planDiscountBadge}>
+                              <Text style={styles.planDiscountText}>
+                                {data.prices.offer}% OFF
+                              </Text>
+                            </View>
+                          </>
+                        )}
+                      </View>
+                      <Text style={styles.planBilledNote}>
+                        One-time payment • Full access for {data.days} days
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Dropdown Toggle to See Full Plan Details */}
+                  <TouchableOpacity
+                    style={styles.planDetailsToggle}
+                    onPress={() => togglePlanExpand(planId)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.planDetailsToggleLeft}>
+                      <Text style={styles.planDetailsToggleTitle}>
+                        {isExpanded ? "Hide Plan Details" : "View Full Plan Details"}
+                      </Text>
+                      <Text style={styles.planDetailsToggleSubtitle}>
+                        {isExpanded ? "Tap to collapse" : "Features, MCQ coverage & benefits"}
+                      </Text>
+                    </View>
+                    <View style={styles.planChevronCircle}>
+                      <FontAwesomeIcon
+                        icon={isExpanded ? faChevronUp : faChevronDown}
+                        size={13}
+                        color="#0AB8AD"
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Collapsible Details Content */}
+                  {isExpanded && (
+                    <View style={styles.planExpandedContent}>
+                      <View style={styles.planDividerLine} />
+
+                      <Text style={styles.planFeaturesHeading}>WHAT'S INCLUDED:</Text>
+
+                      {/* Items from backend database desc */}
+                      {data.desc && data.desc.length > 0
+                        ? data.desc.map((descItem: any, i: number) => (
+                            <View key={i} style={styles.planFeatureItem}>
+                              <View style={styles.featureCheckCircle}>
+                                <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
+                              </View>
+                              <Text style={styles.planFeatureText}>
+                                {descItem.desc || descItem}
+                              </Text>
+                            </View>
+                          ))
+                        : null}
+
+                      {/* Core NEET preparation features */}
+                      <View style={styles.planFeatureItem}>
+                        <View style={styles.featureCheckCircle}>
+                          <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
+                        </View>
+                        <Text style={styles.planFeatureText}>
+                          Complete Physics, Chemistry & Biology Question Bank
+                        </Text>
+                      </View>
+
+                      <View style={styles.planFeatureItem}>
+                        <View style={styles.featureCheckCircle}>
+                          <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
+                        </View>
+                        <Text style={styles.planFeatureText}>
+                          Chapterwise Practice & Unlimited Timed Mock Tests
+                        </Text>
+                      </View>
+
+                      <View style={styles.planFeatureItem}>
+                        <View style={styles.featureCheckCircle}>
+                          <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
+                        </View>
+                        <Text style={styles.planFeatureText}>
+                          Step-by-Step Solutions with In-Depth Explanations
+                        </Text>
+                      </View>
+
+                      <View style={styles.planFeatureItem}>
+                        <View style={styles.featureCheckCircle}>
+                          <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
+                        </View>
+                        <Text style={styles.planFeatureText}>
+                          Real-time All India Rank & Accuracy Analytics
+                        </Text>
+                      </View>
+
+                      <View style={styles.planFeatureItem}>
+                        <View style={styles.featureCheckCircle}>
+                          <FontAwesomeIcon icon={faCheck} size={10} color="#10B981" />
+                        </View>
+                        <Text style={styles.planFeatureText}>
+                          {data.days} Days Unrestricted Premium Access
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Modern Subscribe Button */}
+                  <TouchableOpacity
+                    style={styles.modernSubscribeBtn}
+                    onPress={() => openOrderSummary(data)}
+                    activeOpacity={0.85}
+                  >
+                    <LinearGradient
+                      colors={['#0AB8AD', '#028464']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.modernSubscribeBtnGradient}
+                    >
+                      <Text style={styles.modernSubscribeBtnText}>
+                        Subscribe to {data.name || 'Plan'}
+                      </Text>
+                      <FontAwesomeIcon icon={faArrowRight} size={14} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
 
               {/* Order Summary Modal */}
               <Modal
@@ -1494,12 +1625,315 @@ const Plans = ({ navigation }: any) => {
             </ScrollView>
           </View>
         </View>
-      </View>
-    </LinearGradient>
-  );
-};
+      </LinearGradient>
+    );
+  };
 
-const styles = StyleSheet.create({
+  const styles = StyleSheet.create({
+  plansHeaderBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    width: wp(92),
+    alignSelf: 'center',
+    marginTop: hp(1),
+    marginBottom: hp(1.5),
+  },
+  plansHeaderLeft: {
+    flex: 1,
+    marginRight: wp(3),
+  },
+  plansHeaderTitle: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(6),
+    color: '#FFFFFF',
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  plansHeaderSubtitle: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(3.1),
+    color: 'rgba(255, 255, 255, 0.75)',
+    marginTop: 3,
+    lineHeight: wp(4.5),
+  },
+  plansCloseButton: {
+    padding: 4,
+  },
+  plansScrollContainer: {
+    alignItems: 'center',
+    paddingBottom: hp(8),
+    paddingHorizontal: wp(2),
+  },
+  modernCardContainer: {
+    width: wp(92),
+    backgroundColor: 'rgba(11, 73, 55, 0.55)',
+    borderRadius: 20,
+    borderWidth: 1.2,
+    borderColor: 'rgba(10, 184, 173, 0.4)',
+    padding: wp(4.5),
+    marginVertical: hp(1.2),
+    overflow: 'hidden',
+  },
+  bestValueCardBorder: {
+    borderColor: '#0AB8AD',
+    borderWidth: 1.8,
+    backgroundColor: 'rgba(11, 73, 55, 0.75)',
+  },
+  topBadgeContainer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 2,
+  },
+  topBadgeGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderBottomLeftRadius: 14,
+    gap: 5,
+  },
+  topBadgeText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(2.7),
+    color: '#FFFFFF',
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  popularBadge: {
+    backgroundColor: '#0AB8AD',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderBottomLeftRadius: 14,
+  },
+  popularBadgeText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(2.7),
+    color: '#FFFFFF',
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  planCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: hp(1.5),
+  },
+  planIconWrapper: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: wp(3),
+  },
+  planIcon: {
+    width: 38,
+    height: 38,
+  },
+  planTitleCol: {
+    flex: 1,
+  },
+  planNameBold: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(5.2),
+    color: '#FFFFFF',
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  planSubtitle: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(3),
+    color: '#A7F3D0',
+    marginTop: 2,
+  },
+  planDurationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(10, 184, 173, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(10, 184, 173, 0.5)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  planDurationPillText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(2.8),
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  planPriceSection: {
+    backgroundColor: 'rgba(0, 0, 0, 0.22)',
+    borderRadius: 14,
+    paddingVertical: hp(1.2),
+    paddingHorizontal: wp(3.5),
+    marginBottom: hp(1.5),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  planPriceLeft: {
+    width: '100%',
+  },
+  planPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+  },
+  planCurrencySymbol: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(4.8),
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  planMainPrice: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(6.8),
+    color: '#FFFFFF',
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  planGstText: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(3),
+    color: '#94A3B8',
+    marginLeft: 5,
+  },
+  planOriginalPrice: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(3.8),
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+    marginLeft: 10,
+  },
+  planDiscountBadge: {
+    backgroundColor: '#10B981',
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    marginLeft: 8,
+    alignSelf: 'center',
+  },
+  planDiscountText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(2.7),
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  planBilledNote: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(2.7),
+    color: 'rgba(255, 255, 255, 0.65)',
+    marginTop: 4,
+  },
+  planDetailsToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingVertical: hp(1),
+    paddingHorizontal: wp(3.5),
+    marginBottom: hp(1.5),
+  },
+  planDetailsToggleLeft: {
+    flex: 1,
+  },
+  planDetailsToggleTitle: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.2),
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  planDetailsToggleSubtitle: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(2.6),
+    color: '#A7F3D0',
+    marginTop: 1,
+  },
+  planChevronCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(10, 184, 173, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  planExpandedContent: {
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 14,
+    padding: wp(3.5),
+    marginBottom: hp(1.5),
+    borderWidth: 1,
+    borderColor: 'rgba(10, 184, 173, 0.25)',
+  },
+  planDividerLine: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: hp(1),
+  },
+  planFeaturesHeading: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(2.7),
+    color: '#0AB8AD',
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    marginBottom: hp(0.8),
+  },
+  planFeatureItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginVertical: hp(0.4),
+  },
+  featureCheckCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    marginTop: 2,
+  },
+  planFeatureText: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(3.1),
+    color: '#F1F5F9',
+    flex: 1,
+    lineHeight: wp(4.4),
+  },
+  modernSubscribeBtn: {
+    width: '100%',
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  modernSubscribeBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp(1.5),
+    paddingHorizontal: wp(4),
+  },
+  modernSubscribeBtnText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.8),
+    color: '#FFFFFF',
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
   container: {
     flex: 1,
     alignItems: "center",
