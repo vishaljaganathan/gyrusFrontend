@@ -144,6 +144,7 @@ const Plans = ({ navigation }: any) => {
   const [useRedeemedPoints, setUseRedeemedPoints] = useState(false);
 
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showUpiIdModal, setShowUpiIdModal] = useState(false);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrOrderData, setQrOrderData] = useState<{
     orderId?: string;
@@ -480,7 +481,7 @@ const Plans = ({ navigation }: any) => {
         // Verified active working UPI ID for Gyrus NEET / Sri Aurobindo Infotech
         const upiId = (res.data.upiId && !res.data.upiId.startsWith('rpy.payto'))
           ? res.data.upiId
-          : 'gpay-11187254107@okbizaxis';
+          : '';
         const cleanNote = ((order as any)?.name ? `Payment for ${(order as any).name}` : 'GYRUS NEET').replace(/[^a-zA-Z0-9 ]/g, '').trim();
         const cleanTr = (res.data.orderId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 35);
         const upiUri = res.data.upiIntentUri || `upi://pay?pa=${upiId}&pn=GYRUS%20NEET&mc=5399&am=${formattedAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}&tr=${cleanTr}`;
@@ -521,7 +522,7 @@ const Plans = ({ navigation }: any) => {
 
 
 
-  // Send UPI Collect request to parent's or user's UPI ID via Razorpay (Zero UTR entry)
+  // Send UPI Collect request to parent's or user's UPI ID via Razorpay (Zero merchant ID, 100% Razorpay)
   const handlePayViaVpaCollect = async () => {
     const cleanVpa = vpaInput.trim();
     if (!cleanVpa || !cleanVpa.includes("@") || cleanVpa.length < 5) {
@@ -533,30 +534,35 @@ const Plans = ({ navigation }: any) => {
     }
 
     setSendingCollectRequest(true);
+    setShowUpiIdModal(false);
     setShowQrModal(false);
-    setQrPolling(false);
+    setLoading(true);
 
     try {
       const activeCouponCode = (couponChecked && verifiedCoupon?.couponCode) ? verifiedCoupon.couponCode : undefined;
-      let orderId = qrOrderData?.orderId;
-      let key = qrOrderData?.key || userData?.key;
-      let amount = qrOrderData?.amount || finalPayableAmount;
-
-      if (!orderId) {
-        const orderRes = await axiosInstance.post("authentication/create-order", {
-          planId: order._id,
-          couponCode: activeCouponCode,
-          useRedeemedPoints: useRedeemedPoints,
-        });
-        orderId = orderRes.data.orderId;
-        key = orderRes.data.key || key;
-        amount = orderRes.data.amount || amount;
-      }
+      const orderRes = await axiosInstance.post("authentication/create-order", {
+        planId: order._id,
+        couponCode: activeCouponCode,
+        useRedeemedPoints: useRedeemedPoints,
+      });
 
       setSendingCollectRequest(false);
-      openRazorpay(orderId, key, amount, activeCouponCode, cleanVpa);
+      setLoading(false);
+
+      if (orderRes?.data?.orderId) {
+        openRazorpay(
+          orderRes.data.orderId,
+          orderRes.data.key,
+          Number(orderRes.data.amount || finalPayableAmount),
+          activeCouponCode,
+          cleanVpa
+        );
+      } else {
+        Alert.alert("Payment Error", "Unable to create order. Please try again.");
+      }
     } catch (err: any) {
       setSendingCollectRequest(false);
+      setLoading(false);
       Alert.alert("Payment Error", err?.response?.data?.message || err?.message || "Failed to initiate UPI request. Please try again.");
     }
   };
@@ -1326,32 +1332,55 @@ const Plans = ({ navigation }: any) => {
                       ) : null}
                     </View>
                     <View style={{ alignItems: "center", marginTop: hp(1.5), width: "100%" }}>
-                      {/* Primary Option: Pay via UPI / QR Code */}
+                      {/* Primary Option: Pay via UPI */}
                       <TouchableOpacity
                         style={styles.upiPayButton}
                         disabled={loading || couponLoading}
-                        onPress={startUpiQrPayment}
+                        onPress={() => {
+                          if (hasUpiApp) {
+                            // Device has UPI apps: launch Razorpay Checkout directly
+                            createOrder(order._id);
+                          } else {
+                            // Device has no UPI apps: open UPI ID entering modal
+                            setShowOrder(false);
+                            setShowUpiIdModal(true);
+                          }
+                        }}
                       >
-                        {loading && qrLoading ? (
+                        {loading ? (
                           <ActivityIndicator size="small" color="#FFF" />
                         ) : (
                           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
-                            <FontAwesomeIcon icon={faQrcode} size={18} color="#FFF" style={{ marginRight: 8 }} />
-                            <Text style={styles.upiPayButtonText}>Pay via UPI / QR Code</Text>
+                            <FontAwesomeIcon icon={faBolt} size={16} color="#FFF" style={{ marginRight: 8 }} />
+                            <Text style={styles.upiPayButtonText}>
+                              {hasUpiApp ? "Pay via UPI (GPay / PhonePe / Paytm)" : "Pay via UPI ID"}
+                            </Text>
                           </View>
                         )}
                       </TouchableOpacity>
-                      <Text style={styles.upiPaySubtext}>
-                        Scan QR with GPay, PhonePe, Paytm, or pay via UPI link
-                      </Text>
+
+                      {/* Parent UPI option if phone has UPI app */}
+                      {hasUpiApp ? (
+                        <TouchableOpacity
+                          style={{ paddingVertical: 5, alignItems: "center" }}
+                          onPress={() => {
+                            setShowOrder(false);
+                            setShowUpiIdModal(true);
+                          }}
+                        >
+                          <Text style={{ fontFamily: "AppFont-Regular", fontSize: wp(2.8), color: "#028464", textDecorationLine: "underline" }}>
+                            Paying from parent's phone? Enter UPI ID
+                          </Text>
+                        </TouchableOpacity>
+                      ) : null}
 
                       {/* Secondary Option: Cards, Netbanking & Wallets */}
                       <TouchableOpacity
-                        style={styles.cardPayButton}
+                        style={[styles.cardPayButton, { marginTop: hasUpiApp ? hp(0.5) : hp(1) }]}
                         disabled={loading || couponLoading}
                         onPress={() => createOrder(order._id)}
                       >
-                        {loading && !qrLoading ? (
+                        {loading ? (
                           <ActivityIndicator size="small" color="#028464" />
                         ) : (
                           <Text style={styles.cardPayButtonText}>Cards, Netbanking & Wallets</Text>
@@ -1362,178 +1391,37 @@ const Plans = ({ navigation }: any) => {
                 </Modal.Content>
               </Modal>
 
-              {/* Dedicated UPI & QR Payment Modal */}
+              {/* Native UPI ID Collect Modal */}
+{/* Native UPI ID (VPA) Collect Modal for devices without UPI apps */}
               <Modal
-                isOpen={showQrModal}
-                onClose={closeQrModal}
+                isOpen={showUpiIdModal}
+                onClose={() => setShowUpiIdModal(false)}
               >
                 <Modal.Content
-                  maxWidth="360"
+                  maxWidth="340"
                   style={styles.qrModalContent}
                 >
                   <Modal.CloseButton />
                   <Modal.Header style={styles.qrModalHeader}>
-                    <Text style={styles.qrModalTitle}>Pay via UPI / QR</Text>                
-
+                    <Text style={styles.qrModalTitle}>Pay via UPI ID</Text>
                     <View style={styles.qrHeaderBadge}>
                       <Text style={styles.qrHeaderBadgePlan}>
-                        {qrOrderData?.planName || (order as any)?.name || "Plan"}
+                        {(order as any)?.name || "Plan"}
                       </Text>
                       <Text style={styles.qrHeaderBadgeDot}>•</Text>
                       <Text style={styles.qrHeaderBadgeAmount}>
-                        {"\u20B9"}{qrOrderData?.amount ?? finalPayableAmount}
+                        {"₹"}{finalPayableAmount}
                       </Text>
                     </View>
                   </Modal.Header>
                   <Modal.Body style={styles.qrModalBody}>
-                    <View style={styles.qrModalBodyContent}>
-                    {/* QR Code Image Container */}
-                    {qrLoading ? (
-                      <View style={styles.qrLoadingBox}>
-                        <ActivityIndicator size="large" color="#028464" />
-                        <Text style={styles.qrLoadingText}>Generating UPI QR Code...</Text>
-                      </View>
-                    ) : (
-                      <ViewShot
-                        ref={qrCardViewShotRef}
-                        options={{ format: 'png', quality: 1.0 }}
-                        style={styles.qrCardContainer}
-                      >
-                        <View style={styles.qrCardHeaderRow}>
-                          <Text style={styles.qrCardHeaderTitle}>
-                            {qrOrderData?.planName || (order as any)?.name || "Gyrus NEET"}
-                          </Text>
-                          <Text style={styles.qrCardHeaderAmount}>
-                            {"\u20B9"}{qrOrderData?.amount ?? finalPayableAmount}
-                          </Text>
-                        </View>
-
-                        <View style={styles.qrImageWrapper}>
-                          {qrOrderData?.qrImageUrl ? (
-                            <Image
-                              source={{ uri: qrOrderData.qrImageUrl }}
-                              style={styles.qrImage}
-                              resizeMode="contain"
-                              onError={() => {
-                                if (qrOrderData?.upiIntentUri) {
-                                  const fallbackUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrOrderData.upiIntentUri)}&size=350&margin=2`;
-                                  if (qrOrderData.qrImageUrl !== fallbackUrl) {
-                                    setQrOrderData((prev: any) => ({ ...prev, qrImageUrl: fallbackUrl }));
-                                  }
-                                }
-                              }}
-                            />
-                          ) : (
-                            <View style={[styles.qrImage, { alignItems: 'center', justifyContent: 'center' }]}>
-                              <ActivityIndicator size="small" color="#028464" />
-                              <Text style={[styles.qrLoadingText, { marginTop: 6 }]}>Loading QR...</Text>
-                            </View>
-                          )}
-                        </View>
-
-                        {/* Supported Apps Row under QR */}
-                        <View style={styles.qrSupportedAppsContainer}>
-                          <Text style={styles.qrSupportedAppsTitle}>Scan with any UPI app</Text>
-                          <View style={styles.qrIconsRow}>
-                            <View style={styles.appIconPill}><GPayIcon size={20} /></View>
-                            <View style={styles.appIconPill}><PhonePeIcon size={20} /></View>
-                            <View style={styles.appIconPill}><PaytmIcon size={20} /></View>
-                            <View style={styles.appIconPill}><BhimIcon size={20} /></View>
-                            <View style={styles.appIconPill}><CredIcon size={20} /></View>
-                          </View>
-                        </View>
-
-                        {/* Razorpay verified badge embedded in the card */}
-                        <View style={styles.qrCardUpiPill}>
-                          <Text style={styles.qrCardUpiPillLabel}>SECURE:</Text>
-                          <Text style={styles.qrCardUpiPillValue}>Razorpay Verified UPI</Text>
-                        </View>
-                      </ViewShot>
-                    )}
-
-                    {/* Direct on-device UPI pay button with Brand Badges */}
-                    <TouchableOpacity
-                      style={styles.qrPrimaryPayBtn}
-                      onPress={async () => {
-                        const upiUri = qrOrderData?.upiIntentUri;
-                        if (upiUri) {
-                          try {
-                            const canOpen = await Linking.canOpenURL(upiUri);
-                            if (canOpen) {
-                              await Linking.openURL(upiUri);
-                              return;
-                            }
-                          } catch (_) {}
-                        }
-                        const hasCheckoutModule = !!(NativeModules as any)?.RNRazorpayCheckout;
-                        if (hasCheckoutModule && order?._id) {
-                          setShowQrModal(false);
-                          setQrPolling(false);
-                          createOrder(order._id);
-                          return;
-                        }
-                        Alert.alert(
-                          "No UPI App Detected",
-                          "No UPI apps (like GPay, PhonePe, or Paytm) were detected on this device. Please scan the QR code above with any UPI app on another phone, or copy the UPI ID to pay.",
-                          [{ text: "OK" }]
-                        );
-                      }}
-                    >
-                      <View style={styles.qrPrimaryPayLeft}>
-                        <FontAwesomeIcon icon={faBolt} size={15} color="#FFF" />
-                        <Text style={styles.qrPrimaryPayBtnText}>Pay with UPI App (GPay / PhonePe / Paytm)</Text>
-                      </View>
-                      <View style={styles.qrPrimaryPayIcons}>
-                        <View style={styles.miniIconBadge}><GPayIcon size={16} /></View>
-                        <View style={[styles.miniIconBadge, { marginLeft: -5 }]}><PhonePeIcon size={16} /></View>
-                        <View style={[styles.miniIconBadge, { marginLeft: -5 }]}><PaytmIcon size={16} /></View>
-                      </View>
-                    </TouchableOpacity>
-
-                    {/* Payment Method Info Bar */}
-                    <View style={styles.qrUpiIdBar}>
-                      <View style={styles.qrUpiIdLeft}>
-                        <Text style={styles.qrUpiIdLabel}>PAYMENT METHOD</Text>
-                        <Text style={styles.qrUpiIdValue} numberOfLines={1}>
-                          Razorpay Official UPI
-                        </Text>
-                      </View>
-                      <View style={styles.qrUpiActionsGroup}>
-                        <TouchableOpacity
-                          style={styles.qrActionChip}
-                          disabled={isSharingQr}
-                          onPress={handleShareQrWithUpi}
-                        >
-                          {isSharingQr ? (
-                            <ActivityIndicator size="small" color="#028464" />
-                          ) : (
-                            <>
-                              <FontAwesomeIcon icon={faShareNodes} size={11} color="#028464" />
-                              <Text style={styles.qrActionChipText}>Share QR</Text>
-                            </>
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    {/* Live Polling Status */}
-                    <View style={styles.qrLiveStatusPill}>
-                      <ActivityIndicator size="small" color="#028464" />
-                      <Text style={styles.qrLiveStatusText}>Waiting for payment confirmation...</Text>
-                    </View>
-
-                    {/* Enter Parent / Any UPI ID Section (Zero UTR entry needed) */}
                     <View style={styles.qrVpaBox}>
                       <View style={styles.qrVpaHeader}>
-                        <FontAwesomeIcon icon={faBolt} size={13} color="#166534" />
-                        <Text style={styles.qrVpaTitle}>
-                          {!hasUpiApp ? "Pay via Parent's or Any UPI ID" : "Or Pay via UPI ID (VPA)"}
-                        </Text>
+                        <FontAwesomeIcon icon={faBolt} size={14} color="#166534" />
+                        <Text style={styles.qrVpaTitle}>Send Request to Parent's Phone</Text>
                       </View>
                       <Text style={styles.qrVpaSubtitle}>
-                        {!hasUpiApp
-                          ? "No UPI app on this device? Enter your parent's UPI ID to send a direct payment request to their phone:"
-                          : "Enter any UPI ID to receive a payment request notification in that UPI app:"}
+                        Enter any UPI ID (from Google Pay, PhonePe, Paytm, or BHIM) to receive a direct payment request:
                       </Text>
                       <View style={styles.qrVpaInputRow}>
                         <TextInput
@@ -1560,90 +1448,16 @@ const Plans = ({ navigation }: any) => {
                       </View>
                     </View>
 
-                    {/* Secondary Collapsible: Paid using standee QR? Enter UTR */}
-                    <TouchableOpacity
-                      style={styles.qrUtrToggleBtn}
-                      onPress={() => setShowUtrSection(!showUtrSection)}
-                    >
-                      <Text style={styles.qrUtrToggleText}>
-                        {showUtrSection ? "Hide UTR reference entry ▲" : "Paid by scanning standee QR? Enter UTR ▼"}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {showUtrSection ? (
-                      <View style={styles.qrUtrBox}>
-                        <View style={styles.qrUtrHeader}>
-                          <FontAwesomeIcon icon={faReceipt} size={12} color="#028464" />
-                          <Text style={styles.qrUtrTitle}>Enter 12-digit UPI Ref / UTR to Activate</Text>
-                        </View>
-                        <Text style={styles.qrUtrSubtitle}>
-                          If you scanned the QR standee directly, enter the 12-digit UTR from your payment receipt:
-                        </Text>
-                        <View style={styles.qrUtrInputRow}>
-                          <TextInput
-                            style={styles.qrUtrInput}
-                            placeholder="e.g. 430981726481"
-                            placeholderTextColor="#94a3b8"
-                            value={upiUtrInput}
-                            onChangeText={setUpiUtrInput}
-                            keyboardType="numeric"
-                            maxLength={22}
-                          />
-                          <TouchableOpacity
-                            style={[styles.qrUtrSubmitBtn, (!upiUtrInput.trim() || submittingUtr) ? styles.qrUtrSubmitBtnDisabled : null]}
-                            disabled={!upiUtrInput.trim() || submittingUtr}
-                            onPress={submitUpiUtrPayment}
-                          >
-                            {submittingUtr ? (
-                              <ActivityIndicator size="small" color="#FFF" />
-                            ) : (
-                              <Text style={styles.qrUtrSubmitBtnText}>Activate Plan</Text>
-                            )}
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ) : null}
-
-
-                    {/* Secondary Actions in 2-Column Row */}
-                    <View style={styles.qrBottomActionsRow}>
-                      <TouchableOpacity
-                        style={styles.qrVerifyColBtn}
-                        disabled={verifyingStatus}
-                        onPress={checkPaymentStatusManually}
-                      >
-                        <Text style={styles.qrVerifyColText}>
-                          {verifyingStatus ? "Checking..." : "I Have Paid \u2022 Verify"}
-                        </Text>
-                      </TouchableOpacity>
-
-                      {order?._id ? (
-                        <TouchableOpacity
-                          style={styles.qrInAppColBtn}
-                          onPress={() => {
-                            setShowQrModal(false);
-                            setQrPolling(false);
-                            createOrder(order._id);
-                          }}
-                        >
-                          <FontAwesomeIcon icon={faBolt} size={12} color="#028464" />
-                          <Text style={styles.qrInAppColText}>Pay in App</Text>
-                        </TouchableOpacity>
-                      ) : null}
-                    </View>
-
-                    {/* Fallback to Cards / Netbanking */}
+                    {/* Secondary option: Cards, Netbanking */}
                     <TouchableOpacity
                       style={styles.qrSwitchBtn}
                       onPress={() => {
-                        setShowQrModal(false);
-                        setQrPolling(false);
+                        setShowUpiIdModal(false);
                         createOrder(order._id);
                       }}
                     >
                       <Text style={styles.qrSwitchText}>Pay with Cards / Netbanking instead</Text>
                     </TouchableOpacity>
-                    </View>
                   </Modal.Body>
                 </Modal.Content>
               </Modal>
