@@ -156,6 +156,7 @@ const Plans = ({ navigation }: any) => {
     qrImageUrl?: string;
     amount?: number;
     planName?: string;
+    key?: string;
   } | null>(null);
   const [qrPolling, setQrPolling] = useState(false);
   const [verifyingStatus, setVerifyingStatus] = useState(false);
@@ -163,6 +164,10 @@ const Plans = ({ navigation }: any) => {
   const [inAppWebPaymentUrl, setInAppWebPaymentUrl] = useState<string | null>(null);
   const [upiUtrInput, setUpiUtrInput] = useState("");
   const [submittingUtr, setSubmittingUtr] = useState(false);
+  const [hasUpiApp, setHasUpiApp] = useState(true);
+  const [vpaInput, setVpaInput] = useState("");
+  const [sendingCollectRequest, setSendingCollectRequest] = useState(false);
+  const [showUtrSection, setShowUtrSection] = useState(false);
 
   const [order, setOrder] = useState({
     _id: "",
@@ -173,6 +178,28 @@ const Plans = ({ navigation }: any) => {
     prices: { discountPrice: "0", offer: 0, price: "0" } });
 
   const { userData, setUserData } = useContext(ThemeContext);
+  // Detect if any UPI app is installed on this device
+  useEffect(() => {
+    let isMounted = true;
+    const detect = async () => {
+      try {
+        const [canUpi, canGPay, canPhonePe, canPaytm] = await Promise.all([
+          Linking.canOpenURL('upi://pay'),
+          Linking.canOpenURL('gpay://upi'),
+          Linking.canOpenURL('phonepe://'),
+          Linking.canOpenURL('paytmmp://'),
+        ]);
+        if (isMounted) {
+          setHasUpiApp(Boolean(canUpi || canGPay || canPhonePe || canPaytm));
+        }
+      } catch (_) {
+        if (isMounted) setHasUpiApp(false);
+      }
+    };
+    detect();
+    return () => { isMounted = false; };
+  }, []);
+
   const Top = (insets.top = 62);
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -473,6 +500,7 @@ const Plans = ({ navigation }: any) => {
           qrImageUrl: cleanQrUrl,
           amount: effectiveAmount,
           planName: res.data.planName || (order as any)?.name || "Plan",
+          key: res.data.key,
         });
 
         // Always show the dedicated QR modal so ANY user can scan or copy UPI ID
@@ -491,6 +519,47 @@ const Plans = ({ navigation }: any) => {
     }
   };
 
+
+
+  // Send UPI Collect request to parent's or user's UPI ID via Razorpay (Zero UTR entry)
+  const handlePayViaVpaCollect = async () => {
+    const cleanVpa = vpaInput.trim();
+    if (!cleanVpa || !cleanVpa.includes("@") || cleanVpa.length < 5) {
+      Alert.alert(
+        "Invalid UPI ID",
+        "Please enter a valid UPI ID (e.g. 9876543210@paytm, name@okhdfcbank, or parent@okaxis)."
+      );
+      return;
+    }
+
+    setSendingCollectRequest(true);
+    setShowQrModal(false);
+    setQrPolling(false);
+
+    try {
+      const activeCouponCode = (couponChecked && verifiedCoupon?.couponCode) ? verifiedCoupon.couponCode : undefined;
+      let orderId = qrOrderData?.orderId;
+      let key = qrOrderData?.key || userData?.key;
+      let amount = qrOrderData?.amount || finalPayableAmount;
+
+      if (!orderId) {
+        const orderRes = await axiosInstance.post("authentication/create-order", {
+          planId: order._id,
+          couponCode: activeCouponCode,
+          useRedeemedPoints: useRedeemedPoints,
+        });
+        orderId = orderRes.data.orderId;
+        key = orderRes.data.key || key;
+        amount = orderRes.data.amount || amount;
+      }
+
+      setSendingCollectRequest(false);
+      openRazorpay(orderId, key, amount, activeCouponCode, cleanVpa);
+    } catch (err: any) {
+      setSendingCollectRequest(false);
+      Alert.alert("Payment Error", err?.response?.data?.message || err?.message || "Failed to initiate UPI request. Please try again.");
+    }
+  };
 
   // Submit 12-digit UPI UTR / Reference number for instant plan activation
   const submitUpiUtrPayment = async () => {
@@ -667,7 +736,8 @@ const Plans = ({ navigation }: any) => {
     orderId: any,
     keyFromOrder?: string,
     payableOverride?: number,
-    appliedCouponCode?: string
+    appliedCouponCode?: string,
+    vpaPrefill?: string
   ) => {
     const hasCheckoutModule = !!(NativeModules as any)?.RNRazorpayCheckout;
     const canCallOpen = typeof (RazorpayCheckout as any)?.open === "function";
@@ -729,12 +799,16 @@ const Plans = ({ navigation }: any) => {
         display: {
           blocks: {
             upi: {
-              name: "Pay via UPI / QR",
+              name: "Pay via UPI",
               instruments: [
                 {
                   method: "upi",
-                  flows: ["qr", "collect", "intent"],
+                  flows: ["intent"],
                   apps: ["google_pay", "phonepe", "paytm", "bhim", "cred"],
+                },
+                {
+                  method: "upi",
+                  flows: ["collect"],
                 },
               ],
             },
@@ -1510,38 +1584,87 @@ const Plans = ({ navigation }: any) => {
                       <Text style={styles.qrLiveStatusText}>Waiting for payment confirmation...</Text>
                     </View>
 
-                    {/* Instant UTR / UPI Ref Entry Section */}
-                    <View style={styles.qrUtrBox}>
-                      <View style={styles.qrUtrHeader}>
-                        <FontAwesomeIcon icon={faReceipt} size={13} color="#028464" />
-                        <Text style={styles.qrUtrTitle}>Paid? Enter UPI Ref / UTR to Activate</Text>
+                    {/* Enter Parent / Any UPI ID Section (Zero UTR entry needed) */}
+                    <View style={styles.qrVpaBox}>
+                      <View style={styles.qrVpaHeader}>
+                        <FontAwesomeIcon icon={faBolt} size={13} color="#166534" />
+                        <Text style={styles.qrVpaTitle}>
+                          {!hasUpiApp ? "Pay via Parent's or Any UPI ID" : "Or Pay via UPI ID (VPA)"}
+                        </Text>
                       </View>
-                      <Text style={styles.qrUtrSubtitle}>
-                        After paying via Google Pay, PhonePe or Paytm, enter the 12-digit UPI Ref / UTR number from your payment receipt:
+                      <Text style={styles.qrVpaSubtitle}>
+                        {!hasUpiApp
+                          ? "No UPI app on this device? Enter your parent's UPI ID to send a direct payment request to their phone:"
+                          : "Enter any UPI ID to receive a payment request notification in that UPI app:"}
                       </Text>
-                      <View style={styles.qrUtrInputRow}>
+                      <View style={styles.qrVpaInputRow}>
                         <TextInput
-                          style={styles.qrUtrInput}
-                          placeholder="e.g. 430981726481"
+                          style={styles.qrVpaInput}
+                          placeholder="e.g. 9876543210@paytm or parent@okhdfcbank"
                           placeholderTextColor="#94a3b8"
-                          value={upiUtrInput}
-                          onChangeText={setUpiUtrInput}
-                          keyboardType="numeric"
-                          maxLength={22}
+                          value={vpaInput}
+                          onChangeText={setVpaInput}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          keyboardType="email-address"
                         />
                         <TouchableOpacity
-                          style={[styles.qrUtrSubmitBtn, (!upiUtrInput.trim() || submittingUtr) ? styles.qrUtrSubmitBtnDisabled : null]}
-                          disabled={!upiUtrInput.trim() || submittingUtr}
-                          onPress={submitUpiUtrPayment}
+                          style={[styles.qrVpaSubmitBtn, (!vpaInput.trim() || sendingCollectRequest) ? styles.qrVpaSubmitBtnDisabled : null]}
+                          disabled={!vpaInput.trim() || sendingCollectRequest}
+                          onPress={handlePayViaVpaCollect}
                         >
-                          {submittingUtr ? (
+                          {sendingCollectRequest ? (
                             <ActivityIndicator size="small" color="#FFF" />
                           ) : (
-                            <Text style={styles.qrUtrSubmitBtnText}>Activate Plan</Text>
+                            <Text style={styles.qrVpaSubmitBtnText}>Send Request</Text>
                           )}
                         </TouchableOpacity>
                       </View>
                     </View>
+
+                    {/* Secondary Collapsible: Paid using standee QR? Enter UTR */}
+                    <TouchableOpacity
+                      style={styles.qrUtrToggleBtn}
+                      onPress={() => setShowUtrSection(!showUtrSection)}
+                    >
+                      <Text style={styles.qrUtrToggleText}>
+                        {showUtrSection ? "Hide UTR reference entry ▲" : "Paid by scanning standee QR? Enter UTR ▼"}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {showUtrSection ? (
+                      <View style={styles.qrUtrBox}>
+                        <View style={styles.qrUtrHeader}>
+                          <FontAwesomeIcon icon={faReceipt} size={12} color="#028464" />
+                          <Text style={styles.qrUtrTitle}>Enter 12-digit UPI Ref / UTR to Activate</Text>
+                        </View>
+                        <Text style={styles.qrUtrSubtitle}>
+                          If you scanned the QR standee directly, enter the 12-digit UTR from your payment receipt:
+                        </Text>
+                        <View style={styles.qrUtrInputRow}>
+                          <TextInput
+                            style={styles.qrUtrInput}
+                            placeholder="e.g. 430981726481"
+                            placeholderTextColor="#94a3b8"
+                            value={upiUtrInput}
+                            onChangeText={setUpiUtrInput}
+                            keyboardType="numeric"
+                            maxLength={22}
+                          />
+                          <TouchableOpacity
+                            style={[styles.qrUtrSubmitBtn, (!upiUtrInput.trim() || submittingUtr) ? styles.qrUtrSubmitBtnDisabled : null]}
+                            disabled={!upiUtrInput.trim() || submittingUtr}
+                            onPress={submitUpiUtrPayment}
+                          >
+                            {submittingUtr ? (
+                              <ActivityIndicator size="small" color="#FFF" />
+                            ) : (
+                              <Text style={styles.qrUtrSubmitBtnText}>Activate Plan</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : null}
 
 
                     {/* Secondary Actions in 2-Column Row */}
@@ -2487,6 +2610,81 @@ const Plans = ({ navigation }: any) => {
     fontWeight: '600',
   },
 
+
+  qrVpaBox: {
+    width: '100%',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1.5,
+    borderColor: '#bbf7d0',
+    borderRadius: 14,
+    padding: wp(3),
+    marginBottom: hp(1.2),
+  },
+  qrVpaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  qrVpaTitle: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.1),
+    fontWeight: '700',
+    color: '#166534',
+    marginLeft: 6,
+  },
+  qrVpaSubtitle: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(2.7),
+    color: '#334155',
+    lineHeight: wp(3.8),
+    marginBottom: 8,
+  },
+  qrVpaInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  qrVpaInput: {
+    flex: 1,
+    height: 42,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#86efac',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.2),
+    color: '#0f172a',
+  },
+  qrVpaSubmitBtn: {
+    backgroundColor: '#028464',
+    paddingHorizontal: 14,
+    height: 42,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrVpaSubmitBtnDisabled: {
+    backgroundColor: '#94a3b8',
+    opacity: 0.6,
+  },
+  qrVpaSubmitBtnText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3),
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  qrUtrToggleBtn: {
+    paddingVertical: 4,
+    alignItems: 'center',
+    marginBottom: hp(0.8),
+  },
+  qrUtrToggleText: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(2.8),
+    color: '#64748b',
+    textDecorationLine: 'underline',
+  },
   qrUtrBox: {
     width: '100%',
     backgroundColor: '#f8fafc',
