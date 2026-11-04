@@ -1443,20 +1443,11 @@ const Plans = ({ navigation }: any) => {
                           </View>
                         </View>
 
-                        {/* Payee UPI ID display embedded in the card */}
-                        {qrOrderData?.upiId ? (
-                          <View style={styles.qrCardUpiPill}>
-                            <Text style={styles.qrCardUpiPillLabel}>UPI ID:</Text>
-                            <Text style={styles.qrCardUpiPillValue} numberOfLines={1} ellipsizeMode="middle">
-                              {qrOrderData.upiId}
-                            </Text>
-                          </View>
-                        ) : (
-                          <View style={styles.qrCardUpiPill}>
-                            <Text style={styles.qrCardUpiPillLabel}>SECURE:</Text>
-                            <Text style={styles.qrCardUpiPillValue}>Razorpay Verified UPI</Text>
-                          </View>
-                        )}
+                        {/* Razorpay verified badge embedded in the card */}
+                        <View style={styles.qrCardUpiPill}>
+                          <Text style={styles.qrCardUpiPillLabel}>SECURE:</Text>
+                          <Text style={styles.qrCardUpiPillValue}>Razorpay Verified UPI</Text>
+                        </View>
                       </ViewShot>
                     )}
 
@@ -1499,84 +1490,31 @@ const Plans = ({ navigation }: any) => {
                       </View>
                     </TouchableOpacity>
 
-                    {/* Payee UPI ID display with integrated Copy and Share */}
-                    {qrOrderData?.upiId ? (
-                      <View style={styles.qrUpiIdBar}>
-                        <View style={styles.qrUpiIdLeft}>
-                          <Text style={styles.qrUpiIdLabel}>PAYEE UPI ID</Text>
-                          <Text style={styles.qrUpiIdValue} numberOfLines={1} ellipsizeMode="middle">
-                            {qrOrderData.upiId}
-                          </Text>
-                        </View>
-                        <View style={styles.qrUpiActionsGroup}>
-                          <TouchableOpacity
-                            style={styles.qrActionChip}
-                            onPress={async () => {
-                              const upi = qrOrderData?.upiId || '';
-                              let copied = false;
-                              try {
-                                const RNCClipboard = (NativeModules as any)?.RNCClipboard;
-                                if (RNCClipboard?.setString) {
-                                  RNCClipboard.setString(upi);
-                                  copied = true;
-                                }
-                              } catch (_) {}
-                              if (!copied) {
-                                try {
-                                  if (Share?.share) {
-                                    await Share.share({ message: upi });
-                                  }
-                                } catch (_) {}
-                              }
-                              setCopiedUpi(true);
-                              setTimeout(() => setCopiedUpi(false), 2000);
-                            }}
-                          >
-                            <FontAwesomeIcon icon={copiedUpi ? faCircleCheck : faCopy} size={11} color="#028464" />
-                            <Text style={styles.qrActionChipText}>{copiedUpi ? "Copied" : "Copy"}</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.qrActionChip}
-                            disabled={isSharingQr}
-                            onPress={handleShareQrWithUpi}
-                          >
-                            {isSharingQr ? (
-                              <ActivityIndicator size="small" color="#028464" />
-                            ) : (
-                              <>
-                                <FontAwesomeIcon icon={faShareNodes} size={11} color="#028464" />
-                                <Text style={styles.qrActionChipText}>Share</Text>
-                              </>
-                            )}
-                          </TouchableOpacity>
-                        </View>
+                    {/* Payment Method Info Bar */}
+                    <View style={styles.qrUpiIdBar}>
+                      <View style={styles.qrUpiIdLeft}>
+                        <Text style={styles.qrUpiIdLabel}>PAYMENT METHOD</Text>
+                        <Text style={styles.qrUpiIdValue} numberOfLines={1}>
+                          Razorpay Official UPI
+                        </Text>
                       </View>
-                    ) : (
-                      <View style={styles.qrUpiIdBar}>
-                        <View style={styles.qrUpiIdLeft}>
-                          <Text style={styles.qrUpiIdLabel}>PAYMENT METHOD</Text>
-                          <Text style={styles.qrUpiIdValue} numberOfLines={1}>
-                            Razorpay Verified UPI
-                          </Text>
-                        </View>
-                        <View style={styles.qrUpiActionsGroup}>
-                          <TouchableOpacity
-                            style={styles.qrActionChip}
-                            disabled={isSharingQr}
-                            onPress={handleShareQrWithUpi}
-                          >
-                            {isSharingQr ? (
-                              <ActivityIndicator size="small" color="#028464" />
-                            ) : (
-                              <>
-                                <FontAwesomeIcon icon={faShareNodes} size={11} color="#028464" />
-                                <Text style={styles.qrActionChipText}>Share QR</Text>
-                              </>
-                            )}
-                          </TouchableOpacity>
-                        </View>
+                      <View style={styles.qrUpiActionsGroup}>
+                        <TouchableOpacity
+                          style={styles.qrActionChip}
+                          disabled={isSharingQr}
+                          onPress={handleShareQrWithUpi}
+                        >
+                          {isSharingQr ? (
+                            <ActivityIndicator size="small" color="#028464" />
+                          ) : (
+                            <>
+                              <FontAwesomeIcon icon={faShareNodes} size={11} color="#028464" />
+                              <Text style={styles.qrActionChipText}>Share QR</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
                       </View>
-                    )}
+                    </View>
 
                     {/* Live Polling Status */}
                     <View style={styles.qrLiveStatusPill}>
