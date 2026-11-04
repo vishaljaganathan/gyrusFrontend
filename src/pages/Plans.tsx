@@ -24,6 +24,7 @@ import {
   faCheck,
   faArrowRight,
   faClock,
+  faReceipt,
   faCrown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import RazorpayCheckout from "react-native-razorpay";
@@ -160,6 +161,8 @@ const Plans = ({ navigation }: any) => {
   const [verifyingStatus, setVerifyingStatus] = useState(false);
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [inAppWebPaymentUrl, setInAppWebPaymentUrl] = useState<string | null>(null);
+  const [upiUtrInput, setUpiUtrInput] = useState("");
+  const [submittingUtr, setSubmittingUtr] = useState(false);
 
   const [order, setOrder] = useState({
     _id: "",
@@ -450,9 +453,14 @@ const Plans = ({ navigation }: any) => {
         // Verified active working UPI ID for Gyrus NEET / Sri Aurobindo Infotech
         const upiId = (res.data.upiId && !res.data.upiId.startsWith('rpy.payto'))
           ? res.data.upiId
-          : 'gyrusneet996295.rzp@rxairtel';
-        const upiUri = `upi://pay?pa=${upiId}&pn=GYRUSNEET&am=${formattedAmount}&cu=INR`;
-        const cleanQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=10&data=${encodeURIComponent(upiUri)}`;
+          : 'gpay-11187254107@okbizaxis';
+        const cleanNote = ((order as any)?.name ? `Payment for ${(order as any).name}` : 'GYRUS NEET').replace(/[^a-zA-Z0-9 ]/g, '').trim();
+        const cleanTr = (res.data.orderId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 35);
+        const upiUri = res.data.upiIntentUri || `upi://pay?pa=${upiId}&pn=GYRUS%20NEET&mc=5399&am=${formattedAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}&tr=${cleanTr}`;
+        // Prefer instant base64 QR from backend; fallback to public QR services
+        const cleanQrUrl = (res.data.qrImageUrl && res.data.qrImageUrl.length > 50)
+          ? res.data.qrImageUrl
+          : `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=10&data=${encodeURIComponent(upiUri)}`;
 
         setQrOrderData({
           orderId: res.data.orderId,
@@ -467,12 +475,9 @@ const Plans = ({ navigation }: any) => {
           planName: res.data.planName || (order as any)?.name || "Plan",
         });
 
+        // Always show the dedicated QR modal so ANY user can scan or copy UPI ID
         setShowOrder(false);
-        if (res.data.paymentUrl) {
-          setInAppWebPaymentUrl(res.data.paymentUrl);
-        } else {
-          setShowQrModal(true);
-        }
+        setShowQrModal(true);
         setQrPolling(true);
       }
     } catch (err: any) {
@@ -482,6 +487,54 @@ const Plans = ({ navigation }: any) => {
       Alert.alert(
         "UPI Payment Issue",
         err?.response?.data?.message || "Failed to initialize UPI QR payment. Please try again or pay with cards/netbanking."
+      );
+    }
+  };
+
+
+  // Submit 12-digit UPI UTR / Reference number for instant plan activation
+  const submitUpiUtrPayment = async () => {
+    const cleanUtr = upiUtrInput.trim().replace(/\s+/g, '');
+    if (!cleanUtr || cleanUtr.length < 8) {
+      Alert.alert(
+        "Invalid UPI Reference",
+        "Please enter the complete 12-digit UPI Reference Number / UTR from your payment receipt (Google Pay, PhonePe, Paytm, BHIM, etc.)."
+      );
+      return;
+    }
+
+    setSubmittingUtr(true);
+    try {
+      const activeCouponCode = (couponChecked && verifiedCoupon?.couponCode) ? verifiedCoupon.couponCode : undefined;
+      const res = await axiosInstance.post("authentication/verify-upi-payment", {
+        planId: order._id,
+        utr: cleanUtr,
+        orderId: qrOrderData?.orderId,
+        couponCode: activeCouponCode,
+        useRedeemedPoints: useRedeemedPoints,
+        state: userData?.state,
+      });
+
+      setSubmittingUtr(false);
+      if (res?.data?.paid || res?.data?.success || res?.data?.status === 'paid') {
+        setQrPolling(false);
+        setShowQrModal(false);
+        setUpiUtrInput("");
+        setShowPayment(true);
+        setshowPaymentStatus(true);
+        refreshUserAndResolvePaymentStatus();
+      } else {
+        Alert.alert(
+          "Payment Pending",
+          res?.data?.message || "Could not verify UPI payment reference. Please ensure the reference number is correct."
+        );
+      }
+    } catch (err: any) {
+      setSubmittingUtr(false);
+      console.error("UTR verification error:", err);
+      Alert.alert(
+        "Verification Failed",
+        err?.response?.data?.message || "Failed to verify UPI payment reference. Please check the number and try again."
       );
     }
   };
@@ -1287,6 +1340,14 @@ const Plans = ({ navigation }: any) => {
                               source={{ uri: qrOrderData.qrImageUrl }}
                               style={styles.qrImage}
                               resizeMode="contain"
+                              onError={() => {
+                                if (qrOrderData?.upiIntentUri) {
+                                  const fallbackUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrOrderData.upiIntentUri)}&size=350&margin=2`;
+                                  if (qrOrderData.qrImageUrl !== fallbackUrl) {
+                                    setQrOrderData((prev: any) => ({ ...prev, qrImageUrl: fallbackUrl }));
+                                  }
+                                }
+                              }}
                             />
                           ) : (
                             <View style={[styles.qrImage, { alignItems: 'center', justifyContent: 'center' }]}>
@@ -1328,10 +1389,29 @@ const Plans = ({ navigation }: any) => {
                     {/* Direct on-device UPI pay button with Brand Badges */}
                     <TouchableOpacity
                       style={styles.qrPrimaryPayBtn}
-                      onPress={() => {
-                        setShowQrModal(false);
-                        setQrPolling(false);
-                        createOrder(order._id);
+                      onPress={async () => {
+                        const upiUri = qrOrderData?.upiIntentUri;
+                        if (upiUri) {
+                          try {
+                            const canOpen = await Linking.canOpenURL(upiUri);
+                            if (canOpen) {
+                              await Linking.openURL(upiUri);
+                              return;
+                            }
+                          } catch (_) {}
+                        }
+                        const hasCheckoutModule = !!(NativeModules as any)?.RNRazorpayCheckout;
+                        if (hasCheckoutModule && order?._id) {
+                          setShowQrModal(false);
+                          setQrPolling(false);
+                          createOrder(order._id);
+                          return;
+                        }
+                        Alert.alert(
+                          "No UPI App Detected",
+                          "No UPI apps (like GPay, PhonePe, or Paytm) were detected on this device. Please scan the QR code above with any UPI app on another phone, or copy the UPI ID to pay.",
+                          [{ text: "OK" }]
+                        );
                       }}
                     >
                       <View style={styles.qrPrimaryPayLeft}>
@@ -1429,6 +1509,40 @@ const Plans = ({ navigation }: any) => {
                       <ActivityIndicator size="small" color="#028464" />
                       <Text style={styles.qrLiveStatusText}>Waiting for payment confirmation...</Text>
                     </View>
+
+                    {/* Instant UTR / UPI Ref Entry Section */}
+                    <View style={styles.qrUtrBox}>
+                      <View style={styles.qrUtrHeader}>
+                        <FontAwesomeIcon icon={faReceipt} size={13} color="#028464" />
+                        <Text style={styles.qrUtrTitle}>Paid? Enter UPI Ref / UTR to Activate</Text>
+                      </View>
+                      <Text style={styles.qrUtrSubtitle}>
+                        After paying via Google Pay, PhonePe or Paytm, enter the 12-digit UPI Ref / UTR number from your payment receipt:
+                      </Text>
+                      <View style={styles.qrUtrInputRow}>
+                        <TextInput
+                          style={styles.qrUtrInput}
+                          placeholder="e.g. 430981726481"
+                          placeholderTextColor="#94a3b8"
+                          value={upiUtrInput}
+                          onChangeText={setUpiUtrInput}
+                          keyboardType="numeric"
+                          maxLength={22}
+                        />
+                        <TouchableOpacity
+                          style={[styles.qrUtrSubmitBtn, (!upiUtrInput.trim() || submittingUtr) ? styles.qrUtrSubmitBtnDisabled : null]}
+                          disabled={!upiUtrInput.trim() || submittingUtr}
+                          onPress={submitUpiUtrPayment}
+                        >
+                          {submittingUtr ? (
+                            <ActivityIndicator size="small" color="#FFF" />
+                          ) : (
+                            <Text style={styles.qrUtrSubmitBtnText}>Activate Plan</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
 
                     {/* Secondary Actions in 2-Column Row */}
                     <View style={styles.qrBottomActionsRow}>
@@ -2371,6 +2485,70 @@ const Plans = ({ navigation }: any) => {
     color: '#028464',
     marginLeft: 4,
     fontWeight: '600',
+  },
+
+  qrUtrBox: {
+    width: '100%',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    padding: wp(3),
+    marginBottom: hp(1.2),
+  },
+  qrUtrHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  qrUtrTitle: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.1),
+    fontWeight: '700',
+    color: '#0f172a',
+    marginLeft: 6,
+  },
+  qrUtrSubtitle: {
+    fontFamily: 'AppFont-Regular',
+    fontSize: wp(2.7),
+    color: '#64748b',
+    lineHeight: wp(3.8),
+    marginBottom: 8,
+  },
+  qrUtrInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  qrUtrInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3.2),
+    color: '#0f172a',
+  },
+  qrUtrSubmitBtn: {
+    backgroundColor: '#028464',
+    paddingHorizontal: 14,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrUtrSubmitBtnDisabled: {
+    backgroundColor: '#94a3b8',
+    opacity: 0.6,
+  },
+  qrUtrSubmitBtnText: {
+    fontFamily: 'AppFont-Bold',
+    fontSize: wp(3),
+    fontWeight: '700',
+    color: '#ffffff',
   },
   qrLiveStatusPill: {
     flexDirection: 'row',
